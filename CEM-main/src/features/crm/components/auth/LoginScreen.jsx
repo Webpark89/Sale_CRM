@@ -19,7 +19,9 @@ export default function LoginScreen({ onLogin }) {
 
     // จำลองเวลาโหลด 0.6 วินาทีเพื่อให้ดูสมจริง
     setTimeout(() => {
-      if (user === "crm" && pass === "1234") {
+      const isAdmin = user === "admin" && pass === "123456"; 
+      const isCRM = user === "crm" && pass === "1234";      
+      if (isAdmin || isCRM) {
         localStorage.setItem("crm_session", "authenticated");
         onLogin();
       } else {
