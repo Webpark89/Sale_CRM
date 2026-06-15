@@ -162,7 +162,7 @@ export default function Reports({ leads }) {
               </div>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, border: `1px solid ${RG.border}`, borderRadius: 8, overflow: "hidden" }}>
                 <thead>
-                  <tr style={{ background: "#F8E8EC", borderBottom: `1px solid ${RG.border}` }}>
+                  <tr style={{ background: RG.rowEven || "#F2EAE4", borderBottom: `1px solid ${RG.border}` }}>
                     <th style={{ padding: "12px 16px", textAlign: "left", width: "35%" }}>ชื่อบริษัท</th>
                     <th style={{ padding: "12px 16px", textAlign: "left", width: "25%" }}>ผู้ติดต่อ</th>
                     <th style={{ padding: "12px 16px", textAlign: "left", width: "20%" }}>เบอร์โทร</th>
