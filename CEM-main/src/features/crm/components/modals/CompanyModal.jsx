@@ -144,10 +144,10 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
               {editing ? (
                 <>
                   <Btn onClick={handleSaveInfo} disabled={!!taxIdError}>บันทึก</Btn>
-                  <Btn variant="secondary" onClick={() => { setForm({ ...lead }); setEditing(false); setTaxIdError(""); }}>ยกเลิก</Btn>
+                  <Btn variant="Third" onClick={() => { setForm({ ...lead }); setEditing(false); setTaxIdError(""); }}>ยกเลิก</Btn>
                 </>
               ) : (
-                <Btn variant="secondary" onClick={() => setEditing(true)}>แก้ไข</Btn>
+                <Btn variant="Third" onClick={() => setEditing(true)}>แก้ไข</Btn>
               )}
             </div>
           </div>
@@ -181,7 +181,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
               {!showFollowForm ? (
                 <Btn onClick={() => setShowFollowForm(true)}>+ เพิ่มการติดตาม</Btn>
               ) : (
-                <div style={{ background: "#FFF9FA", border: `1px solid ${RG.border}`, borderRadius: 12, padding: 20 }}>
+                <div style={{ background: "#ffffff", border: `1px solid ${RG.border}`, borderRadius: 12, padding: 20 }}>
                   <h4 style={{ margin: "0 0 16px", color: RG.text, fontSize: 14 }}>บันทึกการติดตามใหม่</h4>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
                     <Field label="ครั้งที่"><select value={fForm.sequence} onChange={e => setFForm(f => ({ ...f, sequence: Number(e.target.value) }))} style={selectStyle}>{Array.from({ length: 50 }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}</select></Field>
@@ -192,7 +192,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                   <Field label="รายละเอียด"><textarea value={fForm.detail} onChange={e => setFForm(f => ({ ...f, detail: e.target.value }))} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></Field>
                   <div style={{ display: "flex", gap: 8 }}>
                     <Btn onClick={() => { onSaveFollowup(lead.id, fForm); setShowFollowForm(false); setFForm({ sequence: nextSeq + 1, date: today(), detail: "", status: STATUSES[0], nextFollowupDate: "", completed: false }); }}>บันทึก</Btn>
-                    <Btn variant="secondary" onClick={() => setShowFollowForm(false)}>ยกเลิก</Btn>
+                    <Btn variant="Third" onClick={() => setShowFollowForm(false)}>ยกเลิก</Btn>
                   </div>
                 </div>
               )}

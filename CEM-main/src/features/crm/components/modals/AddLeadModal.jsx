@@ -79,7 +79,7 @@ export default function AddLeadModal({ onClose, onSave, leads = [] }) {
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
         {/* 6. ผูกฟังก์ชัน handleSave และปิดปุ่มกดหากมี Error */}
         <Btn onClick={handleSave} disabled={!!taxIdError}>บันทึก</Btn>
-        <Btn variant="secondary" onClick={onClose}>ยกเลิก</Btn>
+        <Btn variant="Third" onClick={onClose}>ยกเลิก</Btn>
       </div>
     </Modal>
   );

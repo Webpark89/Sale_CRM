@@ -279,8 +279,8 @@ export default function App() {
               </div>
 
               <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-                <Btn small variant="secondary" onClick={exportJSON}>⬇ Export JSON</Btn>
-                <label style={{ padding: "6px 14px", borderRadius: 8, background: "#f5e6ea", color: RG.primary, border: `1px solid ${RG.border}`, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                <Btn small variant="Third" onClick={exportJSON}>⬇ Export JSON</Btn>
+                <label style={{ padding: "6px 14px", borderRadius: 8, background: "#ffffff", color: RG.primary, border: `1px solid ${RG.border}`, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
                   ⬆ Import <input type="file" accept=".json" onChange={importFile} style={{ display: "none" }} />
                 </label>
               </div>
@@ -350,7 +350,7 @@ export default function App() {
                   </tbody>
                 </table>
               </div>
-              <div style={{ padding: "10px 16px", background: "#FFF5F6", borderTop: `1px solid ${RG.border}`, fontSize: 12, color: RG.textMuted, display: "flex", justifyContent: "space-between" }}>
+              <div style={{ padding: "10px 16px", background: "#ffffff", borderTop: `1px solid ${RG.border}`, fontSize: 12, color: RG.textMuted, display: "flex", justifyContent: "space-between" }}>
                 <span>แสดง {filtered.length} จาก {leads.length} รายการ</span>
                 {filterStatus.length > 0 && <span>กรอง: {filterStatus.join(", ")}</span>}
               </div>

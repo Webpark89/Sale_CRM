@@ -20,6 +20,7 @@ export default function Btn({ onClick, children, variant = "primary", small, sty
     secondary: { background: "#f5e6ea", color: RG.primary, border: `1px solid ${RG.border}` },
     danger: { background: "#ffecec", color: RG.danger, border: "1px solid #ffcccc" },
     success: { background: "#e8f7ef", color: RG.success, border: "1px solid #b2e4cb" },
+    Third: { background: "#ffffff", color: RG.primary, border: `1px solid ${RG.border}` },
   };
 
   return (
