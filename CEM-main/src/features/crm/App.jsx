@@ -314,8 +314,18 @@ export default function App() {
                     )}
                     {filtered.map((lead, i) => {
                       const isDup = dupNumbers.includes(lead.companyNumber);
+                      
+                      // 1. ดึงประวัติการติดตามทั้งหมดของลีดรายการนี้
+                      const leadFollowups = followups[lead.id] || [];
+                      
+                      // 2. ตรวจสอบว่า "สถานะปัจจุบัน" หรือ "ประวัติที่ผ่านมา" เคยเป็น "มีตติ้ง" หรือไม่
+                      const hasMeetingHistory = lead.latestStatus === "มีตติ้ง" || leadFollowups.some(f => f.status === "มีตติ้ง");
+                      
+                      // 3. กำหนดสีพื้นหลัง: ถ้าเคยมีตติ้งให้ใช้สีส้มอ่อน (#ffeed9) ถ้าไม่เคย ให้สลับสีตามเดิม
+                      const rowBackground = hasMeetingHistory ? "#FFFF00" : (i % 2 === 0 ? RG.rowOdd : RG.rowEven);
+
                       return (
-                        <tr key={lead.id} style={{ background: i % 2 === 0 ? RG.rowOdd : RG.rowEven, borderBottom: "1px solid #f5e0e4" }}>
+                        <tr key={lead.id} style={{ background: rowBackground, borderBottom: "1px solid #f5e0e4" }}>
                           <td style={{ padding: "8px 10px", textAlign: "center" }}>
                             <input type="checkbox" checked={checked.includes(lead.id)} onChange={e => setChecked(c => (e.target.checked ? [...c, lead.id] : c.filter(x => x !== lead.id)))} />
                           </td>
