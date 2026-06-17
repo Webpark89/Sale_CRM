@@ -29,7 +29,7 @@ export default function EditableCell({ value, onSave, type = "text", options }) 
           // 🔥 แก้ไขบรรทัด color ให้ดึงสีตามสถานะแบบไดนามิก:
           color: STATUS_COLORS[val] ? STATUS_COLORS[val] : RG.text, 
           // 🔥 เพิ่มบรรทัดนี้เพื่อให้ตัวอักษรหนาขึ้นทุกสถานะที่ระบุสี (ดูเด่นชัดขึ้นเหมือนภาพฟิลเตอร์)
-          fontWeight: STATUS_COLORS[val] ? 700 : 400,
+          
           fontSize: 13 
         }} 
         title="คลิกเพื่อแก้ไข"

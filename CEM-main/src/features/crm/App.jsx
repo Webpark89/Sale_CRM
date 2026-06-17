@@ -128,7 +128,7 @@ export default function App() {
     updateLeads(newLeads);
     setSelectedLead(updated);
   };
-
+  
   const saveFollowup = (leadId, fForm) => {
     // 1. สร้าง object ของรายการติดตามใหม่
     const newFup = { 
@@ -383,7 +383,7 @@ export default function App() {
                         leadFollowups.some(f => f.status === "มีตติ้ง");
                       
                       // 3. กำหนดสีพื้นหลัง: ถ้าเคยมีตติ้งให้ใช้สีส้มอ่อน (#ffeed9) ถ้าไม่เคย ให้สลับสีตามเดิม
-                      const rowBackground = hasMeetingHistory ? "#ffff4d" : (i % 2 === 0 ? RG.rowOdd : RG.rowEven);
+                      const rowBackground = hasMeetingHistory ? "linear-gradient(90deg, #ff9933, #ffff4d)" : (i % 2 === 0 ? RG.rowOdd : RG.rowEven);
 
                       return (
                         <tr key={lead.id} style={{ background: rowBackground, borderBottom: "1px solid #f5e0e4" }}>
