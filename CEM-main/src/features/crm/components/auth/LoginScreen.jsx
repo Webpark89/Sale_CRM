@@ -77,7 +77,7 @@ export default function LoginScreen({ onLogin }) {
           transition: transform 0.1s, filter 0.2s;
         }
         .btn-submit:hover:not(:disabled) {
-          filter: brightness(1.05);
+          filter: brightness(1.10);
         }
         .btn-submit:active:not(:disabled) {
           transform: scale(0.98);
@@ -88,7 +88,7 @@ export default function LoginScreen({ onLogin }) {
         
         {/* Logo & Header */}
         <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div style={{ width: 72, height: 72, background: RG.gradient || "linear-gradient(135deg, #d6406e 0%, #a42c54 100%)", borderRadius: 20, margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 16px rgba(214, 64, 110, 0.25)" }}>
+          <div style={{ width: 72, height: 72, background: RG.gradient || "linear-gradient(135deg, #d6406e 0%, #a42c54 100%)", borderRadius: 20, margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 16px rgba(160, 160, 160, 0.3)" }}>
             <span style={{ fontSize: 32, color: "#fff", fontWeight: 700 }}>Q</span>
           </div>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: RG.text || "#333", letterSpacing: "-0.5px" }}>QoraQot CRM</h1>
@@ -155,11 +155,11 @@ export default function LoginScreen({ onLogin }) {
           className="btn-submit"
           onClick={handleLogin} 
           disabled={isLoading}
-          style={{ 
+          style={{  
             width: "100%", 
             padding: "14px", 
             borderRadius: 10, 
-            background: isLoading ? "#ccc" : (RG.gradient || "linear-gradient(135deg, #d6406e 0%, #a42c54 100%)"), 
+            background: isLoading ? "#ccc" : (RG.gradient || "linear-gradient(135deg, #D3D3D3 0%, #F5F5F5 100%)"), 
             border: "none", 
             color: "#fff", 
             fontWeight: 600, 
@@ -169,7 +169,7 @@ export default function LoginScreen({ onLogin }) {
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
-            boxShadow: isLoading ? "none" : "0 4px 12px rgba(214, 64, 110, 0.3)",
+            boxShadow: isLoading ? "none" : "0 4px 12px rgba(160, 160, 160, 0.3)",
             fontFamily: "'Sarabun', sans-serif"
           }}
         >

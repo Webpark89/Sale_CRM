@@ -118,10 +118,43 @@ export default function App() {
   };
 
   const saveFollowup = (leadId, fForm) => {
-    const newFup = { id: uuid(), leadId, ...fForm, completed: false, createdAt: new Date().toISOString() };
-    const newFollowups = { ...followups, [leadId]: [...(followups[leadId] || []), newFup] };
-    const newLeads = leads.map(l => (l.id === leadId ? { ...l, latestStatus: fForm.status, latestContactDate: fForm.date, nextFollowupDate: fForm.nextFollowupDate, updatedAt: new Date().toISOString() } : l));
+    // 1. สร้าง object ของรายการติดตามใหม่
+    const newFup = { 
+      id: uuid(), 
+      leadId, 
+      ...fForm, 
+      completed: false, 
+      createdAt: new Date().toISOString() 
+    };
+    
+    // 2. อัปเดต list ของ followups
+    const newFollowups = { 
+      ...followups, 
+      [leadId]: [...(followups[leadId] || []), newFup] 
+    };
+    
+    // 3. อัปเดตสถานะใน leads
+    // ให้มั่นใจว่าใช้ fForm.status (หรือชื่อ field ที่คุณส่งมาจากฟอร์ม) 
+    // และอัปเดตให้ครบทุกฟิลด์ที่เกี่ยวข้อง
+    const newLeads = leads.map(l => {
+      if (l.id === leadId) {
+        return { 
+          ...l, 
+          latestStatus: fForm.status, // ตรวจสอบว่า fForm.status มีค่าจริงไหม
+          latestContactDate: fForm.date, 
+          nextFollowupDate: fForm.nextFollowupDate, 
+          updatedAt: new Date().toISOString() 
+        };
+      }
+      return l;
+    });
+
+    // 4. บันทึกและอัปเดต State
     updateLeads(newLeads, newFollowups);
+    
+    // อัปเดต selectedLead เพื่อให้หน้า Modal เปลี่ยนสถานะทันที
+    const updatedLead = newLeads.find(l => l.id === leadId);
+    setSelectedLead(updatedLead);
   };
 
   const markDone = lead => {
@@ -322,7 +355,7 @@ export default function App() {
                       const hasMeetingHistory = lead.latestStatus === "มีตติ้ง" || leadFollowups.some(f => f.status === "มีตติ้ง");
                       
                       // 3. กำหนดสีพื้นหลัง: ถ้าเคยมีตติ้งให้ใช้สีส้มอ่อน (#ffeed9) ถ้าไม่เคย ให้สลับสีตามเดิม
-                      const rowBackground = hasMeetingHistory ? "#FFFF00" : (i % 2 === 0 ? RG.rowOdd : RG.rowEven);
+                      const rowBackground = hasMeetingHistory ? "#ffff4d" : (i % 2 === 0 ? RG.rowOdd : RG.rowEven);
 
                       return (
                         <tr key={lead.id} style={{ background: rowBackground, borderBottom: "1px solid #f5e0e4" }}>
@@ -351,7 +384,7 @@ export default function App() {
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.revenue} onSave={v => inlineEdit(lead.id, "revenue", Number(v))} type="number" /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.registeredCapital} onSave={v => inlineEdit(lead.id, "registeredCapital", Number(v))} type="number" /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.profit} onSave={v => inlineEdit(lead.id, "profit", Number(v))} type="number" /></td>
-                          <td style={{ padding: "8px 10px" }}><EditableCell value={lead.latestStatus} onSave={v => inlineEdit(lead.id, "latestStatus", v)} type="select" options={STATUSES} /></td>
+                          <td style={{ padding: "8px 10px" }}><EditableCell key={lead.latestStatus} value={lead.latestStatus} onSave={v => inlineEdit(lead.id, "latestStatus", v)} type="select" options={STATUSES} /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.latestContactDate} onSave={v => inlineEdit(lead.id, "latestContactDate", v)} type="date" /></td>
                           <td style={{ padding: "8px 10px" }}>{lead.nextFollowupDate && lead.nextFollowupDate <= today() ? <span style={{ color: RG.danger, fontSize: 12, fontWeight: 700 }}>🔔 {parseDateTH(lead.nextFollowupDate)}</span> : <EditableCell value={lead.nextFollowupDate} onSave={v => inlineEdit(lead.id, "nextFollowupDate", v)} type="date" />}</td>
                         </tr>
