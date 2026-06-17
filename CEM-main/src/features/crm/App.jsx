@@ -19,11 +19,13 @@ import Reports from "./pages/Reports";
 
 // กำหนดน้ำหนักความสำคัญสำหรับการจัดเรียงข้อมูล
 const PRIORITY_WEIGHT = {
-  "ปิดการขาย": 5,
-  "ด่วนมาก": 4,
-  "มีตติ้ง": 3,
-  "ต้องตามต่อ": 2,
-  "ทั่วไป": 1,
+  "ปิดการขาย": 7,
+  "ด่วนมาก": 6,
+  "มีตติ้ง": 5,
+  "ต้องตามต่อ": 4,
+  "ฝากโปรไฟล์": 3,
+  "ทั่วไป": 2,
+  "ติดต่อไม่ได้": 1,
   "ไม่สนใจ": 0
 };
 
@@ -112,7 +114,17 @@ export default function App() {
   };
 
   const saveLead = updated => {
-    const newLeads = leads.map(l => (l.id === updated.id ? { ...updated, updatedAt: new Date().toISOString() } : l));
+    const newLeads = leads.map(l => {
+      if (l.id === updated.id) {
+        const finalLead = { ...updated, updatedAt: new Date().toISOString() };
+        // 🔥 ฝังความจำตรงนี้ด้วยเผื่อแก้จากใน Modal
+        if (finalLead.latestStatus === "มีตติ้ง") {
+          finalLead.everHadMeeting = true;
+        }
+        return finalLead;
+      }
+      return l;
+    });
     updateLeads(newLeads);
     setSelectedLead(updated);
   };
@@ -167,7 +179,20 @@ export default function App() {
   };
 
   const inlineEdit = (leadId, key, value) => {
-    const newLeads = leads.map(l => (l.id === leadId ? { ...l, [key]: value, updatedAt: new Date().toISOString() } : l));
+    const newLeads = leads.map(l => {
+      if (l.id === leadId) {
+        const updatedLead = { ...l, [key]: value, updatedAt: new Date().toISOString() };
+        
+        // 🔥 เพิ่มตรงนี้: ถ้าคอลัมน์ที่แก้คือ "latestStatus" และถูกเปลี่ยนเป็น "มีตติ้ง"
+        // ให้ฝังค่าความจำ (everHadMeeting) ลงไปในตัวลีดเลย
+        if (key === "latestStatus" && value === "มีตติ้ง") {
+          updatedLead.everHadMeeting = true;
+        }
+        
+        return updatedLead;
+      }
+      return l;
+    });
     updateLeads(newLeads);
   };
 
@@ -249,7 +274,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: RG.bg, fontFamily: "'Sarabun', sans-serif", color: RG.text }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #f8e8ec; } ::-webkit-scrollbar-thumb { background: #e8b4b8; border-radius: 3px; }`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #f8e8ec; } ::-webkit-scrollbar-thumb { background: #e8b4b8; border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; }`}</style>
 
       <nav style={{ background: RG.gradient, padding: "0 24px", display: "flex", alignItems: "center", height: 56, boxShadow: "0 2px 12px rgba(192,132,151,0.3)", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 32 }}>
@@ -352,7 +377,10 @@ export default function App() {
                       const leadFollowups = followups[lead.id] || [];
                       
                       // 2. ตรวจสอบว่า "สถานะปัจจุบัน" หรือ "ประวัติที่ผ่านมา" เคยเป็น "มีตติ้ง" หรือไม่
-                      const hasMeetingHistory = lead.latestStatus === "มีตติ้ง" || leadFollowups.some(f => f.status === "มีตติ้ง");
+                      const hasMeetingHistory = 
+                        lead.latestStatus === "มีตติ้ง" || 
+                        lead.everHadMeeting === true || // ตรวจสอบจากความจำฝังตัวที่เราเพิ่มเข้าไป
+                        leadFollowups.some(f => f.status === "มีตติ้ง");
                       
                       // 3. กำหนดสีพื้นหลัง: ถ้าเคยมีตติ้งให้ใช้สีส้มอ่อน (#ffeed9) ถ้าไม่เคย ให้สลับสีตามเดิม
                       const rowBackground = hasMeetingHistory ? "#ffff4d" : (i % 2 === 0 ? RG.rowOdd : RG.rowEven);
@@ -384,12 +412,22 @@ export default function App() {
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.revenue} onSave={v => inlineEdit(lead.id, "revenue", Number(v))} type="number" /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.registeredCapital} onSave={v => inlineEdit(lead.id, "registeredCapital", Number(v))} type="number" /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.profit} onSave={v => inlineEdit(lead.id, "profit", Number(v))} type="number" /></td>
-                          <td style={{ padding: "8px 10px" }}><EditableCell key={lead.latestStatus} value={lead.latestStatus} onSave={v => inlineEdit(lead.id, "latestStatus", v)} type="select" options={STATUSES} /></td>
+                          <td style={{ padding: "8px 10px" }}><div style={{ color: lead.latestStatus === "ฝากโปรไฟล์" ? "#007bff" : "inherit", fontWeight: lead.latestStatus === "ฝากโปรไฟล์" ? 700 : 400 }}><EditableCell key={lead.latestStatus} value={lead.latestStatus} onSave={v => inlineEdit(lead.id, "latestStatus", v)} type="select" options={STATUSES} /></div></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.latestContactDate} onSave={v => inlineEdit(lead.id, "latestContactDate", v)} type="date" /></td>
-                          <td style={{ padding: "8px 10px" }}>{lead.nextFollowupDate && lead.nextFollowupDate <= today() ? <span style={{ color: RG.danger, fontSize: 12, fontWeight: 700 }}>🔔 {parseDateTH(lead.nextFollowupDate)}</span> : <EditableCell value={lead.nextFollowupDate} onSave={v => inlineEdit(lead.id, "nextFollowupDate", v)} type="date" />}</td>
+                          <td style={{ padding: "8px 10px" }}>{lead.nextFollowupDate && lead.nextFollowupDate === today() ? (
+                              /* 1. เคสวันปัจจุบัน: แสดงข้อความ "ถึงกำหนดแล้ว" สีดำตัวหนา */
+                              <span style={{ color: "#000000", fontSize: 12, fontWeight: 700 }}>🔔 ถึงกำหนดแล้ว</span>
+                            ) : lead.nextFollowupDate && lead.nextFollowupDate < today() ? (
+                              /* 2. เคสเลยกำหนด (อดีต): แสดงวันที่เดิม แต่เป็นสีแดงเตือน */
+                              <span style={{ color: RG.danger, fontSize: 12, fontWeight: 700 }}>🔔 {parseDateTH(lead.nextFollowupDate)}</span>
+                            ) : (
+                              /* 3. เคสยังไม่ถึงกำหนด (อนาคต) หรือว่างเปล่า: แสดงช่องเลือกวันที่ตามปกติ */
+                              <EditableCell value={lead.nextFollowupDate} onSave={v => inlineEdit(lead.id, "nextFollowupDate", v)} type="date" />
+                            )}
+                          </td>
                         </tr>
                       );
-                    })}
+                    })} 
                   </tbody>
                 </table>
               </div>
