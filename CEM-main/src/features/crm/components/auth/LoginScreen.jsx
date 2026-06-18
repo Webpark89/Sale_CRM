@@ -17,18 +17,21 @@ export default function LoginScreen({ onLogin }) {
     setErr("");
     setIsLoading(true);
 
-    // จำลองเวลาโหลด 0.6 วินาทีเพื่อให้ดูสมจริง
     setTimeout(() => {
+      // เพิ่มรายชื่อพนักงานขาย และกำหนด role
       const allowedUsers = [
-        { username: "crm", password: "1234" },
-        { username: "admin", password: "123456" }, 
+        { username: "admin", password: "123456", role: "admin" }, 
+        { username: "crm1", password: "1234", role: "sales" },
+        { username: "crm2", password: "1234", role: "sales" },
       ];
       const userExists = allowedUsers.find(
         (item) => item.username === user && item.password === pass
       );    
       if (userExists) {
         localStorage.setItem("crm_session", "authenticated");
-        onLogin();
+        // บันทึกข้อมูลผู้ใช้ลง localStorage ด้วย
+        localStorage.setItem("crm_user", JSON.stringify({ username: userExists.username, role: userExists.role }));
+        onLogin(userExists); // ส่งข้อมูล User กลับไปที่ App
       } else {
         setErr("Username หรือ Password ไม่ถูกต้อง");
         setIsLoading(false);

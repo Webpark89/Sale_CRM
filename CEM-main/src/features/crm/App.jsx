@@ -31,6 +31,10 @@ const PRIORITY_WEIGHT = {
 
 export default function App() {
   const [authenticated, setAuthenticated] = useState(() => localStorage.getItem("crm_session") === "authenticated");
+  const [currentUser, setCurrentUser] = useState(() => {
+    const user = localStorage.getItem("crm_user");
+    return user ? JSON.parse(user) : null;
+  });
   const { leads: initLeads, followups: initFollowups } = loadData();
   const [leads, setLeads] = useState(initLeads);
   const [followups, setFollowups] = useState(initFollowups);
@@ -108,16 +112,33 @@ export default function App() {
   }, [undo, redo]);
 
   const addLead = form => {
-    const newLead = createNewLead(form);
+    // ตรวจสอบเลขนิติบุคคลซ้ำในฐานข้อมูลทั้งหมด (Admin + Sales ทุกคน)
+    if (form.companyNumber) {
+      const isDup = leads.some(l => l.companyNumber === form.companyNumber);
+      if (isDup) {
+        alert("บันทึกไม่สำเร็จ: เลขนิติบุคคลนี้มีพนักงานท่านอื่นเพิ่มไว้ในระบบแล้ว");
+        return; 
+      }
+    }
+    // เพิ่ม owner (เจ้าของลีด) ลงไป
+    const newLead = createNewLead({ ...form, owner: currentUser.username });
     updateLeads([newLead, ...leads]);
     setShowAddLead(false);
   };
 
   const saveLead = updated => {
+    // ดักจับการแก้เลขนิติบุคคลซ้ำใน Modal
+    if (updated.companyNumber) {
+      const isDup = leads.some(l => l.id !== updated.id && l.companyNumber === updated.companyNumber);
+      if (isDup) {
+        alert("บันทึกไม่สำเร็จ: เลขนิติบุคคลนี้ซ้ำกับข้อมูลที่มีอยู่แล้วในระบบ");
+        return;
+      }
+    }
+
     const newLeads = leads.map(l => {
       if (l.id === updated.id) {
         const finalLead = { ...updated, updatedAt: new Date().toISOString() };
-        // 🔥 ฝังความจำตรงนี้ด้วยเผื่อแก้จากใน Modal
         if (finalLead.latestStatus === "มีตติ้ง") {
           finalLead.everHadMeeting = true;
         }
@@ -179,16 +200,21 @@ export default function App() {
   };
 
   const inlineEdit = (leadId, key, value) => {
+    // ดักจับการแก้เลขนิติบุคคลซ้ำในการแก้ไขแบบ Inline
+    if (key === "companyNumber" && value) {
+      const isDup = leads.some(l => l.id !== leadId && l.companyNumber === value);
+      if (isDup) {
+        alert("แก้ไขไม่สำเร็จ: เลขนิติบุคคลนี้ซ้ำกับข้อมูลที่มีอยู่แล้วในระบบ");
+        return;
+      }
+    }
+
     const newLeads = leads.map(l => {
       if (l.id === leadId) {
         const updatedLead = { ...l, [key]: value, updatedAt: new Date().toISOString() };
-        
-        // 🔥 เพิ่มตรงนี้: ถ้าคอลัมน์ที่แก้คือ "latestStatus" และถูกเปลี่ยนเป็น "มีตติ้ง"
-        // ให้ฝังค่าความจำ (everHadMeeting) ลงไปในตัวลีดเลย
         if (key === "latestStatus" && value === "มีตติ้ง") {
           updatedLead.everHadMeeting = true;
         }
-        
         return updatedLead;
       }
       return l;
@@ -213,14 +239,19 @@ export default function App() {
 
   const dupNumbers = leads.map(l => l.companyNumber).filter((n, i, arr) => n && arr.indexOf(n) !== i);
 
+  // 1. คัดกรองข้อมูลตามสิทธิ์ (Admin เห็นทั้งหมด, Sales เห็นเฉพาะที่ตัวเองเป็น owner)
+  const accessibleLeads = currentUser?.role === "admin" 
+    ? leads 
+    : leads.filter(l => l.owner === currentUser?.username);
+
   // ปรับปรุง logic กรองข้อมูล + เพิ่มการจัดเรียง
-  const filtered = leads
+  const filtered = accessibleLeads
     .filter(l => {
-      // 1. ค้นหาข้อความ
+      //ค้นหา
       if (search && !l.companyName?.toLowerCase().includes(search.toLowerCase()) && !l.companyNumber?.includes(search) && !l.contactPhone?.includes(search) && !l.contactEmail?.toLowerCase().includes(search.toLowerCase())) return false;
-      // 2. กรองสถานะ
+      //คัดกรอง
       if (filterStatus.length > 0 && !filterStatus.includes(l.latestStatus)) return false;
-      // 3. กรองรายการโปรด
+      //รายกาโปรด
       if (showFavorites && !l.isStarred) return false; 
       
       return true;
@@ -264,7 +295,10 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  if (!authenticated) return <LoginScreen onLogin={() => setAuthenticated(true)} />;
+  if (!authenticated) return <LoginScreen onLogin={(user) => { 
+    setCurrentUser(user); 
+    setAuthenticated(true); 
+  }} />;
 
   const navItems = [
     { key: "leads", label: "จัดการลีด", icon: "👥" },
@@ -299,7 +333,25 @@ export default function App() {
             ↷
           </button>
           <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, background: "rgba(255,255,255,0.15)", borderRadius: 6, padding: "3px 8px" }}>{syncStatus}</span>
-          <button onClick={() => { localStorage.removeItem("crm_session"); setAuthenticated(false); }} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: "'Sarabun', sans-serif", fontSize: 13 }}>
+          <span style={{ color: "#fff", fontSize: 13, marginRight: 10 }}>
+            👤 {currentUser?.username || "ไม่ระบุชื่อ"}
+          </span>
+          <button 
+            onClick={() => { 
+              localStorage.removeItem("crm_session"); 
+              setAuthenticated(false); 
+            }} 
+            style={{ 
+              background: "rgba(255,255,255,0.2)", 
+              border: "none", 
+              color: "#fff", 
+              borderRadius: 8, 
+              padding: "6px 12px", 
+              cursor: "pointer", 
+              fontFamily: "'Sarabun', sans-serif", 
+              fontSize: 13 
+            }}
+          >
             ออกจากระบบ
           </button>
         </div>
