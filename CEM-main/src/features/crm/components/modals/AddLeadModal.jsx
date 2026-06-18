@@ -9,7 +9,7 @@ import { inputStyle, selectStyle } from "../common/styles";
 // 1. เพิ่ม props `leads` เข้ามาเพื่อใช้ตรวจสอบข้อมูลที่มีอยู่แล้ว
 export default function AddLeadModal({ onClose, onSave, leads = [] }) {
   const [form, setForm] = useState({ 
-    companyName: "", companyNumber: "", contactName: "", contactPhone: "", 
+    companyName: "", companyNumber: "", contactName: "", description: "", contactPhone: "", 
     contactEmail: "", revenue: "", registeredCapital: "", profit: "", 
     latestStatus: STATUSES[0], latestContactDate: today(), nextFollowupDate: "" 
   });
@@ -67,6 +67,7 @@ export default function AddLeadModal({ onClose, onSave, leads = [] }) {
 
         <Field label="ชื่อบริษัท *"><input value={form.companyName} onChange={e => up("companyName", e.target.value)} style={inputStyle} /></Field>
         <Field label="ชื่อผู้ติดต่อ"><input value={form.contactName} onChange={e => up("contactName", e.target.value)} style={inputStyle} /></Field>
+        <Field label="รายละเอียด"><input value={form.description} onChange={e => up("description", e.target.value)} style={inputStyle} /></Field>
         <Field label="เบอร์โทร"><input value={form.contactPhone} onChange={e => up("contactPhone", e.target.value)} style={inputStyle} /></Field>
         <Field label="อีเมล"><input value={form.contactEmail} onChange={e => up("contactEmail", e.target.value)} style={inputStyle} /></Field>
         <Field label="สถานะ"><select value={form.latestStatus} onChange={e => up("latestStatus", e.target.value)} style={selectStyle}>{STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></Field>

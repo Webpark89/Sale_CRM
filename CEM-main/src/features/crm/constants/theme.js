@@ -1,17 +1,17 @@
 export const RG = {
-  primary: "#000000", 
-  gradient: "linear-gradient(135deg, #aaaaaa 0%, #c1c1c1 100%)", 
-  gradientSoft: "linear-gradient(135deg, #F5F5F5 0%, #ffffff 100%)", 
-  border: "#000000", 
-  headerBg: "linear-gradient(135deg, #C29476 0%, #A06A42 100%)",
-  rowOdd: "#fafafa", 
-  rowEven: "#efefef", 
-  cardBorder: "#000000",
-  btnGradient: "linear-gradient(135deg, #C29476, #A06A42)",
-  danger: "#C85A53", 
-  success: "#6E8B74", 
+  primary: "#07BEB8", // ใช้สีเข้มสุดจากพาเลตต์
+  gradient: "linear-gradient(135deg, #07BEB8 0%, #3DCCC7 100%)", // ไล่เฉด Turquoise
+  gradientSoft: "linear-gradient(135deg, #C4FFF9 0%, #ffffff 100%)", 
+  border: "#68D8D6", // ใช้สีโทนกลางสำหรับเส้นขอบ
+  headerBg: "linear-gradient(135deg, #07BEB8 0%, #3DCCC7 100%)",
+  rowOdd: "#ffffff", 
+  rowEven: "#C4FFF9", // สีอ่อนสุดสำหรับแถวสลับ
+  cardBorder: "#68D8D6",
+  btnGradient: "linear-gradient(135deg, #07BEB8, #3DCCC7)",
+  danger: "#C85A53", // คงเดิมไว้สำหรับแจ้งเตือน
+  success: "#6E8B74", // อาจปรับเป็นโทนเขียวที่เข้ากันได้
   warn: "#D4A373", 
-  text: "#332921", 
-  textMuted: "#7A685C", 
+  text: "#2c3e50", // ปรับเป็นสีเทาเข้มเพื่อให้ตัดกับสี Turquoise
+  textMuted: "#666666", 
   surface: "#FFFFFF", 
 };

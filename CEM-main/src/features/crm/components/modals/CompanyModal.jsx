@@ -98,8 +98,8 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
         {tab === "info" && (
           <div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
-              {["companyNumber", "companyName", "contactName", "contactPhone", "contactEmail"].map((key, index) => {
-                const labels = ["เลขนิติบุคคล", "ชื่อบริษัท", "ชื่อผู้ติดต่อ", "เบอร์โทร", "อีเมล"];
+              {["companyNumber", "companyName", "contactName", "description", "contactPhone", "contactEmail"].map((key, index) => {
+                const labels = ["เลขนิติบุคคล", "ชื่อบริษัท", "ชื่อผู้ติดต่อ", "รายละเอียด", "เบอร์โทร", "อีเมล"];
                 const lbl = labels[index];
                 
                 if (key === "companyNumber") {

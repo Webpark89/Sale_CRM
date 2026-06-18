@@ -1,5 +1,4 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { RG } from "../../constants/theme";
 import { fmtNum } from "../../utils/helpers";
 import { inputStyle, selectStyle } from "./styles";
@@ -8,6 +7,10 @@ import { STATUS_COLORS } from "../../constants/status";
 export default function EditableCell({ value, onSave, type = "text", options }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(value);
+
+  useEffect(() => {
+    setVal(value);
+  }, [value]);
 
   const commit = () => {
     onSave(val);

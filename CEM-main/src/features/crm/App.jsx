@@ -127,7 +127,7 @@ export default function App() {
   };
 
   const saveLead = updated => {
-    // ดักจับการแก้เลขนิติบุคคลซ้ำใน Modal
+    // 1. ดักจับการแก้เลขนิติบุคคลซ้ำ
     if (updated.companyNumber) {
       const isDup = leads.some(l => l.id !== updated.id && l.companyNumber === updated.companyNumber);
       if (isDup) {
@@ -136,18 +136,30 @@ export default function App() {
       }
     }
 
+    let finalLeadUpdated = updated;
+
+    // 2. สร้าง Array ใหม่
     const newLeads = leads.map(l => {
       if (l.id === updated.id) {
+        // เตรียมข้อมูลที่อัปเดตแล้ว
         const finalLead = { ...updated, updatedAt: new Date().toISOString() };
+        
+        // เช็คเงื่อนไขพิเศษ
         if (finalLead.latestStatus === "มีตติ้ง") {
           finalLead.everHadMeeting = true;
         }
-        return finalLead;
+        
+        finalLeadUpdated = finalLead; // เก็บไว้ไปอัปเดต Popup
+        return finalLead; // ส่งออกไปใน newLeads
       }
       return l;
     });
-    updateLeads(newLeads);
-    setSelectedLead(updated);
+
+    // 3. เรียกใช้ฟังก์ชันอัปเดตหลัก (และต้องส่ง followups ไปด้วยตามนิยามฟังก์ชัน updateLeads ที่คุณมี)
+    updateLeads(newLeads, followups); 
+    
+    // 4. อัปเดต Popup ให้แสดงค่าใหม่
+    setSelectedLead(finalLeadUpdated); 
   };
   
   const saveFollowup = (leadId, fForm) => {
@@ -248,7 +260,7 @@ export default function App() {
   const filtered = accessibleLeads
     .filter(l => {
       //ค้นหา
-      if (search && !l.companyName?.toLowerCase().includes(search.toLowerCase()) && !l.companyNumber?.includes(search) && !l.contactPhone?.includes(search) && !l.contactEmail?.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search && !l.companyName?.toLowerCase().includes(search.toLowerCase()) && !l.companyNumber?.includes(search) && !l.contactPhone?.includes(search) && !l.contactEmail?.toLowerCase().includes(search.toLowerCase()) && !l.description?.toLowerCase().includes(search.toLowerCase())) return false;
       //คัดกรอง
       if (filterStatus.length > 0 && !filterStatus.includes(l.latestStatus)) return false;
       //รายกาโปรด
@@ -308,7 +320,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: RG.bg, fontFamily: "'Sarabun', sans-serif", color: RG.text }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #f8e8ec; } ::-webkit-scrollbar-thumb { background: #e8b4b8; border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; }`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #f8e8ec; } ::-webkit-scrollbar-thumb { background: #07bebb; border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; }`}</style>
 
       <nav style={{ background: RG.gradient, padding: "0 24px", display: "flex", alignItems: "center", height: 56, boxShadow: "0 2px 12px rgba(192,132,151,0.3)", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 32 }}>
@@ -407,7 +419,7 @@ export default function App() {
                       {/* เพิ่ม Column สำหรับติดดาว */}
                       <th style={{ padding: "12px 8px", color: "#fff", fontSize: 13, width: 36 }} />
                       <th style={{ padding: "12px 8px", color: "#fff", fontSize: 13, width: 36 }} />
-                      {["เลขนิติบุคคล", "ชื่อบริษัท", "ผู้ติดต่อ", "เบอร์โทร", "อีเมล", "รายได้รวม", "ทุนจดทะเบียน", "กำไร", "สถานะล่าสุด", "ติดต่อล่าสุด", "ติดตามครั้งถัดไป"].map(h => (
+                      {["เลขนิติบุคคล", "ชื่อบริษัท", "ผู้ติดต่อ", "เบอร์โทร", "อีเมล", "รายละเอียด", "รายได้รวม", "ทุนจดทะเบียน", "กำไร", "สถานะล่าสุด", "ติดต่อล่าสุด", "ติดตามครั้งถัดไป"].map(h => (
                         <th key={h} style={{ padding: "12px 10px", textAlign: "left", color: "#fff", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
                           {h}
                         </th>
@@ -435,7 +447,7 @@ export default function App() {
                         leadFollowups.some(f => f.status === "มีตติ้ง");
                       
                       // 3. กำหนดสีพื้นหลัง: ถ้าเคยมีตติ้งให้ใช้สีส้มอ่อน (#ffeed9) ถ้าไม่เคย ให้สลับสีตามเดิม
-                      const rowBackground = hasMeetingHistory ? "linear-gradient(90deg, #ff9933, #ffff4d)" : (i % 2 === 0 ? RG.rowOdd : RG.rowEven);
+                      const rowBackground = hasMeetingHistory ? "linear-gradient(90deg, #ffff00, #ffff64)" : (i % 2 === 0 ? RG.rowOdd : RG.rowEven);
 
                       return (
                         <tr key={lead.id} style={{ background: rowBackground, borderBottom: "1px solid #f5e0e4" }}>
@@ -461,6 +473,7 @@ export default function App() {
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.contactName} onSave={v => inlineEdit(lead.id, "contactName", v)} /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.contactPhone} onSave={v => inlineEdit(lead.id, "contactPhone", v)} /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.contactEmail} onSave={v => inlineEdit(lead.id, "contactEmail", v)} /></td>
+                          <td style={{ padding: "8px 10px" }}><EditableCell value={lead.description} onSave={v => inlineEdit(lead.id, "description", v)} /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.revenue} onSave={v => inlineEdit(lead.id, "revenue", Number(v))} type="number" /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.registeredCapital} onSave={v => inlineEdit(lead.id, "registeredCapital", Number(v))} type="number" /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.profit} onSave={v => inlineEdit(lead.id, "profit", Number(v))} type="number" /></td>
