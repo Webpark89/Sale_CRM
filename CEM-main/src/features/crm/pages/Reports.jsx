@@ -6,7 +6,7 @@ import { today } from "../utils/helpers";
 import StatusBadge from "../components/common/StatusBadge";
 import { inputStyle } from "../components/common/styles";
 
-export default function Reports({ leads }) { 
+export default function Reports({ leads, onViewLead }) {
   const [mode, setMode] = useState("daily");
   const [selDate, setSelDate] = useState(today());
   const [selMonth, setSelMonth] = useState(today().slice(0, 7));
@@ -163,19 +163,38 @@ export default function Reports({ leads }) {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, border: `1px solid ${RG.border}`, borderRadius: 8, overflow: "hidden" }}>
                 <thead>
                   <tr style={{ background: RG.rowEven || "#F2EAE4", borderBottom: `1px solid ${RG.border}` }}>
-                    <th style={{ padding: "12px 16px", textAlign: "left", width: "35%" }}>ชื่อบริษัท</th>
-                    <th style={{ padding: "12px 16px", textAlign: "left", width: "25%" }}>ผู้ติดต่อ</th>
-                    <th style={{ padding: "12px 16px", textAlign: "left", width: "20%" }}>เบอร์โทร</th>
-                    <th style={{ padding: "12px 16px", textAlign: "center", width: "20%" }}>สถานะ</th>
+                    <th style={{ padding: "12px 16px", textAlign: "left", width: "50%" }}>ชื่อบริษัท</th>
+                    <th style={{ padding: "12px 16px", textAlign: "center", width: "30%" }}>สถานะล่าสุด</th>
+                    <th style={{ padding: "12px 16px", textAlign: "center", width: "20%" }}>รายละเอียด</th>
                   </tr>
                 </thead>
                 <tbody>
                   {g.items.map((l, i) => (
                     <tr key={l.id} style={{ background: i % 2 === 0 ? "#fff" : RG.surface, borderBottom: `1px solid ${RG.border}` }}>
                       <td style={{ padding: "12px 16px", fontWeight: 500 }}>{l.companyName}</td>
-                      <td style={{ padding: "12px 16px" }}>{l.contactName || "-"}</td>
-                      <td style={{ padding: "12px 16px" }}>{l.contactPhone || "-"}</td>
-                      <td style={{ padding: "12px 16px", textAlign: "center" }}><StatusBadge status={l.latestStatus || g.status} /></td>
+                      <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                        <StatusBadge status={l.latestStatus || g.status} />
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                        <button 
+                          onClick={() => onViewLead && onViewLead(l)} 
+                          style={{ 
+                            background: RG.gradient || "#e8b4b8", 
+                            border: "none", 
+                            color: "#fff", 
+                            width: 26, 
+                            height: 26, 
+                            borderRadius: 6, 
+                            cursor: "pointer", 
+                            fontSize: 13, 
+                            display: "inline-flex", 
+                            alignItems: "center", 
+                            justifyContent: "center" 
+                          }}
+                        >
+                          👁
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

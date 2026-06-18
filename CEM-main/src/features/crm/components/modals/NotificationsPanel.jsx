@@ -1,37 +1,41 @@
-import React from "react";
+import React, { useState } from "react";
 import { RG } from "../../constants/theme";
 import { parseDateTH, today } from "../../utils/helpers";
 import Btn from "../common/Btn";
 import Modal from "../common/Modal";
 import StatusBadge from "../common/StatusBadge";
 
-// 1. กำหนดน้ำหนักความสำคัญ (ยิ่งตัวเลขเยอะ ยิ่งอยู่บนสุด)
 const PRIORITY_WEIGHT = {
-  "ปิดการขาย": 5,
-  "ด่วนมาก": 4,
-  "มีตติ้ง": 3,
-  "ต้องตามต่อ": 2,
-  "ทั่วไป": 1,
+  "ปิดการขาย": 7,
+  "ด่วนมาก": 6,
+  "มีตติ้ง": 5,
+  "ต้องตามต่อ": 4,
+  "ฝากโปรไฟล์": 3,
+  "ทั่วไป": 2,
+  "ติดต่อไม่ได้": 1,
   "ไม่สนใจ": 0
 };
 
 export default function NotificationsPanel({ leads, onMarkDone, onClose }) {
-  // 2. กรองรายการที่ถึงกำหนด และทำการเรียงลำดับความสำคัญ
+  // 1. เพิ่ม State สำหรับเก็บวันที่คัดกรอง (ค่าเริ่มต้นคือวันนี้)
+  const [filterDate, setFilterDate] = useState(today());
+
+  // 2. กรองรายการให้ตรงกับวันที่ที่เลือก
   const due = leads
     .filter(l => {
       if (!l.nextFollowupDate) return false;
-      return l.nextFollowupDate <= today();
+      // หากผู้ใช้ล้างค่าใน input จนว่างเปล่า ให้บังคับแสดงผลเป็นวันนี้
+      const targetDate = filterDate || today(); 
+      return l.nextFollowupDate === targetDate;
     })
     .sort((a, b) => {
-      // เทียบน้ำหนักความสำคัญของสถานะ
       const weightA = PRIORITY_WEIGHT[a.latestStatus] || 0;
       const weightB = PRIORITY_WEIGHT[b.latestStatus] || 0;
       
       if (weightB !== weightA) {
-        return weightB - weightA; // เรียงจากสำคัญมากไปน้อย
+        return weightB - weightA; 
       }
       
-      // ถ้าความสำคัญเท่ากัน ให้เรียงตามวันที่ (ค้างนานสุดขึ้นก่อน จะได้รีบตาม)
       const dateA = new Date(a.nextFollowupDate).getTime();
       const dateB = new Date(b.nextFollowupDate).getTime();
       return dateA - dateB;
@@ -39,8 +43,40 @@ export default function NotificationsPanel({ leads, onMarkDone, onClose }) {
 
   return (
     <Modal title={`แจ้งเตือนการติดตาม (${due.length} รายการ)`} onClose={onClose}>
+      
+      {/* 3. เพิ่มส่วนคัดกรองวันที่ (Date Picker) */}
+      <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 10, padding: "10px", background: RG.surface, borderRadius: 8, border: `1px solid ${RG.border}` }}>
+        <span style={{ fontSize: 14, color: RG.text, fontWeight: 600 }}>เลือกวันที่:</span>
+        <input 
+          type="date" 
+          value={filterDate}
+          onChange={(e) => setFilterDate(e.target.value)}
+          style={{
+            padding: "6px 12px",
+            borderRadius: 6,
+            border: `1px solid ${RG.border}`,
+            fontFamily: "'Sarabun', sans-serif",
+            color: RG.text,
+            outline: "none"
+          }}
+        />
+        {/* ปุ่มอำนวยความสะดวกสำหรับกดกลับมาดูของวันนี้ */}
+        {filterDate !== today() && (
+          <button 
+            onClick={() => setFilterDate(today())}
+            style={{
+              background: "#fff", border: `1px solid ${RG.border}`, color: RG.textMuted,
+              borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontFamily: "'Sarabun', sans-serif"
+            }}
+          >
+            กลับไปวันนี้
+          </button>
+        )}
+      </div>
+
+      {/* 4. แสดงรายการลีดตามวันที่คัดกรอง */}
       {due.length === 0 ? (
-        <p style={{ color: RG.textMuted, textAlign: "center", padding: "20px 0" }}>ไม่มีรายการที่ต้องติดตามวันนี้ 🎉</p>
+        <p style={{ color: RG.textMuted, textAlign: "center", padding: "20px 0" }}>ไม่มีรายการที่ต้องติดตามในวันที่เลือก 🎉</p>
       ) : (
         due.map(l => (
           <div key={l.id} style={{ border: `1px solid ${RG.border}`, borderRadius: 10, padding: "14px 16px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", background: RG.rowOdd }}>

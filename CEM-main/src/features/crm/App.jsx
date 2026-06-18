@@ -51,7 +51,7 @@ export default function App() {
   const [markDoneLead, setMarkDoneLead] = useState(null);
 
   const syncStatus = "Local Only";
-  const dueTodayCount = leads.filter(l => l.nextFollowupDate && l.nextFollowupDate <= today()).length;
+  const dueTodayCount = leads.filter(l => l.nextFollowupDate && l.nextFollowupDate === today()).length;
 
   const pushHistory = useCallback(
     (newLeads, newFollowups) => {
@@ -449,7 +449,8 @@ export default function App() {
         {page === "reports" && (
           <div>
             <h2 style={{ margin: "0 0 20px", color: RG.text, fontSize: 20, fontWeight: 700 }}>📄 รายงาน</h2>
-            <Reports leads={leads} />
+            {/* ส่งฟังก์ชัน setSelectedLead เข้าไปเป็น onViewLead */}
+            <Reports leads={leads} onViewLead={setSelectedLead} />
           </div>
         )}
       </div>
