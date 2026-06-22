@@ -156,11 +156,11 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
               <div style={{ fontSize: 16, fontWeight: 700, color: RG.text, marginBottom: "16px", borderLeft: `4px solid ${RG.primary}`, paddingLeft: "8px" }}>ประวัติการติดตาม (Follow-up History)</div>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
-                  <tr style={{ background: "#f1f5f9", borderBottom: "2px solid #cbd5e1" }}>
-                    <th style={{ padding: "10px", textAlign: "center", width: "10%", color: "#334155" }}>ครั้งที่</th>
-                    <th style={{ padding: "10px", textAlign: "left", width: "20%", color: "#334155" }}>วันที่</th>
-                    <th style={{ padding: "10px", textAlign: "left", width: "40%", color: "#334155" }}>รายละเอียด</th>
-                    <th style={{ padding: "10px", textAlign: "center", width: "30%", color: "#334155" }}>สถานะ</th>
+                  <tr style={{ background: RG.text, borderBottom: "2px solid #cbd5e1" }}>
+                    <th style={{ padding: "10px", textAlign: "center", width: "10%", color: "#fff" }}>ครั้งที่</th>
+                    <th style={{ padding: "10px", textAlign: "left", width: "20%", color: "#fff" }}>วันที่</th>
+                    <th style={{ padding: "10px", textAlign: "left", width: "40%", color: "#fff" }}>รายละเอียด</th>
+                    <th style={{ padding: "10px", textAlign: "center", width: "30%", color: "#fff" }}>สถานะ</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -276,7 +276,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
             {fups.length > 0 && (
               <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20 }}>
                 <thead>
-                  <tr style={{ background: RG.gradient }}>
+                  <tr style={{ background: RG.text }}>
                     {["ครั้งที่", "วันที่", "รายละเอียด", "สถานะ", "ติดตามครั้งถัดไป"].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: "#fff", fontSize: 13, fontWeight: 600 }}>{h}</th>)}
                   </tr>
                 </thead>

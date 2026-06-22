@@ -75,10 +75,12 @@ export default function Dashboard({ leads, followups }) {
   const handleExport = async () => {
     if (!exportRef.current || isExporting) return;
     setIsExporting(true);
+    // รอให้ React render ส่วนหัวแบบเป็นทางการก่อนทำการถ่ายภาพ
+    await new Promise(resolve => setTimeout(resolve, 150));
     try {
       const dataUrl = await toJpeg(exportRef.current, {
-        quality: 0.95,
-        backgroundColor: RG.background || "#fdf9fb", // ใช้สีพื้นหลังของระบบ
+        quality: 1.0,
+        backgroundColor: "#FFFFFF", // ใช้สีพื้นหลังสีขาวเพื่อให้ดูเป็นทางการ
         pixelRatio: 2, // เพิ่มความคมชัดให้กับรูปภาพเป็น 2 เท่า
       });
       const a = document.createElement("a");
@@ -167,8 +169,29 @@ export default function Dashboard({ leads, followups }) {
       </div>
 
       {/* พื้นที่ครอบคลุมสำหรับดักจับภาพเพื่อ Export */}
-      <div ref={exportRef} style={{ padding: "4px", borderRadius: "16px" }}>
+      <div ref={exportRef} style={{ padding: isExporting ? "40px" : "4px", borderRadius: "16px", background: isExporting ? "#ffffff" : "transparent" }}>
         
+        {/* Formal Header (Visible only during export) */}
+        {isExporting && (
+          <div style={{ marginBottom: 32, paddingBottom: 24, borderBottom: `2px solid ${RG.border}`, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+            <div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: RG.text, marginBottom: 8, fontFamily: "'Sarabun', sans-serif" }}>รายงานสรุปภาพรวมการขาย (Sales Overview Report)</div>
+              <div style={{ fontSize: 16, color: RG.textMuted }}>
+                ประจำเดือน: <span style={{ fontWeight: 600, color: RG.primaryMid }}>{filterMonth ? new Date(filterMonth + "-01").toLocaleDateString("th-TH", { month: "long", year: "numeric" }) : "ทั้งหมด (All Time)"}</span>
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: RG.primaryMid, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+                <div style={{ width: 24, height: 24, background: RG.primary, borderRadius: "50%", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>Q</div>
+                QoraQot CRM
+              </div>
+              <div style={{ fontSize: 12, color: RG.textMuted, marginTop: 8 }}>
+                ข้อมูล ณ วันที่พิมพ์: {new Date().toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "numeric" })} เวลา {new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* KPIs */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14, marginBottom: 28 }}>
           {kpis.map(k => (

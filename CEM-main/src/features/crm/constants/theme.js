@@ -1,32 +1,32 @@
 export const RG = {
-  // === PRIMARY PALETTE (Coral Pink) ===
-  primary:       "#E65A78",   // Coral Pink (for buttons, active nav, logo)
-  primaryMid:    "#D14D67",
-  primaryLight:  "#F4A7B8",
-  primaryPale:   "#FCE4E9",   // Light pink background for chips
-  primaryGhost:  "#FEF5F7",
+  // === PRIMARY PALETTE (Turquoise & Deep Sea) ===
+  primary:       "#03B5AA",   // Teal (from Deep Sea)
+  primaryMid:    "#037971",   // Darker Teal
+  primaryLight:  "#68D8D6",   // Lighter Turquoise
+  primaryPale:   "#C4FFF9",   // Very Pale Mint (from Turquoise Waters)
+  primaryGhost:  "#9CEAEF",   // Pale Blue/Turquoise
   
   navbarBg:      "#FFFFFF",   // Clean white navbar
  
   // === GRADIENTS ===
-  gradient:      "linear-gradient(135deg, #E65A78 0%, #D14D67 100%)", // Pink gradient
-  gradientSoft:  "linear-gradient(135deg, #FCE4E9 0%, #FEF5F7 100%)",
-  gradientHero:  "linear-gradient(160deg, #E65A78 0%, #F4A7B8 50%, #FCE4E9 100%)",
+  gradient:      "linear-gradient(135deg, #07BEB8 0%, #037971 100%)", // Turquoise to Dark Teal
+  gradientSoft:  "linear-gradient(135deg, #C4FFF9 0%, #9CEAEF 100%)",
+  gradientHero:  "linear-gradient(160deg, #07BEB8 0%, #3DCCC7 50%, #C4FFF9 100%)",
  
   // === NEUTRALS & EFFECTS ===
-  text:          "#2D2024",   // Dark warm grey
-  textMuted:     "#8A7E82",   // Muted warm grey
+  text:          "#023436",   // Dark Navy/Teal for high contrast text
+  textMuted:     "#049A8F",   // Medium Teal for muted text
   surface:       "#FFFFFF",   
   surfaceSolid:  "#FFFFFF",
-  background:    "#FCF7F9",   // Very subtle warm pink background
-  border:        "#F0E1E6",   // Light warm border
-  shadowSoft:    "0 4px 12px rgba(230, 90, 120, 0.08)", // Soft pinkish shadow
-  shadowGlow:    "0 4px 15px rgba(230, 90, 120, 0.25)",
-  glassFilter:   "none",      // No glass blur needed
+  background:    "#F5FCFC",   // Kept very light to ensure high contrast with #023436 text
+  border:        "#9CEAEF",   // Pale turquoise border
+  shadowSoft:    "0 4px 12px rgba(3, 181, 170, 0.15)", // Teal shadow
+  shadowGlow:    "0 4px 15px rgba(3, 181, 170, 0.3)",
+  glassFilter:   "none",      
  
   // === TABLE ROW ALTERNATING ===
   rowOdd:        "#FFFFFF",
-  rowEven:       "#FEFAFB",   // Very subtle pink alternating row
+  rowEven:       "#F0FEFC",   // Made much lighter to ensure highlights stand out
  
   // === SEMANTIC ===
   success:       "#22C55E",   

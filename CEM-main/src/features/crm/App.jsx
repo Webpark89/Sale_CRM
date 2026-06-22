@@ -14,6 +14,7 @@ import AddLeadModal from "./components/modals/AddLeadModal";
 import CompanyModal from "./components/modals/CompanyModal";
 import FollowupQuickForm from "./components/modals/FollowupQuickForm";
 import NotificationsPanel from "./components/modals/NotificationsPanel";
+import FilterModal from "./components/modals/FilterModal";
 import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
 
@@ -46,6 +47,15 @@ export default function App() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState([]);
+  
+  // เพิ่ม State สำหรับตัวกรองและการจัดเรียง
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [finFilters, setFinFilters] = useState({
+    revenue: { min: "", max: "" },
+    registeredCapital: { min: "", max: "" },
+    profit: { min: "", max: "" }
+  });
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
   
   // เพิ่ม State สำหรับกรองเฉพาะรายการโปรด
   const [showFavorites, setShowFavorites] = useState(false);
@@ -262,25 +272,62 @@ export default function App() {
     .filter(l => {
       //ค้นหา
       if (search && !l.companyName?.toLowerCase().includes(search.toLowerCase()) && !l.companyNumber?.includes(search) && !l.contactPhone?.includes(search) && !l.contactEmail?.toLowerCase().includes(search.toLowerCase()) && !l.description?.toLowerCase().includes(search.toLowerCase())) return false;
-      //คัดกรอง
+      //คัดกรองสถานะ
       if (filterStatus.length > 0 && !filterStatus.includes(l.latestStatus)) return false;
-      //รายกาโปรด
+      //รายการโปรด
       if (showFavorites && !l.isStarred) return false; 
+      //ตัวกรองการเงิน
+      if (finFilters.revenue.min && Number(l.revenue || 0) < Number(finFilters.revenue.min)) return false;
+      if (finFilters.revenue.max && Number(l.revenue || 0) > Number(finFilters.revenue.max)) return false;
+      if (finFilters.registeredCapital.min && Number(l.registeredCapital || 0) < Number(finFilters.registeredCapital.min)) return false;
+      if (finFilters.registeredCapital.max && Number(l.registeredCapital || 0) > Number(finFilters.registeredCapital.max)) return false;
+      if (finFilters.profit.min && Number(l.profit || 0) < Number(finFilters.profit.min)) return false;
+      if (finFilters.profit.max && Number(l.profit || 0) > Number(finFilters.profit.max)) return false;
       
       return true;
     })
     .sort((a, b) => {
-      // เรียงจากความสำคัญก่อน (มากไปน้อย)
-      const weightA = PRIORITY_WEIGHT[a.latestStatus] || 0;
-      const weightB = PRIORITY_WEIGHT[b.latestStatus] || 0;
-      if (weightB !== weightA) {
-        return weightB - weightA;
+      if (sortConfig.key) {
+        let aVal = a[sortConfig.key];
+        let bVal = b[sortConfig.key];
+        
+        if (sortConfig.key === "latestStatus") {
+          aVal = PRIORITY_WEIGHT[aVal] ?? -1;
+          bVal = PRIORITY_WEIGHT[bVal] ?? -1;
+        } else if (["revenue", "registeredCapital", "profit"].includes(sortConfig.key)) {
+          aVal = Number(aVal || 0);
+          bVal = Number(bVal || 0);
+        } else if (["latestContactDate", "nextFollowupDate"].includes(sortConfig.key)) {
+          aVal = aVal ? new Date(aVal).getTime() : 0;
+          bVal = bVal ? new Date(bVal).getTime() : 0;
+        } else {
+          aVal = (aVal || "").toString().toLowerCase();
+          bVal = (bVal || "").toString().toLowerCase();
+        }
+
+        if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
+      } else {
+        // ค่า Default 
+        const weightA = PRIORITY_WEIGHT[a.latestStatus] || 0;
+        const weightB = PRIORITY_WEIGHT[b.latestStatus] || 0;
+        if (weightB !== weightA) return weightB - weightA;
+        const dateA = new Date(a.latestContactDate || 0).getTime();
+        const dateB = new Date(b.latestContactDate || 0).getTime();
+        return dateB - dateA;
       }
-      // ถ้าความสำคัญเท่ากัน เรียงตามวันที่ติดต่อล่าสุด (ล่าสุดอยู่บน)
-      const dateA = new Date(a.latestContactDate || 0).getTime();
-      const dateB = new Date(b.latestContactDate || 0).getTime();
-      return dateB - dateA;
     });
+
+  const handleSort = (key) => {
+    let direction = 'desc';
+    if (sortConfig.key === key && sortConfig.direction === 'desc') {
+      direction = 'asc';
+    } else if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      key = null; // ปิดการ Sort กลับเป็น Default
+    }
+    setSortConfig({ key, direction });
+  };
 
   const exportJSON = () => {
     const data = JSON.stringify({ leads, followups }, null, 2);
@@ -288,6 +335,40 @@ export default function App() {
     a.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
     a.download = "qoraqot_crm_export.json";
     a.click();
+  };
+
+  const exportCSV = () => {
+    const csvRows = [];
+    csvRows.push("บริษัท,เลขนิติบุคคล,ผู้ติดต่อ,เบอร์โทร,อีเมล,รายละเอียด,รายได้รวม,ทุนจดทะเบียน,กำไร,สถานะ,ติดต่อล่าสุด,นัดถัดไป");
+    
+    // เรียงคอลัมน์ให้ตรงกัน
+    filtered.forEach(l => {
+      const row = [
+        `"${l.companyName || "-"}"`,
+        `"${l.companyNumber || "-"}"`,
+        `"${l.contactName || "-"}"`,
+        `"${l.contactPhone || "-"}"`,
+        `"${l.contactEmail || "-"}"`,
+        `"${(l.description || "-").replace(/"/g, '""')}"`,
+        `"${l.revenue || "-"}"`,
+        `"${l.registeredCapital || "-"}"`,
+        `"${l.profit || "-"}"`,
+        `"${l.latestStatus || "-"}"`,
+        `"${l.latestContactDate || "-"}"`,
+        `"${l.nextFollowupDate || "-"}"`
+      ];
+      csvRows.push(row.join(","));
+    });
+
+    const csvString = "\uFEFF" + csvRows.join("\n");
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `qoraqot_crm_leads.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const importFile = e => {
@@ -321,7 +402,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: RG.background, fontFamily: "'Sarabun', sans-serif", color: RG.text, display: "flex", flexDirection: "row" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #E8FFFD; } ::-webkit-scrollbar-thumb { background: #e65a78; border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; }`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #E8FFFD; } ::-webkit-scrollbar-thumb { background: #03B5AA; border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; }`}</style>
 
       {/* Left Sidebar (Hoverable) */}
       <aside 
@@ -414,15 +495,27 @@ export default function App() {
                   {showFavorites ? "⭐ กำลังดูรายการโปรด" : "☆ รายการโปรด"}
                 </button>
 
-                {STATUSES.map(s => (
-                  <button key={s} onClick={() => setFilterStatus(f => (f.includes(s) ? f.filter(x => x !== s) : [...f, s]))} style={{ padding: "4px 10px", borderRadius: 20, border: `1.5px solid ${filterStatus.includes(s) ? STATUS_COLORS[s] : RG.border}`, background: filterStatus.includes(s) ? STATUS_COLORS[s] + "22" : "#fff", color: filterStatus.includes(s) ? STATUS_COLORS[s] : RG.textMuted, fontSize: 12, cursor: "pointer", fontWeight: filterStatus.includes(s) ? 700 : 400, fontFamily: "'Sarabun', sans-serif" }}>
-                    {s}
-                  </button>
-                ))}
+                <button 
+                  onClick={() => setShowFilterModal(true)} 
+                  style={{ padding: "4px 10px", borderRadius: 20, border: `1.5px solid ${RG.primary}`, background: (filterStatus.length > 0 || Object.values(finFilters).some(f => f.min || f.max)) ? RG.primary : "#fff", color: (filterStatus.length > 0 || Object.values(finFilters).some(f => f.min || f.max)) ? "#fff" : RG.primary, fontSize: 12, cursor: "pointer", fontWeight: 700, fontFamily: "'Sarabun', sans-serif", display: "flex", alignItems: "center", gap: 4 }}
+                >
+                  ⚙️ ตัวกรอง {(filterStatus.length > 0 || Object.values(finFilters).some(f => f.min || f.max)) && "(เปิดใช้งาน)"}
+                </button>
               </div>
 
               <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-                <Btn small variant="Third" onClick={exportJSON}>⬇ Export JSON</Btn>
+                <select 
+                  onChange={e => {
+                    if (e.target.value === "json") exportJSON();
+                    if (e.target.value === "csv") exportCSV();
+                    e.target.value = "";
+                  }}
+                  style={{ padding: "6px 14px", borderRadius: 8, background: "#ffffff", color: RG.primary, border: `1px solid ${RG.border}`, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "'Sarabun', sans-serif", outline: "none" }}
+                >
+                  <option value="">⬇ Export</option>
+                  <option value="csv">Excel / CSV</option>
+                  <option value="json">JSON</option>
+                </select>
                 <label style={{ padding: "6px 14px", borderRadius: 8, background: "#ffffff", color: RG.primary, border: `1px solid ${RG.border}`, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
                   ⬆ Import <input type="file" accept=".json" onChange={importFile} style={{ display: "none" }} />
                 </label>
@@ -433,8 +526,8 @@ export default function App() {
               <div style={{ overflowX: "auto", maxWidth: "100%", paddingBottom: 10 }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1600 }}>
                   <thead>
-                    <tr style={{ position: "sticky", top: 0, borderBottom: `2px solid ${RG.border}`, background: "#fff", zIndex: 10 }}>
-                      <th style={{ padding: "12px 10px", textAlign: "center", color: RG.textMuted, fontSize: 13, width: 36, position: "relative" }}>
+                    <tr style={{ position: "sticky", top: 0, borderBottom: `2px solid ${RG.border}`, background: RG.text, zIndex: 10 }}>
+                      <th style={{ padding: "12px 10px", textAlign: "center", color: "#fff", fontSize: 13, width: 36, position: "relative" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <input type="checkbox" checked={checked.length === filtered.length && filtered.length > 0} onChange={e => setChecked(e.target.checked ? filtered.map(l => l.id) : [])} />
                           {checked.length > 0 && (
@@ -445,11 +538,33 @@ export default function App() {
                         </div>
                       </th>
                       {/* เพิ่ม Column สำหรับติดดาว */}
-                      <th style={{ padding: "12px 8px", color: RG.textMuted, fontSize: 13, width: 36 }} />
-                      <th style={{ padding: "12px 8px", color: RG.textMuted, fontSize: 13, width: 36 }} />
-                      {["บริษัท", "เลขนิติบุคคล", "ผู้ติดต่อ", "เบอร์", "อีเมล", "รายละเอียด", "รายได้รวม", "ทุนจดทะเบียน", "กำไร", "สถานะ", "ติดต่อล่าสุด", "นัดถัดไป"].map(h => (
-                        <th key={h} style={{ padding: "12px 10px", textAlign: "left", color: RG.textMuted, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
-                          {h}
+                      <th style={{ padding: "12px 8px", color: "#fff", fontSize: 13, width: 36 }} />
+                      <th style={{ padding: "12px 8px", color: "#fff", fontSize: 13, width: 36 }} />
+                      {[
+                        { label: "บริษัท", key: "companyName" },
+                        { label: "เลขนิติบุคคล", key: "companyNumber" },
+                        { label: "ผู้ติดต่อ", key: "contactName" },
+                        { label: "เบอร์", key: "contactPhone" },
+                        { label: "อีเมล", key: "contactEmail" },
+                        { label: "รายละเอียด", key: "description" },
+                        { label: "รายได้รวม", key: "revenue", sortable: true },
+                        { label: "ทุนจดทะเบียน", key: "registeredCapital", sortable: true },
+                        { label: "กำไร", key: "profit", sortable: true },
+                        { label: "สถานะ", key: "latestStatus", sortable: true },
+                        { label: "ติดต่อล่าสุด", key: "latestContactDate", sortable: true },
+                        { label: "นัดถัดไป", key: "nextFollowupDate", sortable: true }
+                      ].map(col => (
+                        <th key={col.label} style={{ padding: "12px 10px", textAlign: "left", color: "#fff", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+                          {col.sortable ? (
+                            <div onClick={() => handleSort(col.key)} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", userSelect: "none" }}>
+                              {col.label}
+                              <span style={{ fontSize: 10, color: sortConfig.key === col.key ? RG.primaryPale : "rgba(255, 255, 255, 0.4)" }}>
+                                {sortConfig.key === col.key ? (sortConfig.direction === 'asc' ? "▲" : "▼") : "▽"}
+                              </span>
+                            </div>
+                          ) : (
+                            col.label
+                          )}
                         </th>
                       ))}
                     </tr>
@@ -474,8 +589,8 @@ export default function App() {
                         lead.everHadMeeting === true || // ตรวจสอบจากความจำฝังตัวที่เราเพิ่มเข้าไป
                         leadFollowups.some(f => f.status === "มีตติ้ง");
                       
-                      // 3. กำหนดสีพื้นหลัง: ถ้าเคยมีตติ้งให้ไฮไลต์สีชมพูที่เข้มขึ้นให้เห็นชัดเจน ถ้าไม่เคย ให้สลับสีตามเดิม
-                      const rowBackground = hasMeetingHistory ? "linear-gradient(90deg, #FFE0E6, #FFC2D1)" : (i % 2 === 0 ? RG.rowOdd : RG.rowEven);
+                      // 3. กำหนดสีพื้นหลัง: ถ้าเคยมีตติ้งให้ไฮไลต์สีฟ้าที่เข้มขึ้นให้เห็นชัดเจน ถ้าไม่เคย ให้สลับสีตามเดิม
+                      const rowBackground = hasMeetingHistory ? "linear-gradient(90deg, #E0F2FE, #BAE6FD)" : (i % 2 === 0 ? RG.rowOdd : RG.rowEven);
 
                       return (
                         <tr key={lead.id} style={{ background: rowBackground, borderBottom: `1px solid ${RG.border}` }}>
@@ -550,6 +665,8 @@ export default function App() {
       </main>
 
       {showNotif && <NotificationsPanel leads={leads} onMarkDone={markDone} onClose={() => setShowNotif(false)} />}
+      
+      {showFilterModal && <FilterModal filterStatus={filterStatus} setFilterStatus={setFilterStatus} finFilters={finFilters} setFinFilters={setFinFilters} onClose={() => setShowFilterModal(false)} />}
 
       {markDoneLead && (
         <Modal title={`บันทึกการติดตาม — ${markDoneLead.companyName}`} onClose={() => setMarkDoneLead(null)}>

@@ -164,7 +164,7 @@ export default function Reports({ leads, onViewLead }) {
               </div>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, border: `1px solid ${RG.border}`, borderRadius: 8, overflow: "hidden" }}>
                 <thead>
-                  <tr style={{ background: RG.rowEven || "#F2EAE4", borderBottom: `1px solid ${RG.border}` }}>
+                  <tr style={{ background: RG.text, borderBottom: `1px solid ${RG.border}`, color: "#fff" }}>
                     <th style={{ padding: "12px 16px", textAlign: "left", width: "50%" }}>ชื่อบริษัท</th>
                     <th style={{ padding: "12px 16px", textAlign: "center", width: "30%" }}>สถานะล่าสุด</th>
                     <th style={{ padding: "12px 16px", textAlign: "center", width: "20%" }}>รายละเอียด</th>
@@ -276,13 +276,13 @@ export default function Reports({ leads, onViewLead }) {
                     <div style={{ fontSize: 16, fontWeight: 700, color: RG.text, marginBottom: "16px", borderLeft: `4px solid ${RG.primary}`, paddingLeft: "8px" }}>รายละเอียดการติดต่อ</div>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                       <thead>
-                        <tr style={{ background: "#f1f5f9", borderBottom: "2px solid #cbd5e1" }}>
-                          <th style={{ padding: "10px", textAlign: "center", width: "5%", color: "#334155" }}>#</th>
-                          <th style={{ padding: "10px", textAlign: "left", width: "30%", color: "#334155" }}>ชื่อบริษัท</th>
-                          <th style={{ padding: "10px", textAlign: "left", width: "20%", color: "#334155" }}>ผู้ติดต่อ</th>
-                          <th style={{ padding: "10px", textAlign: "left", width: "15%", color: "#334155" }}>เบอร์โทรศัพท์</th>
-                          <th style={{ padding: "10px", textAlign: "right", width: "15%", color: "#334155" }}>รายได้ (บาท)</th>
-                          <th style={{ padding: "10px", textAlign: "center", width: "15%", color: "#334155" }}>สถานะ</th>
+                        <tr style={{ background: RG.text, borderBottom: "2px solid #cbd5e1" }}>
+                          <th style={{ padding: "10px", textAlign: "center", width: "5%", color: "#fff" }}>#</th>
+                          <th style={{ padding: "10px", textAlign: "left", width: "30%", color: "#fff" }}>ชื่อบริษัท</th>
+                          <th style={{ padding: "10px", textAlign: "left", width: "20%", color: "#fff" }}>ผู้ติดต่อ</th>
+                          <th style={{ padding: "10px", textAlign: "left", width: "15%", color: "#fff" }}>เบอร์โทรศัพท์</th>
+                          <th style={{ padding: "10px", textAlign: "right", width: "15%", color: "#fff" }}>รายได้ (บาท)</th>
+                          <th style={{ padding: "10px", textAlign: "center", width: "15%", color: "#fff" }}>สถานะ</th>
                         </tr>
                       </thead>
                       <tbody>
