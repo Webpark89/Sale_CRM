@@ -215,49 +215,82 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
 
         {tab === "info" && (
           <div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
-              {["companyNumber", "companyName", "contactName", "description", "contactPhone", "contactEmail"].map((key, index) => {
-                const labels = ["เลขนิติบุคคล", "ชื่อบริษัท", "ชื่อผู้ติดต่อ", "รายละเอียด", "เบอร์โทร", "อีเมล"];
-                const lbl = labels[index];
-                
-                if (key === "companyNumber") {
-                  return (
-                    <Field key={key} label={lbl}>
-                      {editing ? (
-                        <>
-                          <input 
-                            value={form[key] || ""} 
-                            onChange={e => handleInputChange(key, e.target.value)} 
-                            style={{ ...inputStyle, borderColor: taxIdError ? "#ff4d4f" : inputStyle.border }} 
-                          />
-                          {taxIdError && <div style={{ color: "#ff4d4f", fontSize: 12, marginTop: 4 }}>{taxIdError}</div>}
-                        </>
-                      ) : (
-                        <p style={{ margin: 0, padding: "6px 0", color: RG.text, fontSize: 14 }}>{form[key] || "—"}</p>
-                      )}
-                    </Field>
-                  );
-                }
-
-                return (
-                  <Field key={key} label={lbl}>
-                    {editing ? <input value={form[key] || ""} onChange={e => handleInputChange(key, e.target.value)} style={inputStyle} /> : <p style={{ margin: 0, padding: "6px 0", color: RG.text, fontSize: 14 }}>{form[key] || "—"}</p>}
-                  </Field>
-                );
-              })}
-              
-              {["revenue", "registeredCapital", "profit"].map((key, index) => {
-                const labels = ["รายได้รวม (บาท)", "ทุนจดทะเบียน (บาท)", "กำไร (บาท)"];
-                const lbl = labels[index];
-                return (
-                  <Field key={key} label={lbl}>
-                    {editing ? <input type="number" value={form[key] || ""} onChange={e => handleInputChange(key, Number(e.target.value))} style={inputStyle} /> : <p style={{ margin: 0, padding: "6px 0", color: RG.text, fontSize: 14 }}>{fmtNum(form[key])}</p>}
-                  </Field>
-                );
-              })}
+            {/* Header Report Style */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px", borderBottom: `2px solid ${RG.primary}`, paddingBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <div style={{ width: 50, height: 50, background: RG.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 24 }}>Q</div>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: RG.primary, lineHeight: 1.2 }}>QoraQot CRM</div>
+                  <div style={{ fontSize: 13, color: RG.textMuted }}>Customer Profile Report</div>
+                </div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: RG.text, letterSpacing: "0.5px", marginBottom: "4px" }}>เอกสารสรุปข้อมูลลูกค้า</div>
+              </div>
             </div>
-            
-            {/* ซ่อนปุ่ม บันทึก/แก้ไข ตอน Export รูป (html2canvas จะมี data-html2canvas-ignore ได้ แต่วิธีนี้ชัวร์กว่า) */}
+
+            {/* Company Info */}
+            <div style={{ marginBottom: "24px" }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: RG.text, marginBottom: "16px", borderLeft: `4px solid ${RG.primary}`, paddingLeft: "8px" }}>ข้อมูลองค์กร (Company Information)</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, border: "1px solid #e2e8f0" }}>
+                <tbody>
+                  {[
+                    { label: "ชื่อบริษัท", key: "companyName" },
+                    { label: "เลขนิติบุคคล", key: "companyNumber" },
+                    { label: "ผู้ติดต่อ", key: "contactName" },
+                    { label: "เบอร์โทรศัพท์", key: "contactPhone" },
+                    { label: "อีเมล", key: "contactEmail" },
+                    { label: "รายละเอียด", key: "description" },
+                  ].map((field) => (
+                    <tr key={field.key}>
+                      <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, width: "25%", borderBottom: "1px solid #e2e8f0" }}>{field.label}</td>
+                      <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", width: "75%" }}>
+                        {editing ? (
+                          <>
+                            <input 
+                              value={form[field.key] || ""} 
+                              onChange={e => handleInputChange(field.key, e.target.value)} 
+                              style={{ ...inputStyle, width: "100%", borderColor: (field.key === "companyNumber" && taxIdError) ? "#ff4d4f" : inputStyle.border }} 
+                            />
+                            {field.key === "companyNumber" && taxIdError && <div style={{ color: "#ff4d4f", fontSize: 12, marginTop: 4 }}>{taxIdError}</div>}
+                          </>
+                        ) : (
+                          <span>{form[field.key] || "-"}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Financial Info */}
+            <div style={{ marginBottom: "24px" }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: RG.text, marginBottom: "16px", borderLeft: `4px solid ${RG.primary}`, paddingLeft: "8px" }}>ข้อมูลทางการเงิน (Financial Information)</div>
+              <div style={{ display: "flex", gap: "16px" }}>
+                {[
+                  { label: "ทุนจดทะเบียน (บาท)", key: "registeredCapital", bg: "#f8f9fa", border: "#e9ecef", textBg: RG.textMuted, textVal: RG.text },
+                  { label: "รายได้รวม (บาท)", key: "revenue", bg: "#f0fdf4", border: "#dcfce7", textBg: "#166534", textVal: "#15803d" },
+                  { label: "กำไรสุทธิ (บาท)", key: "profit", bg: "#f0f9ff", border: "#e0f2fe", textBg: "#075985", textVal: "#0369a1" },
+                ].map(item => (
+                  <div key={item.key} style={{ flex: 1, background: item.bg, border: `1px solid ${item.border}`, borderRadius: "8px", padding: "16px", textAlign: "center" }}>
+                    <div style={{ fontSize: 13, color: item.textBg, marginBottom: "8px" }}>{item.label}</div>
+                    {editing ? (
+                      <input 
+                        type="number" 
+                        value={form[item.key] || ""} 
+                        onChange={e => handleInputChange(item.key, Number(e.target.value))} 
+                        style={{ ...inputStyle, width: "100%", textAlign: "center", fontSize: 18, fontWeight: 700 }} 
+                      />
+                    ) : (
+                      <div style={{ fontSize: 22, fontWeight: 700, color: item.textVal }}>{form[item.key] ? fmtNum(form[item.key]) : "-"}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ซ่อนปุ่ม บันทึก/แก้ไข ตอน Export รูป */}
             <div data-html2canvas-ignore="true" style={{ display: "flex", gap: 8, marginTop: 16 }}>
               {editing ? (
                 <>

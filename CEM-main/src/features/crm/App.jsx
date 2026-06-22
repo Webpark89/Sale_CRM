@@ -56,6 +56,7 @@ export default function App() {
     profit: { min: "", max: "" }
   });
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
+  const [currentPage, setCurrentPage] = useState(1);
   
   const topScrollRef = useRef(null);
   const bottomScrollRef = useRef(null);
@@ -324,6 +325,11 @@ export default function App() {
       }
     });
 
+  const itemsPerPage = 12;
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const actualPage = Math.max(1, Math.min(currentPage, totalPages || 1));
+  const paginatedLeads = filtered.slice((actualPage - 1) * itemsPerPage, actualPage * itemsPerPage);
+
   const handleSort = (key) => {
     let direction = 'desc';
     if (sortConfig.key === key && sortConfig.direction === 'desc') {
@@ -590,14 +596,14 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.length === 0 && (
+                    {paginatedLeads.length === 0 && (
                       <tr>
                         <td colSpan={14} style={{ textAlign: "center", padding: "40px", color: RG.textMuted }}>
                           ไม่พบข้อมูล
                         </td>
                       </tr>
                     )}
-                    {filtered.map((lead, i) => {
+                    {paginatedLeads.map((lead, i) => {
                       const isDup = dupNumbers.includes(lead.companyNumber);
                       
                       // 1. ดึงประวัติการติดตามทั้งหมดของลีดรายการนี้
@@ -659,9 +665,30 @@ export default function App() {
                   </tbody>
                 </table>
               </div>
-              <div style={{ padding: "10px 16px", background: "#ffffff", borderTop: `1px solid ${RG.border}`, fontSize: 12, color: RG.textMuted, display: "flex", justifyContent: "space-between" }}>
-                <span>แสดง {filtered.length} จาก {leads.length} รายการ</span>
-                {filterStatus.length > 0 && <span>กรอง: {filterStatus.join(", ")}</span>}
+              <div style={{ padding: "10px 16px", background: "#ffffff", borderTop: `1px solid ${RG.border}`, fontSize: 12, color: RG.textMuted, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <span>แสดง {paginatedLeads.length} จาก {filtered.length} รายการ (ทั้งหมด {leads.length} รายการ)</span>
+                  {filterStatus.length > 0 && <span style={{ background: "#f1f5f9", padding: "2px 8px", borderRadius: 10 }}>กรอง: {filterStatus.join(", ")}</span>}
+                </div>
+                {totalPages > 1 && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <button 
+                      disabled={actualPage === 1} 
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                      style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${actualPage === 1 ? "#e2e8f0" : RG.border}`, background: actualPage === 1 ? "#f8f9fa" : "#fff", color: actualPage === 1 ? "#cbd5e1" : RG.text, cursor: actualPage === 1 ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 600 }}
+                    >
+                      ก่อนหน้า
+                    </button>
+                    <span style={{ fontWeight: 600 }}>หน้า {actualPage} / {totalPages}</span>
+                    <button 
+                      disabled={actualPage === totalPages} 
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                      style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${actualPage === totalPages ? "#e2e8f0" : RG.border}`, background: actualPage === totalPages ? "#f8f9fa" : "#fff", color: actualPage === totalPages ? "#cbd5e1" : RG.text, cursor: actualPage === totalPages ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 600 }}
+                    >
+                      ถัดไป
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </>

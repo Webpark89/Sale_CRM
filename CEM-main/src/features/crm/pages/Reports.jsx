@@ -32,8 +32,8 @@ export default function Reports({ leads, onViewLead }) {
     .filter(g => g.items.length > 0);
 
   const totalCalls = reportLeads.length;
-  const totalRevenue = finalLeads.reduce((sum, l) => sum + (Number(l.revenue) || 0), 0);
-  const totalProfit = finalLeads.reduce((sum, l) => sum + (Number(l.profit) || 0), 0);
+  const totalMeetings = finalLeads.filter(l => l.latestStatus === "มีตติ้ง").length;
+  const totalClosed = finalLeads.filter(l => l.latestStatus === "ปิดการขาย").length;
 
   // ฟังก์ชันดาวน์โหลด JPG
   const handleDownloadJPG = async () => {
@@ -260,13 +260,13 @@ export default function Reports({ leads, onViewLead }) {
                         <div style={{ fontSize: 13, color: RG.textMuted, marginBottom: "8px" }}>จำนวนที่ติดต่อทั้งหมด</div>
                         <div style={{ fontSize: 28, fontWeight: 700, color: RG.text }}>{totalCalls} <span style={{ fontSize: 14, fontWeight: 400 }}>บริษัท</span></div>
                       </div>
-                      <div style={{ flex: 1, background: "#f0fdf4", border: "1px solid #dcfce7", borderRadius: "8px", padding: "16px", textAlign: "center" }}>
-                        <div style={{ fontSize: 13, color: "#166534", marginBottom: "8px" }}>รายได้รวมที่คาดหวัง (บาท)</div>
-                        <div style={{ fontSize: 28, fontWeight: 700, color: "#15803d" }}>{fmtNum(totalRevenue)}</div>
+                      <div style={{ flex: 1, background: "#fffbeb", border: "1px solid #fef3c7", borderRadius: "8px", padding: "16px", textAlign: "center" }}>
+                        <div style={{ fontSize: 13, color: "#b45309", marginBottom: "8px" }}>นัดหมายมีตติ้ง</div>
+                        <div style={{ fontSize: 28, fontWeight: 700, color: "#d97706" }}>{totalMeetings} <span style={{ fontSize: 14, fontWeight: 400 }}>บริษัท</span></div>
                       </div>
-                      <div style={{ flex: 1, background: "#f0f9ff", border: "1px solid #e0f2fe", borderRadius: "8px", padding: "16px", textAlign: "center" }}>
-                        <div style={{ fontSize: 13, color: "#075985", marginBottom: "8px" }}>กำไรที่คาดหวัง (บาท)</div>
-                        <div style={{ fontSize: 28, fontWeight: 700, color: "#0369a1" }}>{fmtNum(totalProfit)}</div>
+                      <div style={{ flex: 1, background: "#f0fdf4", border: "1px solid #dcfce7", borderRadius: "8px", padding: "16px", textAlign: "center" }}>
+                        <div style={{ fontSize: 13, color: "#166534", marginBottom: "8px" }}>ปิดการขายสำเร็จ</div>
+                        <div style={{ fontSize: 28, fontWeight: 700, color: "#15803d" }}>{totalClosed} <span style={{ fontSize: 14, fontWeight: 400 }}>บริษัท</span></div>
                       </div>
                     </div>
                   </div>
@@ -281,7 +281,7 @@ export default function Reports({ leads, onViewLead }) {
                           <th style={{ padding: "10px", textAlign: "left", width: "30%", color: "#fff" }}>ชื่อบริษัท</th>
                           <th style={{ padding: "10px", textAlign: "left", width: "20%", color: "#fff" }}>ผู้ติดต่อ</th>
                           <th style={{ padding: "10px", textAlign: "left", width: "15%", color: "#fff" }}>เบอร์โทรศัพท์</th>
-                          <th style={{ padding: "10px", textAlign: "right", width: "15%", color: "#fff" }}>รายได้ (บาท)</th>
+                          <th style={{ padding: "10px", textAlign: "right", width: "15%", color: "#fff" }}>รายได้/ปี (บาท)</th>
                           <th style={{ padding: "10px", textAlign: "center", width: "15%", color: "#fff" }}>สถานะ</th>
                         </tr>
                       </thead>
