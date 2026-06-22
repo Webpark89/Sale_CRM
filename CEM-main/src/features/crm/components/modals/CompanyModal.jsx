@@ -71,8 +71,126 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
   return (
     <Modal title={lead.companyName} onClose={onClose} wide>
       
-      {/* 3. คลุมพื้นที่ทั้งหมดด้วย exportRef เพื่อให้ html2canvas ถ่ายรูปตรงนี้ */}
-      <div ref={exportRef} style={{ background: "#fff", padding: "10px", borderRadius: "8px" }}>
+      {/* Hidden Export Template */}
+      <div style={{ position: "absolute", top: "-9999px", left: "-9999px", zIndex: -100 }}>
+        <div 
+          ref={exportRef} 
+          style={{ 
+            background: "#fff", 
+            padding: "50px", 
+            width: "800px", 
+            boxSizing: "border-box", 
+            fontFamily: "'Sarabun', sans-serif" 
+          }}
+        >
+          {/* Header */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px", borderBottom: `2px solid ${RG.primary}`, paddingBottom: "24px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <div style={{ width: 50, height: 50, background: RG.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 24 }}>Q</div>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: RG.primary, lineHeight: 1.2 }}>QoraQot CRM</div>
+                <div style={{ fontSize: 13, color: RG.textMuted }}>Customer Profile Report</div>
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: RG.text, letterSpacing: "0.5px", marginBottom: "4px" }}>เอกสารสรุปข้อมูลลูกค้า</div>
+              <div style={{ fontSize: 14, color: RG.textMuted }}>พิมพ์เมื่อ: <span style={{ fontWeight: 600, color: RG.text }}>{new Date().toLocaleString("th-TH")}</span></div>
+            </div>
+          </div>
+
+          {/* Company Info */}
+          <div style={{ marginBottom: "32px" }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: RG.text, marginBottom: "16px", borderLeft: `4px solid ${RG.primary}`, paddingLeft: "8px" }}>ข้อมูลองค์กร (Company Information)</div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, border: "1px solid #e2e8f0" }}>
+              <tbody>
+                <tr>
+                  <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, width: "25%", borderBottom: "1px solid #e2e8f0" }}>ชื่อบริษัท</td>
+                  <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", width: "75%" }}>{lead.companyName || "-"}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>เลขนิติบุคคล</td>
+                  <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>{lead.companyNumber || "-"}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>ผู้ติดต่อ</td>
+                  <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>{lead.contactName || "-"}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>เบอร์โทรศัพท์</td>
+                  <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>{lead.contactPhone || "-"}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>อีเมล</td>
+                  <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>{lead.contactEmail || "-"}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600 }}>รายละเอียด</td>
+                  <td style={{ padding: "12px 16px" }}>{lead.description || "-"}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Financial Info */}
+          <div style={{ marginBottom: "32px" }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: RG.text, marginBottom: "16px", borderLeft: `4px solid ${RG.primary}`, paddingLeft: "8px" }}>ข้อมูลทางการเงิน (Financial Information)</div>
+            <div style={{ display: "flex", gap: "16px" }}>
+              <div style={{ flex: 1, background: "#f8f9fa", border: "1px solid #e9ecef", borderRadius: "8px", padding: "16px", textAlign: "center" }}>
+                <div style={{ fontSize: 13, color: RG.textMuted, marginBottom: "8px" }}>ทุนจดทะเบียน (บาท)</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: RG.text }}>{lead.registeredCapital ? fmtNum(lead.registeredCapital) : "-"}</div>
+              </div>
+              <div style={{ flex: 1, background: "#f0fdf4", border: "1px solid #dcfce7", borderRadius: "8px", padding: "16px", textAlign: "center" }}>
+                <div style={{ fontSize: 13, color: "#166534", marginBottom: "8px" }}>รายได้รวม (บาท)</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "#15803d" }}>{lead.revenue ? fmtNum(lead.revenue) : "-"}</div>
+              </div>
+              <div style={{ flex: 1, background: "#f0f9ff", border: "1px solid #e0f2fe", borderRadius: "8px", padding: "16px", textAlign: "center" }}>
+                <div style={{ fontSize: 13, color: "#075985", marginBottom: "8px" }}>กำไรสุทธิ (บาท)</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "#0369a1" }}>{lead.profit ? fmtNum(lead.profit) : "-"}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Followups */}
+          {fups.length > 0 && (
+            <div style={{ marginBottom: "32px" }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: RG.text, marginBottom: "16px", borderLeft: `4px solid ${RG.primary}`, paddingLeft: "8px" }}>ประวัติการติดตาม (Follow-up History)</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: "#f1f5f9", borderBottom: "2px solid #cbd5e1" }}>
+                    <th style={{ padding: "10px", textAlign: "center", width: "10%", color: "#334155" }}>ครั้งที่</th>
+                    <th style={{ padding: "10px", textAlign: "left", width: "20%", color: "#334155" }}>วันที่</th>
+                    <th style={{ padding: "10px", textAlign: "left", width: "40%", color: "#334155" }}>รายละเอียด</th>
+                    <th style={{ padding: "10px", textAlign: "center", width: "30%", color: "#334155" }}>สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...fups].sort((a, b) => b.sequence - a.sequence).map(f => (
+                    <tr key={f.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                      <td style={{ padding: "10px", textAlign: "center", color: RG.textMuted }}>{f.sequence}</td>
+                      <td style={{ padding: "10px", color: RG.text }}>{parseDateTH(f.date)}</td>
+                      <td style={{ padding: "10px", color: RG.text }}>{f.detail || "-"}</td>
+                      <td style={{ padding: "10px", textAlign: "center", color: RG.text }}>
+                        <span style={{ display: "inline-block", padding: "4px 8px", borderRadius: "12px", fontSize: 11, fontWeight: 600, background: "#eee", color: "#666" }}>
+                          {f.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "60px", paddingTop: "20px", borderTop: "1px solid #e2e8f0", fontSize: 11, color: RG.textMuted }}>
+            <div>ระบบบริหารจัดการการขาย QoraQot CRM</div>
+            <div style={{ fontWeight: 600, letterSpacing: "0.5px" }}>CONFIDENTIAL</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main UI */}
+      <div style={{ background: "#fff", padding: "10px", borderRadius: "8px" }}>
         
         {/* ส่วน Header ของ Modal (ปุ่ม Tabs และปุ่ม Export) */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>

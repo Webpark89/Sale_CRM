@@ -1,37 +1,36 @@
 export const RG = {
-  // === PRIMARY PALETTE (Turquoise Waters) ===
-  primary:       "#07BEB8",   // Turquoise
-  primaryMid:    "#3DCCC7",
-  primaryLight:  "#68D8D6",
-  primaryPale:   "#9CEAEF",
-  primaryGhost:  "#C4FFF9",
+  // === PRIMARY PALETTE (Coral Pink) ===
+  primary:       "#E65A78",   // Coral Pink (for buttons, active nav, logo)
+  primaryMid:    "#D14D67",
+  primaryLight:  "#F4A7B8",
+  primaryPale:   "#FCE4E9",   // Light pink background for chips
+  primaryGhost:  "#FEF5F7",
   
-  // === GLASS & AIRY (Soothing Theme) ===
-  navbarBg:      "rgba(255, 255, 255, 0.65)", // Frosted glass white
+  navbarBg:      "#FFFFFF",   // Clean white navbar
  
   // === GRADIENTS ===
-  gradient:      "linear-gradient(135deg, #07BEB8 0%, #3DCCC7 100%)", 
-  gradientSoft:  "linear-gradient(135deg, #C4FFF9 0%, #9CEAEF 60%, #E8FFFD 100%)",
-  gradientHero:  "linear-gradient(160deg, #07BEB8 0%, #68D8D6 50%, #C4FFF9 100%)",
+  gradient:      "linear-gradient(135deg, #E65A78 0%, #D14D67 100%)", // Pink gradient
+  gradientSoft:  "linear-gradient(135deg, #FCE4E9 0%, #FEF5F7 100%)",
+  gradientHero:  "linear-gradient(160deg, #E65A78 0%, #F4A7B8 50%, #FCE4E9 100%)",
  
   // === NEUTRALS & EFFECTS ===
-  text:          "#1A2E2E",   // Soft Dark Teal (easy on eyes)
-  textMuted:     "#6B8C8A",   // Light Teal-Gray
-  surface:       "rgba(255, 255, 255, 0.85)", // Glass card surface
+  text:          "#2D2024",   // Dark warm grey
+  textMuted:     "#8A7E82",   // Muted warm grey
+  surface:       "#FFFFFF",   
   surfaceSolid:  "#FFFFFF",
-  background:    "linear-gradient(135deg, #F4FAFA 0%, #E6F5F4 100%)", // Beautiful soothing background
-  border:        "rgba(7, 190, 184, 0.15)",   // Ultra-light turquoise border
-  shadowSoft:    "0 12px 36px rgba(7, 190, 184, 0.08)", // Premium, diffuse shadow
-  shadowGlow:    "0 4px 15px rgba(7, 190, 184, 0.25)",
-  glassFilter:   "blur(16px)", // WOW glass effect
+  background:    "#FCF7F9",   // Very subtle warm pink background
+  border:        "#F0E1E6",   // Light warm border
+  shadowSoft:    "0 4px 12px rgba(230, 90, 120, 0.08)", // Soft pinkish shadow
+  shadowGlow:    "0 4px 15px rgba(230, 90, 120, 0.25)",
+  glassFilter:   "none",      // No glass blur needed
  
   // === TABLE ROW ALTERNATING ===
-  rowOdd:        "transparent",
-  rowEven:       "rgba(7, 190, 184, 0.03)",   // Barely-there alternating tint
+  rowOdd:        "#FFFFFF",
+  rowEven:       "#FEFAFB",   // Very subtle pink alternating row
  
   // === SEMANTIC ===
-  success:       "#07BEB8",   
+  success:       "#22C55E",   
   warn:          "#F59E0B",   
   danger:        "#EF4444",   
-  info:          "#3DCCC7",   
+  info:          "#3B82F6",   
 };

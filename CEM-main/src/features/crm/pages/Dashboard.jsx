@@ -97,7 +97,7 @@ export default function Dashboard({ leads, followups }) {
     <div>
       {/* ส่วนหัวและตัวกรองเดือน */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
-        <h2 style={{ margin: 0, color: RG.text }}>ภาพรวมการขาย</h2>
+        <h2 style={{ margin: 0, color: RG.primary }}>ภาพรวมการขาย</h2>
         
         <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
           {/* ตัวเลือกเดือน */}
@@ -147,12 +147,13 @@ export default function Dashboard({ leads, followups }) {
               gap: "6px",
               padding: "8px 16px",
               borderRadius: "8px",
-              border: `1px solid ${RG.border}`,
-              backgroundColor: isExporting ? "#eee" : RG.surface,
-              color: RG.text,
+              border: "none",
+              backgroundColor: isExporting ? "#ccc" : RG.primary,
+              color: "#fff",
               cursor: isExporting ? "not-allowed" : "pointer",
-              fontWeight: 500,
-              height: "38px"
+              fontWeight: 600,
+              height: "38px",
+              boxShadow: RG.shadowSoft
             }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

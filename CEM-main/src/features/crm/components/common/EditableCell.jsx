@@ -25,12 +25,16 @@ export default function EditableCell({ value, onSave, type = "text", options }) 
           cursor: "pointer", 
           display: "block", 
           minWidth: 40, 
+          maxWidth: type === "text" ? 180 : "none",
+          overflow: "hidden",
+          whiteSpace: "nowrap",
+          textOverflow: "ellipsis",
           padding: "2px 4px", 
           borderRadius: 4, 
           color: STATUS_COLORS[val] ? STATUS_COLORS[val] : RG.text, 
           fontSize: 13 
         }} 
-        title="คลิกเพื่อแก้ไข"
+        title={val ? String(val) : "คลิกเพื่อแก้ไข"}
       >
         {type === "number" ? fmtNum(val) : type === "date" ? parseDateTH(val) : val || "—"}
       </span>

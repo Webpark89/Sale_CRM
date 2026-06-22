@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import html2canvas from "html2canvas";
 import { STATUSES, STATUS_COLORS } from "../constants/status";
 import { RG } from "../constants/theme";
-import { today } from "../utils/helpers";
+import { today, fmtNum } from "../utils/helpers";
 import StatusBadge from "../components/common/StatusBadge";
 import { inputStyle } from "../components/common/styles";
 
@@ -32,6 +32,8 @@ export default function Reports({ leads, onViewLead }) {
     .filter(g => g.items.length > 0);
 
   const totalCalls = reportLeads.length;
+  const totalRevenue = finalLeads.reduce((sum, l) => sum + (Number(l.revenue) || 0), 0);
+  const totalProfit = finalLeads.reduce((sum, l) => sum + (Number(l.profit) || 0), 0);
 
   // ฟังก์ชันดาวน์โหลด JPG
   const handleDownloadJPG = async () => {
@@ -235,45 +237,82 @@ export default function Reports({ leads, onViewLead }) {
                     boxShadow: "0 4px 12px rgba(0,0,0,0.05)" 
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "30px", borderBottom: `2px solid ${RG.surface}`, paddingBottom: "20px" }}>
-                    <div>
-                      <div style={{ fontSize: 14, color: RG.textMuted, fontWeight: 600, marginBottom: 4 }}>{mode === "daily" ? "สรุปรายวัน" : "สรุปรายเดือน"}</div>
-                      <div style={{ fontSize: 26, fontWeight: 700, color: RG.text, letterSpacing: "0.5px" }}>{mode === "daily" ? selDate : selMonth}</div>
+                  {/* Header / Letterhead */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px", borderBottom: `2px solid ${RG.primary}`, paddingBottom: "24px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                      <div style={{ width: 50, height: 50, background: RG.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 24 }}>Q</div>
+                      <div>
+                        <div style={{ fontSize: 22, fontWeight: 700, color: RG.primary, lineHeight: 1.2 }}>QoraQot CRM</div>
+                        <div style={{ fontSize: 13, color: RG.textMuted }}>Sales & Lead Management System</div>
+                      </div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 14, color: RG.textMuted, fontWeight: 600, marginBottom: 4 }}>โทรทั้งหมด</div>
-                      <div style={{ fontSize: 36, fontWeight: 700, color: "#d9534f", lineHeight: 1 }}>{totalCalls}</div>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: RG.text, letterSpacing: "0.5px", marginBottom: "4px" }}>{mode === "daily" ? "รายงานสรุปการขายรายวัน" : "รายงานสรุปการขายรายเดือน"}</div>
+                      <div style={{ fontSize: 14, color: RG.textMuted }}>ประจำวันที่: <span style={{ fontWeight: 600, color: RG.text }}>{mode === "daily" ? selDate : selMonth}</span></div>
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                    {STATUSES.map(status => {
-                      const items = finalLeads.filter(l => l.latestStatus === status);
-                      if (filterStatus !== "all" && filterStatus !== status) return null;
-                      return (
-                        <div key={status} style={{ background: "#fdfdfd", borderRadius: "10px", padding: "16px 20px", border: "1px solid #f0f0f0" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ marginBottom: items.length > 0 ? "12px" : "0" }}><StatusBadge status={status} /></div>
-                              {items.length > 0 && (
-                                <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingLeft: "4px" }}>
-                                  {items.map((item, idx) => (
-                                    <div key={idx} style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "flex-start", gap: "8px" }}>
-                                      <span style={{ color: "#aaa", fontSize: 14, lineHeight: "18px" }}>•</span>
-                                      <span style={{ lineHeight: "18px" }}>{item.companyName}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                            <div style={{ fontSize: 16, fontWeight: 700, color: "#333", marginTop: "4px" }}>{items.length}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  {/* Executive Summary */}
+                  <div style={{ marginBottom: "32px" }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: RG.text, marginBottom: "16px", borderLeft: `4px solid ${RG.primary}`, paddingLeft: "8px" }}>สรุปภาพรวม (Executive Summary)</div>
+                    <div style={{ display: "flex", gap: "16px" }}>
+                      <div style={{ flex: 1, background: "#f8f9fa", border: "1px solid #e9ecef", borderRadius: "8px", padding: "16px", textAlign: "center" }}>
+                        <div style={{ fontSize: 13, color: RG.textMuted, marginBottom: "8px" }}>จำนวนที่ติดต่อทั้งหมด</div>
+                        <div style={{ fontSize: 28, fontWeight: 700, color: RG.text }}>{totalCalls} <span style={{ fontSize: 14, fontWeight: 400 }}>บริษัท</span></div>
+                      </div>
+                      <div style={{ flex: 1, background: "#f0fdf4", border: "1px solid #dcfce7", borderRadius: "8px", padding: "16px", textAlign: "center" }}>
+                        <div style={{ fontSize: 13, color: "#166534", marginBottom: "8px" }}>รายได้รวมที่คาดหวัง (บาท)</div>
+                        <div style={{ fontSize: 28, fontWeight: 700, color: "#15803d" }}>{fmtNum(totalRevenue)}</div>
+                      </div>
+                      <div style={{ flex: 1, background: "#f0f9ff", border: "1px solid #e0f2fe", borderRadius: "8px", padding: "16px", textAlign: "center" }}>
+                        <div style={{ fontSize: 13, color: "#075985", marginBottom: "8px" }}>กำไรที่คาดหวัง (บาท)</div>
+                        <div style={{ fontSize: 28, fontWeight: 700, color: "#0369a1" }}>{fmtNum(totalProfit)}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Data Table */}
+                  <div style={{ marginBottom: "32px" }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: RG.text, marginBottom: "16px", borderLeft: `4px solid ${RG.primary}`, paddingLeft: "8px" }}>รายละเอียดการติดต่อ</div>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ background: "#f1f5f9", borderBottom: "2px solid #cbd5e1" }}>
+                          <th style={{ padding: "10px", textAlign: "center", width: "5%", color: "#334155" }}>#</th>
+                          <th style={{ padding: "10px", textAlign: "left", width: "30%", color: "#334155" }}>ชื่อบริษัท</th>
+                          <th style={{ padding: "10px", textAlign: "left", width: "20%", color: "#334155" }}>ผู้ติดต่อ</th>
+                          <th style={{ padding: "10px", textAlign: "left", width: "15%", color: "#334155" }}>เบอร์โทรศัพท์</th>
+                          <th style={{ padding: "10px", textAlign: "right", width: "15%", color: "#334155" }}>รายได้ (บาท)</th>
+                          <th style={{ padding: "10px", textAlign: "center", width: "15%", color: "#334155" }}>สถานะ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {finalLeads.length === 0 ? (
+                          <tr><td colSpan={6} style={{ textAlign: "center", padding: "20px", color: RG.textMuted }}>ไม่พบข้อมูล</td></tr>
+                        ) : (
+                          finalLeads.map((l, i) => (
+                            <tr key={l.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                              <td style={{ padding: "10px", textAlign: "center", color: RG.textMuted }}>{i + 1}</td>
+                              <td style={{ padding: "10px", fontWeight: 600, color: RG.text }}>{l.companyName || "-"}</td>
+                              <td style={{ padding: "10px", color: RG.text }}>{l.contactName || "-"}</td>
+                              <td style={{ padding: "10px", color: RG.text }}>{l.contactPhone || "-"}</td>
+                              <td style={{ padding: "10px", textAlign: "right", color: RG.text }}>{l.revenue ? fmtNum(l.revenue) : "-"}</td>
+                              <td style={{ padding: "10px", textAlign: "center" }}>
+                                <span style={{ display: "inline-block", padding: "4px 8px", borderRadius: "12px", fontSize: 11, fontWeight: 600, background: STATUS_COLORS[l.latestStatus] ? STATUS_COLORS[l.latestStatus] + "22" : "#eee", color: STATUS_COLORS[l.latestStatus] || "#666" }}>
+                                  {l.latestStatus || "-"}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                   
-                  <div style={{ textAlign: "right", marginTop: "40px", fontSize: 12, color: "#bbb", fontWeight: 600, letterSpacing: "0.5px" }}>QORA CRM</div>
+                  {/* Footer */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "60px", paddingTop: "20px", borderTop: "1px solid #e2e8f0", fontSize: 11, color: RG.textMuted }}>
+                    <div>พิมพ์เมื่อ: {new Date().toLocaleString("th-TH")}</div>
+                    <div style={{ fontWeight: 600, letterSpacing: "0.5px" }}>CONFIDENTIAL - QORAQOT CRM</div>
+                  </div>
                 </div>
               </div>
 

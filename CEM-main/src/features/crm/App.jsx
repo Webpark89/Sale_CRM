@@ -49,6 +49,7 @@ export default function App() {
   
   // เพิ่ม State สำหรับกรองเฉพาะรายการโปรด
   const [showFavorites, setShowFavorites] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   
   const [history, setHistory] = useState([{ leads: initLeads, followups: initFollowups }]);
   const [histIdx, setHistIdx] = useState(0);
@@ -319,63 +320,82 @@ export default function App() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: RG.background, fontFamily: "'Sarabun', sans-serif", color: RG.text }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #E8FFFD; } ::-webkit-scrollbar-thumb { background: #07bebb; border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; }`}</style>
+    <div style={{ minHeight: "100vh", background: RG.background, fontFamily: "'Sarabun', sans-serif", color: RG.text, display: "flex", flexDirection: "row" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #E8FFFD; } ::-webkit-scrollbar-thumb { background: #e65a78; border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; }`}</style>
 
-      <nav style={{ background: RG.navbarBg, backdropFilter: RG.glassFilter, padding: "0 24px", display: "flex", alignItems: "center", height: 56, borderBottom: `1px solid rgba(255, 255, 255, 0.5)`, boxShadow: "0 4px 20px rgba(7, 190, 184, 0.05)", position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 32 }}>
-          <div style={{ width: 32, height: 32, background: RG.gradient, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 16, boxShadow: "0 2px 8px rgba(7, 190, 184, 0.3)" }}>Q</div>
-          <span style={{ color: RG.text, fontWeight: 700, fontSize: 16, letterSpacing: "-0.5px" }}>QoraQot CRM</span>
+      {/* Left Sidebar (Hoverable) */}
+      <aside 
+        onMouseEnter={() => setIsSidebarHovered(true)}
+        onMouseLeave={() => setIsSidebarHovered(false)}
+        style={{ 
+          width: isSidebarHovered ? 240 : 80, 
+          background: RG.navbarBg, 
+          padding: isSidebarHovered ? "32px 20px" : "32px 10px", 
+          display: "flex", 
+          flexDirection: "column", 
+          borderRight: `1px solid ${RG.border}`, 
+          position: "fixed", 
+          top: 0, 
+          left: 0,
+          height: "100vh", 
+          zIndex: 110,
+          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          overflowX: "hidden"
+        }}
+      >
+        {/* Logo Section */}
+        <div style={{ display: "flex", alignItems: "center", gap: isSidebarHovered ? 12 : 0, justifyContent: isSidebarHovered ? "flex-start" : "center", marginBottom: 48, transition: "all 0.3s" }}>
+          <div style={{ minWidth: 40, width: 40, height: 40, background: RG.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 20, boxShadow: RG.shadowSoft }}>Q</div>
+          <div style={{ display: "flex", flexDirection: "column", opacity: isSidebarHovered ? 1 : 0, width: isSidebarHovered ? "auto" : 0, overflow: "hidden", transition: "all 0.2s", whiteSpace: "nowrap" }}>
+            <span style={{ color: RG.primary, fontWeight: 700, fontSize: 18, lineHeight: 1.2 }}>QoraQot CRM</span>
+            <span style={{ color: RG.textMuted, fontSize: 11, lineHeight: 1.2 }}>Lead & Sales</span>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 4 }}>
+
+        {/* Menu Navigation */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+          {isSidebarHovered && <div style={{ fontSize: 11, fontWeight: 700, color: RG.textMuted, letterSpacing: 1, marginBottom: 8, paddingLeft: 20, textAlign: "left", opacity: isSidebarHovered ? 1 : 0.5, transition: "all 0.3s" }}>MENU</div>}
           {navItems.map(n => (
-            <button key={n.key} onClick={() => setPage(n.key)} style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: page === n.key ? "rgba(7, 190, 184, 0.1)" : "transparent", color: page === n.key ? RG.primary : RG.textMuted, cursor: "pointer", fontWeight: page === n.key ? 700 : 500, fontSize: 14, fontFamily: "'Sarabun', sans-serif", transition: "all 0.2s" }}>
-              {n.icon} {n.label}
+            <button key={n.key} onClick={() => setPage(n.key)} style={{ padding: isSidebarHovered ? "14px 20px" : "14px 0", borderRadius: 12, border: "none", background: page === n.key ? RG.primary : "transparent", color: page === n.key ? "#fff" : RG.textMuted, cursor: "pointer", fontWeight: page === n.key ? 700 : 500, fontSize: 15, fontFamily: "'Sarabun', sans-serif", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: isSidebarHovered ? "flex-start" : "center", gap: isSidebarHovered ? 12 : 0, boxShadow: page === n.key ? RG.shadowSoft : "none", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 20, width: 24, display: "flex", justifyContent: "center", opacity: page === n.key ? 1 : 0.7 }}>{n.icon}</span> 
+              <span style={{ opacity: isSidebarHovered ? 1 : 0, width: isSidebarHovered ? "auto" : 0, overflow: "hidden", transition: "all 0.2s" }}>{n.label}</span>
             </button>
           ))}
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
-          <button onClick={() => setShowNotif(true)} style={{ background: "rgba(7, 190, 184, 0.08)", border: "none", color: RG.textMuted, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: "'Sarabun', sans-serif", fontSize: 13, position: "relative" }}>
-            🔔 {dueTodayCount > 0 && <span style={{ background: RG.danger, color: "#fff", borderRadius: 10, padding: "1px 6px", fontSize: 11, marginLeft: 4 }}>{dueTodayCount}</span>}
-          </button>
-          <button onClick={undo} disabled={histIdx === 0} title="Ctrl+Z" style={{ background: "rgba(7, 190, 184, 0.08)", border: "none", color: RG.textMuted, borderRadius: 8, padding: "6px 10px", cursor: histIdx === 0 ? "not-allowed" : "pointer", opacity: histIdx === 0 ? 0.5 : 1, fontSize: 14 }}>
-            ↶
-          </button>
-          <button onClick={redo} disabled={histIdx >= history.length - 1} title="Ctrl+Y" style={{ background: "rgba(7, 190, 184, 0.08)", border: "none", color: RG.textMuted, borderRadius: 8, padding: "6px 10px", cursor: histIdx >= history.length - 1 ? "not-allowed" : "pointer", opacity: histIdx >= history.length - 1 ? 0.5 : 1, fontSize: 14 }}>
-            ↷
-          </button>
-          <span style={{ color: RG.textMuted, fontSize: 11, background: "rgba(7, 190, 184, 0.08)", borderRadius: 6, padding: "3px 8px" }}>{syncStatus}</span>
-          <span style={{ color: RG.text, fontSize: 13, marginRight: 10, fontWeight: 600 }}>
-            👤 {currentUser?.username || "ไม่ระบุชื่อ"}
-          </span>
-          <button 
-            onClick={() => { 
-              localStorage.removeItem("crm_session"); 
-              setAuthenticated(false); 
-            }} 
-            style={{ 
-              background: "rgba(239, 68, 68, 0.1)", 
-              border: "none", 
-              color: RG.danger, 
-              borderRadius: 8, 
-              padding: "6px 12px", 
-              cursor: "pointer", 
-              fontFamily: "'Sarabun', sans-serif", 
-              fontSize: 13,
-              fontWeight: 600
-            }}
-          >
-            ออกจากระบบ
-          </button>
-        </div>
-      </nav>
+      </aside>
 
-      <div style={{ padding: "24px 24px" }}>
+      {/* Main Content Area */}
+      <main style={{ flex: 1, marginLeft: 80, height: "100vh", overflowY: "auto", position: "relative", transition: "margin-left 0.3s" }}>
+        
+        {/* Floating Top-Right Actions */}
+        <div style={{ position: "absolute", top: 24, right: 40, display: "flex", alignItems: "center", gap: 16, zIndex: 100 }}>
+          <span style={{ color: RG.warn, fontSize: 12, background: "rgba(245, 158, 11, 0.1)", borderRadius: 12, padding: "6px 16px", fontWeight: 600, border: `1px solid rgba(245, 158, 11, 0.2)` }}>☁ Local Only</span>
+          
+          <div style={{ display: "flex", gap: 8, background: RG.surface, padding: "6px 12px", borderRadius: 20, boxShadow: RG.shadowSoft, border: `1px solid ${RG.border}` }}>
+            <button onClick={undo} disabled={histIdx === 0} title="Undo (Ctrl+Z)" style={{ background: "transparent", border: "none", color: RG.textMuted, cursor: histIdx === 0 ? "not-allowed" : "pointer", opacity: histIdx === 0 ? 0.3 : 1, fontSize: 18, padding: "4px" }}>↶</button>
+            <button onClick={redo} disabled={histIdx >= history.length - 1} title="Redo (Ctrl+Y)" style={{ background: "transparent", border: "none", color: RG.textMuted, cursor: histIdx >= history.length - 1 ? "not-allowed" : "pointer", opacity: histIdx >= history.length - 1 ? 0.3 : 1, fontSize: 18, padding: "4px" }}>↷</button>
+            <button onClick={() => setShowNotif(true)} style={{ background: "transparent", border: "none", color: RG.textMuted, cursor: "pointer", fontSize: 20, position: "relative", padding: "4px" }}>
+              🔔 {dueTodayCount > 0 && <span style={{ position: "absolute", top: -2, right: -4, background: RG.primary, color: "#fff", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, border: "2px solid #fff" }}>{dueTodayCount}</span>}
+            </button>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12, background: RG.surface, padding: "8px 16px 8px 8px", borderRadius: 24, boxShadow: RG.shadowSoft, border: `1px solid ${RG.border}` }}>
+            <div style={{ width: 36, height: 36, borderRadius: "50%", background: RG.primary, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700 }}>
+              {currentUser?.username?.substring(0, 2).toUpperCase() || "AD"}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ color: RG.text, fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>{currentUser?.username || "admin"}</span>
+              <span style={{ color: RG.textMuted, fontSize: 10, lineHeight: 1.2 }}>ADMIN</span>
+            </div>
+            <button onClick={() => { localStorage.removeItem("crm_session"); setAuthenticated(false); }} title="ออกจากระบบ" style={{ background: "transparent", border: "none", color: RG.primary, cursor: "pointer", fontSize: 20, padding: "4px", marginLeft: 8 }}>🚪</button>
+          </div>
+        </div>
+
+        <div style={{ padding: "32px 40px", paddingTop: 90 }}>
         {page === "leads" && (
           <>
             <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
               <Btn onClick={() => setShowAddLead(true)}>+ เพิ่มลีดใหม่</Btn>
-              {checked.length > 0 && <Btn variant="danger" onClick={() => setShowDeleteConfirm(true)}>🗑 ลบที่เลือก ({checked.length})</Btn>}
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 ค้นหาบริษัท, เลขนิติบุคคล, เบอร์..." style={{ ...inputStyle, width: 280 }} />
               
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", borderLeft: `1px solid ${RG.border}`, paddingLeft: 12 }}>
@@ -410,18 +430,25 @@ export default function App() {
             </div>
 
             <div style={{ background: RG.surface, borderRadius: 12, border: `1px solid ${RG.border}`, overflow: "hidden", boxShadow: RG.shadowSoft, backdropFilter: RG.glassFilter }}>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1100 }}>
+              <div style={{ overflowX: "auto", maxWidth: "100%", paddingBottom: 10 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1600 }}>
                   <thead>
-                    <tr style={{ background: RG.gradient, position: "sticky", top: 0 }}>
-                      <th style={{ padding: "12px 10px", textAlign: "center", color: "#fff", fontSize: 13, width: 36 }}>
-                        <input type="checkbox" checked={checked.length === filtered.length && filtered.length > 0} onChange={e => setChecked(e.target.checked ? filtered.map(l => l.id) : [])} />
+                    <tr style={{ position: "sticky", top: 0, borderBottom: `2px solid ${RG.border}`, background: "#fff", zIndex: 10 }}>
+                      <th style={{ padding: "12px 10px", textAlign: "center", color: RG.textMuted, fontSize: 13, width: 36, position: "relative" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <input type="checkbox" checked={checked.length === filtered.length && filtered.length > 0} onChange={e => setChecked(e.target.checked ? filtered.map(l => l.id) : [])} />
+                          {checked.length > 0 && (
+                            <button onClick={() => setShowDeleteConfirm(true)} style={{ position: "absolute", left: 36, background: "#fff5f5", border: `1px solid ${RG.warn}`, borderRadius: "6px", padding: "4px 8px", color: RG.warn, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", gap: 4, zIndex: 20, boxShadow: "0 2px 4px rgba(220, 53, 69, 0.1)" }} title="ลบข้อมูลที่เลือก">
+                              🗑 <span style={{ fontSize: 12, fontWeight: 700 }}>({checked.length})</span>
+                            </button>
+                          )}
+                        </div>
                       </th>
                       {/* เพิ่ม Column สำหรับติดดาว */}
-                      <th style={{ padding: "12px 8px", color: "#fff", fontSize: 13, width: 36 }} />
-                      <th style={{ padding: "12px 8px", color: "#fff", fontSize: 13, width: 36 }} />
-                      {["เลขนิติบุคคล", "ชื่อบริษัท", "ผู้ติดต่อ", "เบอร์โทร", "อีเมล", "รายละเอียด", "รายได้รวม", "ทุนจดทะเบียน", "กำไร", "สถานะล่าสุด", "ติดต่อล่าสุด", "ติดตามครั้งถัดไป"].map(h => (
-                        <th key={h} style={{ padding: "12px 10px", textAlign: "left", color: "#fff", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+                      <th style={{ padding: "12px 8px", color: RG.textMuted, fontSize: 13, width: 36 }} />
+                      <th style={{ padding: "12px 8px", color: RG.textMuted, fontSize: 13, width: 36 }} />
+                      {["บริษัท", "เลขนิติบุคคล", "ผู้ติดต่อ", "เบอร์", "อีเมล", "รายละเอียด", "รายได้รวม", "ทุนจดทะเบียน", "กำไร", "สถานะ", "ติดต่อล่าสุด", "นัดถัดไป"].map(h => (
+                        <th key={h} style={{ padding: "12px 10px", textAlign: "left", color: RG.textMuted, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
                           {h}
                         </th>
                       ))}
@@ -447,8 +474,8 @@ export default function App() {
                         lead.everHadMeeting === true || // ตรวจสอบจากความจำฝังตัวที่เราเพิ่มเข้าไป
                         leadFollowups.some(f => f.status === "มีตติ้ง");
                       
-                      // 3. กำหนดสีพื้นหลัง: ถ้าเคยมีตติ้งให้ใช้สีส้มอ่อน (#ffeed9) ถ้าไม่เคย ให้สลับสีตามเดิม
-                      const rowBackground = hasMeetingHistory ? "linear-gradient(90deg, #ffff00, #ffff64)" : (i % 2 === 0 ? RG.rowOdd : RG.rowEven);
+                      // 3. กำหนดสีพื้นหลัง: ถ้าเคยมีตติ้งให้ไฮไลต์สีชมพูที่เข้มขึ้นให้เห็นชัดเจน ถ้าไม่เคย ให้สลับสีตามเดิม
+                      const rowBackground = hasMeetingHistory ? "linear-gradient(90deg, #FFE0E6, #FFC2D1)" : (i % 2 === 0 ? RG.rowOdd : RG.rowEven);
 
                       return (
                         <tr key={lead.id} style={{ background: rowBackground, borderBottom: `1px solid ${RG.border}` }}>
@@ -464,13 +491,13 @@ export default function App() {
                           <td style={{ padding: "8px 6px" }}>
                             <button onClick={() => setSelectedLead(lead)} style={{ background: RG.gradient, border: "none", color: "#fff", width: 26, height: 26, borderRadius: 6, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>👁</button>
                           </td>
+                          <td style={{ padding: "8px 10px", fontWeight: lead.isStarred ? 600 : 400 }}><EditableCell value={lead.companyName} onSave={v => inlineEdit(lead.id, "companyName", v)} /></td>
                           <td style={{ padding: "8px 10px" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                               <EditableCell value={lead.companyNumber} onSave={v => inlineEdit(lead.id, "companyNumber", v)} />
                               {isDup && <span style={{ background: "#ffeeee", color: RG.danger, fontSize: 10, padding: "1px 6px", borderRadius: 10, border: "1px solid #ffcccc", whiteSpace: "nowrap" }}>ซ้ำ!</span>}
                             </div>
                           </td>
-                          <td style={{ padding: "8px 10px", fontWeight: lead.isStarred ? 600 : 400 }}><EditableCell value={lead.companyName} onSave={v => inlineEdit(lead.id, "companyName", v)} /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.contactName} onSave={v => inlineEdit(lead.id, "contactName", v)} /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.contactPhone} onSave={v => inlineEdit(lead.id, "contactPhone", v)} /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.contactEmail} onSave={v => inlineEdit(lead.id, "contactEmail", v)} /></td>
@@ -519,7 +546,8 @@ export default function App() {
             <Reports leads={leads} onViewLead={setSelectedLead} />
           </div>
         )}
-      </div>
+        </div>
+      </main>
 
       {showNotif && <NotificationsPanel leads={leads} onMarkDone={markDone} onClose={() => setShowNotif(false)} />}
 
