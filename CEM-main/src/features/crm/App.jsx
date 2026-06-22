@@ -1,5 +1,5 @@
 import React from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { STATUSES, STATUS_COLORS } from "./constants/status";
 import { RG } from "./constants/theme";
 import { createNewLead } from "./data/sampleData";
@@ -57,6 +57,11 @@ export default function App() {
   });
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
   
+  const topScrollRef = useRef(null);
+  const bottomScrollRef = useRef(null);
+  const handleTopScroll = (e) => { if (bottomScrollRef.current) bottomScrollRef.current.scrollLeft = e.target.scrollLeft; };
+  const handleBottomScroll = (e) => { if (topScrollRef.current) topScrollRef.current.scrollLeft = e.target.scrollLeft; };
+
   // เพิ่ม State สำหรับกรองเฉพาะรายการโปรด
   const [showFavorites, setShowFavorites] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
@@ -523,7 +528,22 @@ export default function App() {
             </div>
 
             <div style={{ background: RG.surface, borderRadius: 12, border: `1px solid ${RG.border}`, overflow: "hidden", boxShadow: RG.shadowSoft, backdropFilter: RG.glassFilter }}>
-              <div style={{ overflowX: "auto", maxWidth: "100%", paddingBottom: 10 }}>
+              
+              {/* แถบเลื่อนด้านบน */}
+              <div 
+                ref={topScrollRef} 
+                onScroll={handleTopScroll} 
+                style={{ overflowX: "auto", maxWidth: "100%", height: 16 }}
+              >
+                <div style={{ width: "100%", minWidth: 1600, height: 1 }}></div>
+              </div>
+
+              {/* ตารางหลัก */}
+              <div 
+                ref={bottomScrollRef} 
+                onScroll={handleBottomScroll}
+                style={{ overflowX: "auto", maxWidth: "100%", paddingBottom: 10 }}
+              >
                 <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1600 }}>
                   <thead>
                     <tr style={{ position: "sticky", top: 0, borderBottom: `2px solid ${RG.border}`, background: RG.text, zIndex: 10 }}>
