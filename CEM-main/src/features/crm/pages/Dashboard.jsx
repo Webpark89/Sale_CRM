@@ -171,7 +171,7 @@ export default function Dashboard({ leads, followups }) {
         {/* KPIs */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14, marginBottom: 28 }}>
           {kpis.map(k => (
-            <div key={k.label} style={{ background: RG.surface, borderRadius: 12, border: `1px solid ${RG.border}`, padding: "16px 14px", textAlign: "center" }}>
+            <div key={k.label} style={{ background: RG.surface, borderRadius: 12, border: `1px solid ${RG.border}`, padding: "16px 14px", textAlign: "center", boxShadow: RG.shadowSoft, backdropFilter: RG.glassFilter }}>
               <div style={{ fontSize: 28, marginBottom: 6 }}>{k.icon}</div>
               <div style={{ fontSize: 28, fontWeight: 700, color: k.color }}>{k.value}</div>
               <div style={{ fontSize: 12, color: RG.textMuted, marginTop: 2 }}>{k.label}</div>
@@ -181,7 +181,7 @@ export default function Dashboard({ leads, followups }) {
 
         {/* กราฟสัดส่วน และ แนวโน้ม */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
-          <div style={{ background: RG.surface, borderRadius: 12, border: `1px solid ${RG.border}`, padding: 20, minHeight: 260 }}>
+          <div style={{ background: RG.surface, borderRadius: 12, border: `1px solid ${RG.border}`, padding: 20, minHeight: 260, boxShadow: RG.shadowSoft, backdropFilter: RG.glassFilter }}>
             <h4 style={{ margin: "0 0 16px", color: RG.text, fontSize: 14, fontWeight: 700 }}>สัดส่วนสถานะลีด</h4>
             {pieData.length === 0 ? (
               <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 180, color: RG.textMuted, fontSize: 13 }}>
@@ -199,7 +199,7 @@ export default function Dashboard({ leads, followups }) {
             )}
           </div>
           
-          <div style={{ background: RG.surface, borderRadius: 12, border: `1px solid ${RG.border}`, padding: 20, minHeight: 260 }}>
+          <div style={{ background: RG.surface, borderRadius: 12, border: `1px solid ${RG.border}`, padding: 20, minHeight: 260, boxShadow: RG.shadowSoft, backdropFilter: RG.glassFilter }}>
             <h4 style={{ margin: "0 0 16px", color: RG.text, fontSize: 14, fontWeight: 700 }}>
               {filterMonth === "" ? "แนวโน้มการติดตาม (6 เดือน)" : "แนวโน้มการติดตาม (เดือนที่เลือก)"}
             </h4>

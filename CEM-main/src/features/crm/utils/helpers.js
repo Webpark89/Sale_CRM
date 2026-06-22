@@ -14,5 +14,5 @@ export function fmtNum(n) {
 export function parseDateTH(d) {
   if (!d) return "";
   const dt = new Date(d);
-  return dt.toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" });
+  return dt.toLocaleDateString("th-TH", { year: "2-digit", month: "short", day: "numeric" });
 }

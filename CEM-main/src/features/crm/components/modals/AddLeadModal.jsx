@@ -11,7 +11,7 @@ export default function AddLeadModal({ onClose, onSave, leads = [] }) {
   const [form, setForm] = useState({ 
     companyName: "", companyNumber: "", contactName: "", description: "", contactPhone: "", 
     contactEmail: "", revenue: "", registeredCapital: "", profit: "", 
-    latestStatus: STATUSES[0], latestContactDate: today(), nextFollowupDate: "" 
+    latestStatus: STATUSES[0], latestContactDate: today(), nextFollowupDate: today() 
   });
   
   // 2. เพิ่ม State สำหรับเก็บข้อความแจ้งเตือน Error

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { RG } from "../../constants/theme";
-import { fmtNum } from "../../utils/helpers";
+import { fmtNum, parseDateTH } from "../../utils/helpers";
 import { inputStyle, selectStyle } from "./styles";
 import { STATUS_COLORS } from "../../constants/status";
 
@@ -27,19 +27,14 @@ export default function EditableCell({ value, onSave, type = "text", options }) 
           minWidth: 40, 
           padding: "2px 4px", 
           borderRadius: 4, 
-          //color: val === "ฝากโปรไฟล์" ? "#007bff" : RG.text, 
-          //fontSize: 13
-          // 🔥 แก้ไขบรรทัด color ให้ดึงสีตามสถานะแบบไดนามิก:
           color: STATUS_COLORS[val] ? STATUS_COLORS[val] : RG.text, 
-          // 🔥 เพิ่มบรรทัดนี้เพื่อให้ตัวอักษรหนาขึ้นทุกสถานะที่ระบุสี (ดูเด่นชัดขึ้นเหมือนภาพฟิลเตอร์)
-          
           fontSize: 13 
         }} 
         title="คลิกเพื่อแก้ไข"
       >
-        {type === "number" ? fmtNum(val) : val || "—"}
+        {type === "number" ? fmtNum(val) : type === "date" ? parseDateTH(val) : val || "—"}
       </span>
-          );
+    );
   }
 
   if (type === "select") {

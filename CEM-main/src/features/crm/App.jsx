@@ -319,33 +319,33 @@ export default function App() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: RG.bg, fontFamily: "'Sarabun', sans-serif", color: RG.text }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #f8e8ec; } ::-webkit-scrollbar-thumb { background: #07bebb; border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; }`}</style>
+    <div style={{ minHeight: "100vh", background: RG.background, fontFamily: "'Sarabun', sans-serif", color: RG.text }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #E8FFFD; } ::-webkit-scrollbar-thumb { background: #07bebb; border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; }`}</style>
 
-      <nav style={{ background: RG.gradient, padding: "0 24px", display: "flex", alignItems: "center", height: 56, boxShadow: "0 2px 12px rgba(192,132,151,0.3)", position: "sticky", top: 0, zIndex: 100 }}>
+      <nav style={{ background: RG.navbarBg, backdropFilter: RG.glassFilter, padding: "0 24px", display: "flex", alignItems: "center", height: 56, borderBottom: `1px solid rgba(255, 255, 255, 0.5)`, boxShadow: "0 4px 20px rgba(7, 190, 184, 0.05)", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 32 }}>
-          <div style={{ width: 32, height: 32, background: "rgba(255,255,255,0.3)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 16 }}>Q</div>
-          <span style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>QoraQot CRM</span>
+          <div style={{ width: 32, height: 32, background: RG.gradient, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 16, boxShadow: "0 2px 8px rgba(7, 190, 184, 0.3)" }}>Q</div>
+          <span style={{ color: RG.text, fontWeight: 700, fontSize: 16, letterSpacing: "-0.5px" }}>QoraQot CRM</span>
         </div>
         <div style={{ display: "flex", gap: 4 }}>
           {navItems.map(n => (
-            <button key={n.key} onClick={() => setPage(n.key)} style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: page === n.key ? "rgba(255,255,255,0.3)" : "transparent", color: "#fff", cursor: "pointer", fontWeight: page === n.key ? 700 : 400, fontSize: 14, fontFamily: "'Sarabun', sans-serif" }}>
+            <button key={n.key} onClick={() => setPage(n.key)} style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: page === n.key ? "rgba(7, 190, 184, 0.1)" : "transparent", color: page === n.key ? RG.primary : RG.textMuted, cursor: "pointer", fontWeight: page === n.key ? 700 : 500, fontSize: 14, fontFamily: "'Sarabun', sans-serif", transition: "all 0.2s" }}>
               {n.icon} {n.label}
             </button>
           ))}
         </div>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
-          <button onClick={() => setShowNotif(true)} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: "'Sarabun', sans-serif", fontSize: 13, position: "relative" }}>
+          <button onClick={() => setShowNotif(true)} style={{ background: "rgba(7, 190, 184, 0.08)", border: "none", color: RG.textMuted, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: "'Sarabun', sans-serif", fontSize: 13, position: "relative" }}>
             🔔 {dueTodayCount > 0 && <span style={{ background: RG.danger, color: "#fff", borderRadius: 10, padding: "1px 6px", fontSize: 11, marginLeft: 4 }}>{dueTodayCount}</span>}
           </button>
-          <button onClick={undo} disabled={histIdx === 0} title="Ctrl+Z" style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", borderRadius: 8, padding: "6px 10px", cursor: histIdx === 0 ? "not-allowed" : "pointer", opacity: histIdx === 0 ? 0.5 : 1, fontSize: 14 }}>
+          <button onClick={undo} disabled={histIdx === 0} title="Ctrl+Z" style={{ background: "rgba(7, 190, 184, 0.08)", border: "none", color: RG.textMuted, borderRadius: 8, padding: "6px 10px", cursor: histIdx === 0 ? "not-allowed" : "pointer", opacity: histIdx === 0 ? 0.5 : 1, fontSize: 14 }}>
             ↶
           </button>
-          <button onClick={redo} disabled={histIdx >= history.length - 1} title="Ctrl+Y" style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", borderRadius: 8, padding: "6px 10px", cursor: histIdx >= history.length - 1 ? "not-allowed" : "pointer", opacity: histIdx >= history.length - 1 ? 0.5 : 1, fontSize: 14 }}>
+          <button onClick={redo} disabled={histIdx >= history.length - 1} title="Ctrl+Y" style={{ background: "rgba(7, 190, 184, 0.08)", border: "none", color: RG.textMuted, borderRadius: 8, padding: "6px 10px", cursor: histIdx >= history.length - 1 ? "not-allowed" : "pointer", opacity: histIdx >= history.length - 1 ? 0.5 : 1, fontSize: 14 }}>
             ↷
           </button>
-          <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, background: "rgba(255,255,255,0.15)", borderRadius: 6, padding: "3px 8px" }}>{syncStatus}</span>
-          <span style={{ color: "#fff", fontSize: 13, marginRight: 10 }}>
+          <span style={{ color: RG.textMuted, fontSize: 11, background: "rgba(7, 190, 184, 0.08)", borderRadius: 6, padding: "3px 8px" }}>{syncStatus}</span>
+          <span style={{ color: RG.text, fontSize: 13, marginRight: 10, fontWeight: 600 }}>
             👤 {currentUser?.username || "ไม่ระบุชื่อ"}
           </span>
           <button 
@@ -354,14 +354,15 @@ export default function App() {
               setAuthenticated(false); 
             }} 
             style={{ 
-              background: "rgba(255,255,255,0.2)", 
+              background: "rgba(239, 68, 68, 0.1)", 
               border: "none", 
-              color: "#fff", 
+              color: RG.danger, 
               borderRadius: 8, 
               padding: "6px 12px", 
               cursor: "pointer", 
               fontFamily: "'Sarabun', sans-serif", 
-              fontSize: 13 
+              fontSize: 13,
+              fontWeight: 600
             }}
           >
             ออกจากระบบ
@@ -408,7 +409,7 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ background: RG.surface, borderRadius: 12, border: `1px solid ${RG.border}`, overflow: "hidden", boxShadow: "0 2px 12px rgba(192,132,151,0.1)" }}>
+            <div style={{ background: RG.surface, borderRadius: 12, border: `1px solid ${RG.border}`, overflow: "hidden", boxShadow: RG.shadowSoft, backdropFilter: RG.glassFilter }}>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1100 }}>
                   <thead>
@@ -450,7 +451,7 @@ export default function App() {
                       const rowBackground = hasMeetingHistory ? "linear-gradient(90deg, #ffff00, #ffff64)" : (i % 2 === 0 ? RG.rowOdd : RG.rowEven);
 
                       return (
-                        <tr key={lead.id} style={{ background: rowBackground, borderBottom: "1px solid #f5e0e4" }}>
+                        <tr key={lead.id} style={{ background: rowBackground, borderBottom: `1px solid ${RG.border}` }}>
                           <td style={{ padding: "8px 10px", textAlign: "center" }}>
                             <input type="checkbox" checked={checked.includes(lead.id)} onChange={e => setChecked(c => (e.target.checked ? [...c, lead.id] : c.filter(x => x !== lead.id)))} />
                           </td>
@@ -478,8 +479,8 @@ export default function App() {
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.registeredCapital} onSave={v => inlineEdit(lead.id, "registeredCapital", Number(v))} type="number" /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.profit} onSave={v => inlineEdit(lead.id, "profit", Number(v))} type="number" /></td>
                           <td style={{ padding: "8px 10px" }}><div style={{ color: lead.latestStatus === "ฝากโปรไฟล์" ? "#007bff" : "inherit", fontWeight: lead.latestStatus === "ฝากโปรไฟล์" ? 700 : 400 }}><EditableCell key={lead.latestStatus} value={lead.latestStatus} onSave={v => inlineEdit(lead.id, "latestStatus", v)} type="select" options={STATUSES} /></div></td>
-                          <td style={{ padding: "8px 10px" }}><EditableCell value={lead.latestContactDate} onSave={v => inlineEdit(lead.id, "latestContactDate", v)} type="date" /></td>
-                          <td style={{ padding: "8px 10px" }}>{lead.nextFollowupDate && lead.nextFollowupDate === today() ? (
+                          <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}><EditableCell value={lead.latestContactDate} onSave={v => inlineEdit(lead.id, "latestContactDate", v)} type="date" /></td>
+                          <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>{lead.nextFollowupDate && lead.nextFollowupDate === today() ? (
                               /* 1. เคสวันปัจจุบัน: แสดงข้อความ "ถึงกำหนดแล้ว" สีดำตัวหนา */
                               <span style={{ color: "#000000", fontSize: 12, fontWeight: 700 }}>🔔 ถึงกำหนดแล้ว</span>
                             ) : lead.nextFollowupDate && lead.nextFollowupDate < today() ? (
