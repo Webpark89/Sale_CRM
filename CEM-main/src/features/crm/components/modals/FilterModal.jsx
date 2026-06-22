@@ -4,6 +4,7 @@ import { RG } from "../../constants/theme";
 import Modal from "../common/Modal";
 import Btn from "../common/Btn";
 import { inputStyle } from "../common/styles";
+import { formatNumberWithCommas, parseNumberFromCommas } from "../../utils/helpers";
 
 export default function FilterModal({ 
   onClose, 
@@ -86,18 +87,18 @@ export default function FilterModal({
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ width: 120, fontSize: 13, color: RG.textMuted }}>รายได้รวม:</div>
               <input 
-                type="number" 
+                type="text" 
                 placeholder="ขั้นต่ำ" 
-                value={localFin.revenue.min} 
-                onChange={e => handleFinChange("revenue", "min", e.target.value)} 
+                value={formatNumberWithCommas(localFin.revenue.min)} 
+                onChange={e => handleFinChange("revenue", "min", parseNumberFromCommas(e.target.value))} 
                 style={{ ...inputStyle, flex: 1 }} 
               />
               <span style={{ color: RG.textMuted }}>-</span>
               <input 
-                type="number" 
+                type="text" 
                 placeholder="สูงสุด" 
-                value={localFin.revenue.max} 
-                onChange={e => handleFinChange("revenue", "max", e.target.value)} 
+                value={formatNumberWithCommas(localFin.revenue.max)} 
+                onChange={e => handleFinChange("revenue", "max", parseNumberFromCommas(e.target.value))} 
                 style={{ ...inputStyle, flex: 1 }} 
               />
             </div>
@@ -105,18 +106,18 @@ export default function FilterModal({
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ width: 120, fontSize: 13, color: RG.textMuted }}>ทุนจดทะเบียน:</div>
               <input 
-                type="number" 
+                type="text" 
                 placeholder="ขั้นต่ำ" 
-                value={localFin.registeredCapital.min} 
-                onChange={e => handleFinChange("registeredCapital", "min", e.target.value)} 
+                value={formatNumberWithCommas(localFin.registeredCapital.min)} 
+                onChange={e => handleFinChange("registeredCapital", "min", parseNumberFromCommas(e.target.value))} 
                 style={{ ...inputStyle, flex: 1 }} 
               />
               <span style={{ color: RG.textMuted }}>-</span>
               <input 
-                type="number" 
+                type="text" 
                 placeholder="สูงสุด" 
-                value={localFin.registeredCapital.max} 
-                onChange={e => handleFinChange("registeredCapital", "max", e.target.value)} 
+                value={formatNumberWithCommas(localFin.registeredCapital.max)} 
+                onChange={e => handleFinChange("registeredCapital", "max", parseNumberFromCommas(e.target.value))} 
                 style={{ ...inputStyle, flex: 1 }} 
               />
             </div>
@@ -124,18 +125,18 @@ export default function FilterModal({
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ width: 120, fontSize: 13, color: RG.textMuted }}>กำไร:</div>
               <input 
-                type="number" 
+                type="text" 
                 placeholder="ขั้นต่ำ" 
-                value={localFin.profit.min} 
-                onChange={e => handleFinChange("profit", "min", e.target.value)} 
+                value={formatNumberWithCommas(localFin.profit.min)} 
+                onChange={e => handleFinChange("profit", "min", parseNumberFromCommas(e.target.value))} 
                 style={{ ...inputStyle, flex: 1 }} 
               />
               <span style={{ color: RG.textMuted }}>-</span>
               <input 
-                type="number" 
+                type="text" 
                 placeholder="สูงสุด" 
-                value={localFin.profit.max} 
-                onChange={e => handleFinChange("profit", "max", e.target.value)} 
+                value={formatNumberWithCommas(localFin.profit.max)} 
+                onChange={e => handleFinChange("profit", "max", parseNumberFromCommas(e.target.value))} 
                 style={{ ...inputStyle, flex: 1 }} 
               />
             </div>

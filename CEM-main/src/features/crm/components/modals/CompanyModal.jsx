@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import html2canvas from "html2canvas"; // ⚠️ อย่าลืม import html2canvas
 import { RG } from "../../constants/theme";
 import { STATUSES } from "../../constants/status";
-import { parseDateTH, today, fmtNum } from "../../utils/helpers";
+import { parseDateTH, today, fmtNum, formatNumberWithCommas, parseNumberFromCommas } from "../../utils/helpers";
 import Btn from "../common/Btn";
 import Field from "../common/Field";
 import Modal from "../common/Modal";
@@ -277,9 +277,9 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                     <div style={{ fontSize: 13, color: item.textBg, marginBottom: "8px" }}>{item.label}</div>
                     {editing ? (
                       <input 
-                        type="number" 
-                        value={form[item.key] || ""} 
-                        onChange={e => handleInputChange(item.key, Number(e.target.value))} 
+                        type="text" 
+                        value={formatNumberWithCommas(form[item.key])} 
+                        onChange={e => handleInputChange(item.key, parseNumberFromCommas(e.target.value))} 
                         style={{ ...inputStyle, width: "100%", textAlign: "center", fontSize: 18, fontWeight: 700 }} 
                       />
                     ) : (

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { STATUSES } from "../../constants/status";
-import { today } from "../../utils/helpers";
+import { today, formatNumberWithCommas, parseNumberFromCommas } from "../../utils/helpers";
 import Btn from "../common/Btn";
 import Field from "../common/Field";
 import Modal from "../common/Modal";
@@ -71,9 +71,30 @@ export default function AddLeadModal({ onClose, onSave, leads = [] }) {
         <Field label="เบอร์โทร"><input value={form.contactPhone} onChange={e => up("contactPhone", e.target.value)} style={inputStyle} /></Field>
         <Field label="อีเมล"><input value={form.contactEmail} onChange={e => up("contactEmail", e.target.value)} style={inputStyle} /></Field>
         <Field label="สถานะ"><select value={form.latestStatus} onChange={e => up("latestStatus", e.target.value)} style={selectStyle}>{STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></Field>
-        <Field label="รายได้รวม (บาท)"><input type="number" value={form.revenue} onChange={e => up("revenue", e.target.value)} style={inputStyle} /></Field>
-        <Field label="ทุนจดทะเบียน (บาท)"><input type="number" value={form.registeredCapital} onChange={e => up("registeredCapital", e.target.value)} style={inputStyle} /></Field>
-        <Field label="กำไร (บาท)"><input type="number" value={form.profit} onChange={e => up("profit", e.target.value)} style={inputStyle} /></Field>
+        <Field label="รายได้รวม (บาท)">
+          <input 
+            type="text" 
+            value={formatNumberWithCommas(form.revenue)} 
+            onChange={e => up("revenue", parseNumberFromCommas(e.target.value))} 
+            style={inputStyle} 
+          />
+        </Field>
+        <Field label="ทุนจดทะเบียน (บาท)">
+          <input 
+            type="text" 
+            value={formatNumberWithCommas(form.registeredCapital)} 
+            onChange={e => up("registeredCapital", parseNumberFromCommas(e.target.value))} 
+            style={inputStyle} 
+          />
+        </Field>
+        <Field label="กำไร (บาท)">
+          <input 
+            type="text" 
+            value={formatNumberWithCommas(form.profit)} 
+            onChange={e => up("profit", parseNumberFromCommas(e.target.value))} 
+            style={inputStyle} 
+          />
+        </Field>
         <Field label="วันที่ติดต่อล่าสุด"><input type="date" value={form.latestContactDate} onChange={e => up("latestContactDate", e.target.value)} style={inputStyle} /></Field>
         <Field label="วันที่ติดตามครั้งถัดไป"><input type="date" value={form.nextFollowupDate} onChange={e => up("nextFollowupDate", e.target.value)} style={inputStyle} /></Field>
       </div>

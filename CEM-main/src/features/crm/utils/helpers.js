@@ -16,3 +16,20 @@ export function parseDateTH(d) {
   const dt = new Date(d);
   return dt.toLocaleDateString("th-TH", { year: "2-digit", month: "short", day: "numeric" });
 }
+
+export function formatNumberWithCommas(value) {
+  if (value === undefined || value === null) return "";
+  const str = value.toString();
+  const isNegative = str.startsWith("-");
+  const clean = str.replace(/[^\d]/g, "");
+  if (!clean) return isNegative ? "-" : "";
+  const formatted = Number(clean).toLocaleString("en-US");
+  return isNegative ? `-${formatted}` : formatted;
+}
+
+export function parseNumberFromCommas(value) {
+  if (value === "" || value === undefined || value === null) return "";
+  const clean = value.toString().replace(/[^\d-]/g, "");
+  if (clean === "" || clean === "-") return clean;
+  return Number(clean);
+}

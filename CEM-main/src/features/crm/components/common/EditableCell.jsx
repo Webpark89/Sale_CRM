@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { RG } from "../../constants/theme";
-import { fmtNum, parseDateTH } from "../../utils/helpers";
+import { fmtNum, parseDateTH, formatNumberWithCommas, parseNumberFromCommas } from "../../utils/helpers";
 import { inputStyle, selectStyle } from "./styles";
 import { STATUS_COLORS } from "../../constants/status";
 
@@ -57,5 +57,19 @@ export default function EditableCell({ value, onSave, type = "text", options }) 
     return <input type="date" value={val} onChange={e => setVal(e.target.value)} onBlur={commit} autoFocus style={{ ...inputStyle, padding: "2px 6px", fontSize: 13, width: "auto" }} />;
   }
 
-  return <input type={type === "number" ? "number" : "text"} value={val} onChange={e => setVal(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} autoFocus style={{ ...inputStyle, padding: "2px 6px", fontSize: 13, width: "auto" }} />;
+  if (type === "number") {
+    return (
+      <input 
+        type="text" 
+        value={formatNumberWithCommas(val)} 
+        onChange={e => setVal(parseNumberFromCommas(e.target.value))} 
+        onBlur={commit} 
+        onKeyDown={e => e.key === "Enter" && commit()} 
+        autoFocus 
+        style={{ ...inputStyle, padding: "2px 6px", fontSize: 13, width: "auto" }} 
+      />
+    );
+  }
+
+  return <input type="text" value={val} onChange={e => setVal(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} autoFocus style={{ ...inputStyle, padding: "2px 6px", fontSize: 13, width: "auto" }} />;
 }
