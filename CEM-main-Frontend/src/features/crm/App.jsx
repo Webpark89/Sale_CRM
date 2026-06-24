@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import { STATUSES, STATUS_COLORS } from "./constants/status";
 import { RG } from "./constants/theme";
-import { createNewLead } from "./data/sampleData";
-import { parseDateTH, today, uuid } from "./utils/helpers";
+import { createNewLead, parseDateTH, today, uuid } from "./crmHelpers/helpers";
 import LoginScreen from "./components/auth/LoginScreen";
 import Btn from "./components/common/Btn";
 import EditableCell from "./components/common/EditableCell";
@@ -25,8 +24,10 @@ import {
   addFollowupToApi,
   markFollowupDoneApi,
   restoreLeadsApi,
-  hardDeleteLeadApi
+  hardDeleteLeadApi,
+  fetchAllLeadsMaster
 } from "./services/apiService";
+import { printHTMLTable } from "../../utils/exportHelpers";
 
 // กำหนดน้ำหนักความสำคัญสำหรับการจัดเรียงข้อมูล
 const PRIORITY_WEIGHT = {
@@ -358,20 +359,21 @@ export default function App() {
     setSortConfig({ key, direction });
   };
 
-  const exportJSON = () => {
-    const data = JSON.stringify({ leads, followups }, null, 2);
+  const exportJSON = (dataToExport, filename) => {
+    const data = JSON.stringify(dataToExport || { leads, followups }, null, 2);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
-    a.download = "qoraqot_crm_export.json";
+    a.download = filename || "qoraqot_crm_export.json";
     a.click();
   };
 
-  const exportCSV = () => {
+  const exportCSV = (dataToExport, filename) => {
     const csvRows = [];
     csvRows.push("บริษัท,เลขนิติบุคคล,ผู้ติดต่อ,เบอร์โทร,อีเมล,รายละเอียด,รายได้รวม,ทุนจดทะเบียน,กำไร,สถานะ,ติดต่อล่าสุด,นัดถัดไป");
     
     // เรียงคอลัมน์ให้ตรงกัน
-    filtered.forEach(l => {
+    const list = dataToExport || filtered;
+    list.forEach(l => {
       const row = [
         `"${l.companyName || "-"}"`,
         `"${l.companyNumber || "-"}"`,
@@ -394,7 +396,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `qoraqot_crm_leads.csv`;
+    link.download = filename || `qoraqot_crm_leads.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -416,6 +418,57 @@ export default function App() {
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleExport = async (e) => {
+    const value = e.target.value;
+    e.target.value = ""; // รีเซ็ต Dropdown กลับเป็นค่าตั้งต้นเสมอ
+    if (!value) return;
+
+    const [mode, format] = value.split("_"); 
+    
+    let pwd = null;
+    if (mode === "all") {
+      pwd = prompt("🔒 กรุณากรอกรหัสผ่านเพื่อพิมพ์รายงานทั้งหมด (All Report):");
+      if (!pwd) return; // ยกเลิกถ้าไม่ใส่รหัส
+    }
+
+    let printWindow = null;
+    if (format === "pdf") {
+      printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write('<div style="font-family: sans-serif; padding: 20px;"><h2>กำลังดึงข้อมูลและเตรียมพิมพ์รายงาน... กรุณารอสักครู่ ⏳</h2></div>');
+        printWindow.document.close();
+      }
+    }
+    
+    let targetLeads = filtered;
+    
+    if (mode === "all") {
+      try {
+        targetLeads = await fetchAllLeadsMaster(pwd.trim());
+        if (!targetLeads || targetLeads.length === 0) {
+          if (printWindow) printWindow.close();
+          alert("ไม่พบข้อมูล หรือรหัสผ่านไม่ถูกต้อง");
+          return;
+        }
+      } catch (err) {
+        if (printWindow) printWindow.close();
+        alert("API Error: " + (err.response?.data?.error || err.message));
+        return;
+      }
+    }
+
+    if (format === "json") {
+      exportJSON({ leads: targetLeads, followups: mode === "current" ? followups : {} }, `crm_report_${mode}.json`);
+    } else if (format === "csv") {
+      exportCSV(targetLeads, `crm_report_${mode}.csv`);
+    } else if (format === "pdf") {
+      if (printWindow) {
+        printWindow.document.open();
+      }
+      printHTMLTable(targetLeads, mode === "all" ? "รายงานสรุปข้อมูลลีดทั้งหมดในระบบ (All CRM Leads)" : "รายงานสรุปข้อมูลลีด (Current View)", printWindow);
+    }
   };
 
   if (!authenticated) return <LoginScreen onLogin={(user) => { 
@@ -540,16 +593,20 @@ export default function App() {
 
               <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
                 <select 
-                  onChange={e => {
-                    if (e.target.value === "json") exportJSON();
-                    if (e.target.value === "csv") exportCSV();
-                    e.target.value = "";
-                  }}
+                  onChange={handleExport}
                   style={{ padding: "6px 14px", borderRadius: 8, background: "#ffffff", color: RG.primary, border: `1px solid ${RG.border}`, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "'Sarabun', sans-serif", outline: "none" }}
                 >
                   <option value="">⬇ Export</option>
-                  <option value="csv">Excel / CSV</option>
-                  <option value="json">JSON</option>
+                  <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)">
+                    <option value="current_csv">Excel / CSV</option>
+                    <option value="current_json">JSON</option>
+                    <option value="current_pdf">PDF (Print)</option>
+                  </optgroup>
+                  <optgroup label="ทั้งหมด (All Report - ใช้รหัส)">
+                    <option value="all_csv">Excel / CSV</option>
+                    <option value="all_json">JSON</option>
+                    <option value="all_pdf">PDF (Print All)</option>
+                  </optgroup>
                 </select>
                 <label style={{ padding: "6px 14px", borderRadius: 8, background: "#ffffff", color: RG.primary, border: `1px solid ${RG.border}`, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
                   ⬆ Import <input type="file" accept=".json" onChange={importFile} style={{ display: "none" }} />

@@ -7,6 +7,11 @@ export const fetchLeads = async () => {
   return data;
 };
 
+export const fetchAllLeadsMaster = async (password) => {
+  const { data } = await api.post("/leads/all", { password });
+  return data;
+};
+
 export const addLeadToApi = async (leadData) => {
   const { data } = await api.post("/leads", leadData);
   return data;

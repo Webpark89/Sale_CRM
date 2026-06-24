@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import html2canvas from "html2canvas";
 import { STATUSES, STATUS_COLORS } from "../constants/status";
 import { RG } from "../constants/theme";
-import { today, fmtNum } from "../utils/helpers";
+import { today, fmtNum } from "../crmHelpers/helpers";
 import StatusBadge from "../components/common/StatusBadge";
 import { inputStyle } from "../components/common/styles";
 

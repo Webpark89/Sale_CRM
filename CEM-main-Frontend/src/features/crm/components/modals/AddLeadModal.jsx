@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { STATUSES } from "../../constants/status";
-import { today, formatNumberWithCommas, parseNumberFromCommas } from "../../utils/helpers";
+import { today, formatNumberWithCommas, parseNumberFromCommas } from "../../crmHelpers/helpers";
 import Btn from "../common/Btn";
 import Field from "../common/Field";
 import Modal from "../common/Modal";

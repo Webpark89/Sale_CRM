@@ -4,7 +4,7 @@ import { RG } from "../../constants/theme";
 import Modal from "../common/Modal";
 import Btn from "../common/Btn";
 import { inputStyle } from "../common/styles";
-import { formatNumberWithCommas, parseNumberFromCommas } from "../../utils/helpers";
+import { formatNumberWithCommas, parseNumberFromCommas } from "../../crmHelpers/helpers";
 
 export default function FilterModal({ 
   onClose, 

@@ -2,8 +2,8 @@
 // routes/leads.js - สมุดเมนู / พนักงานรับออเดอร์หมวดลีด
 // ==========================================
 const express = require("express");
-// ดึงตัวพ่อครัว (ฟังก์ชันทำงานจริง) มาจาก leadController
-const { getLeads, getAllLeadsMaster, createLead, updateLead, toggleStar, deleteLead, deleteLeads, restoreLeads, hardDeleteLead } = require("../controllers/leadController");
+// ดึงตัวพ่อครัว (ฟังก์ชันทำงานจริง) มาจาก mainController แทน
+const { getLeads, getAllLeadsMaster, createLead, updateLead, toggleStar, deleteLead, deleteLeads, restoreLeads, hardDeleteLead } = require("../controllers/mainController");
 // ดึง รปภ. (Middleware) มาตรวจบัตรคิวล็อกอิน
 const { authenticate } = require("../middleware/authMiddleware");
 

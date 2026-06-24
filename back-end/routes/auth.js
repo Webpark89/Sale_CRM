@@ -1,16 +1,13 @@
 const express = require("express");
-// (ฟังก์ชันล็อกอิน และดึงข้อมูลตัวเอง)
-const { login, getMe } = require("../controllers/authController");
-//  (ตรวจสอบการล็อกอิน)
+// ดึงฟังก์ชันมาจาก mainController แทน
+const { login, getMe } = require("../controllers/mainController");
+// (ตรวจสอบการล็อกอิน)
 const { authenticate } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
 // --- 📌 เส้นทาง API ---
-// เปิดให้ทุกคนเข้าถึงได้ (ไม่ต้องตรวจ Token เพราะเพิ่งจะล็อกอิน)
 router.post("/login", login);
-
-// ดึงข้อมูลโปรไฟล์ของคนที่ล็อกอินอยู่ (ต้องผ่านด่าน authenticate ก่อน)
 router.get("/me", authenticate, getMe);
 
 module.exports = router;

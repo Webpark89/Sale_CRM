@@ -2,7 +2,7 @@
 // routes/followups.js - พนักงานรับออเดอร์หมวดการติดตามลูกค้า
 // ==========================================
 const express = require("express");
-const { getFollowups, createFollowup, markDone, deleteFollowup } = require("../controllers/followupController");
+const { getFollowups, createFollowup, markDone, deleteFollowup } = require("../controllers/mainController");
 const { authenticate } = require("../middleware/authMiddleware");
 
 // mergeParams: true สำคัญมาก! เพื่อให้ดึงค่า leadId จาก URL แม่ (เช่น /api/leads/:leadId/followups) มาใช้ได้

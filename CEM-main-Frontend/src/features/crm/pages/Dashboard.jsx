@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import { PieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { STATUSES, STATUS_COLORS } from "../constants/status";
 import { RG } from "../constants/theme";
-import { today } from "../utils/helpers";
+import { today } from "../crmHelpers/helpers";
 import { toJpeg } from "html-to-image"; // เพิ่มการนำเข้าสำหรับฟังก์ชัน Export
 
 export default function Dashboard({ leads, followups }) {
