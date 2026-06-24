@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { RG } from "../../constants/theme";
-import { fmtNum, parseDateTH, formatNumberWithCommas, parseNumberFromCommas } from "../../crmHelpers/helpers";
+import { fmtNum, parseDateTH, formatNumberWithCommas, parseNumberFromCommas, formatPhoneNumber } from "../../crmHelpers/helpers";
 import { inputStyle, selectStyle } from "./styles";
 import { STATUS_COLORS } from "../../constants/status";
 
@@ -55,6 +55,19 @@ export default function EditableCell({ value, onSave, type = "text", options }) 
 
   if (type === "date") {
     return <input type="date" value={val} onChange={e => setVal(e.target.value)} onBlur={commit} autoFocus style={{ ...inputStyle, padding: "2px 6px", fontSize: 13, width: "auto" }} />;
+  }
+  if (type === "phone") {
+    return (
+      <input 
+        type="text" 
+        value={formatPhoneNumber(val)} 
+        onChange={e => setVal(formatPhoneNumber(e.target.value))} 
+        onBlur={commit} 
+        onKeyDown={e => e.key === "Enter" && commit()} 
+        autoFocus 
+        style={{ ...inputStyle, padding: "2px 6px", fontSize: 13, width: "auto" }} 
+      />
+    );
   }
 
   if (type === "number") {

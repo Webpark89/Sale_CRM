@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { STATUSES } from "../../constants/status";
-import { today, formatNumberWithCommas, parseNumberFromCommas } from "../../crmHelpers/helpers";
+import { today, formatNumberWithCommas, parseNumberFromCommas, formatPhoneNumber } from "../../crmHelpers/helpers";
 import Btn from "../common/Btn";
 import Field from "../common/Field";
 import Modal from "../common/Modal";
@@ -68,7 +68,7 @@ export default function AddLeadModal({ onClose, onSave, leads = [] }) {
         <Field label="ชื่อบริษัท *"><input value={form.companyName} onChange={e => up("companyName", e.target.value)} style={inputStyle} /></Field>
         <Field label="ชื่อผู้ติดต่อ"><input value={form.contactName} onChange={e => up("contactName", e.target.value)} style={inputStyle} /></Field>
         <Field label="รายละเอียด"><input value={form.description} onChange={e => up("description", e.target.value)} style={inputStyle} /></Field>
-        <Field label="เบอร์โทร"><input value={form.contactPhone} onChange={e => up("contactPhone", e.target.value)} style={inputStyle} /></Field>
+        <Field label="เบอร์โทร"><input value={formatPhoneNumber(form.contactPhone)} onChange={e => up("contactPhone", formatPhoneNumber(e.target.value))} style={inputStyle} /></Field>
         <Field label="อีเมล"><input value={form.contactEmail} onChange={e => up("contactEmail", e.target.value)} style={inputStyle} /></Field>
         <Field label="สถานะ"><select value={form.latestStatus} onChange={e => up("latestStatus", e.target.value)} style={selectStyle}>{STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></Field>
         <Field label="รายได้รวม (บาท)">

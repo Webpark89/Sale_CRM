@@ -48,3 +48,11 @@ export function createNewLead(form) {
     updatedAt: new Date().toISOString(),
   };
 }
+
+export function formatPhoneNumber(value) {
+  if (!value) return "";
+  const clean = value.replace(/[^\d]/g, ""); // ลบตัวอักษรที่ไม่ใช่ตัวเลขออกให้หมด
+  if (clean.length <= 3) return clean;
+  if (clean.length <= 6) return `${clean.slice(0, 3)}-${clean.slice(3)}`;
+  return `${clean.slice(0, 3)}-${clean.slice(3, 6)}-${clean.slice(6, 10)}`;
+}

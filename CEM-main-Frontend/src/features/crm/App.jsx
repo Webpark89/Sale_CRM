@@ -721,7 +721,7 @@ export default function App() {
                             </div>
                           </td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.contactName} onSave={v => inlineEdit(lead.id, "contactName", v)} /></td>
-                          <td style={{ padding: "8px 10px" }}><EditableCell value={lead.contactPhone} onSave={v => inlineEdit(lead.id, "contactPhone", v)} /></td>
+                          <td style={{ padding: "8px 10px" }}><EditableCell value={lead.contactPhone} onSave={v => inlineEdit(lead.id, "contactPhone", v)} type="phone" /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.contactEmail} onSave={v => inlineEdit(lead.id, "contactEmail", v)} /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.description} onSave={v => inlineEdit(lead.id, "description", v)} /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.revenue} onSave={v => inlineEdit(lead.id, "revenue", Number(v))} type="number" /></td>
