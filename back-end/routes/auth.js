@@ -1,10 +1,7 @@
-// ==========================================
-// routes/auth.js - พนักงานรับออเดอร์หมวดการเข้าสู่ระบบ
-// ==========================================
 const express = require("express");
-// นำเข้าพ่อครัว (ฟังก์ชันล็อกอิน และดึงข้อมูลตัวเอง)
+// (ฟังก์ชันล็อกอิน และดึงข้อมูลตัวเอง)
 const { login, getMe } = require("../controllers/authController");
-// นำเข้ารปภ. (ตรวจสอบการล็อกอิน)
+//  (ตรวจสอบการล็อกอิน)
 const { authenticate } = require("../middleware/authMiddleware");
 
 const router = express.Router();
