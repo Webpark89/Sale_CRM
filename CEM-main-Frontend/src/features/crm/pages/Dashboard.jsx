@@ -3,17 +3,25 @@ import { PieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, Cart
 import { STATUSES, STATUS_COLORS } from "../constants/status";
 import { RG } from "../constants/theme";
 import { today } from "../crmHelpers/helpers";
-import { toJpeg } from "html-to-image"; // เพิ่มการนำเข้าสำหรับฟังก์ชัน Export
+import { toJpeg, toPng } from "html-to-image";
+import { jsPDF } from "jspdf";
+import { fetchAllLeadsMaster, fetchAllFollowups } from "../services/apiService";
 
 export default function Dashboard({ leads, followups }) {
   const [filterMonth, setFilterMonth] = useState("");
   const [isExporting, setIsExporting] = useState(false); // State สำหรับควบคุมสถานะการ Export
   const exportRef = useRef(null); // Ref สำหรับกำหนดพื้นที่จำลองภาพเพื่อดาวน์โหลด
 
+  const [tempLeads, setTempLeads] = useState(null);
+  const [tempFollowups, setTempFollowups] = useState(null);
+
+  const displayLeads = tempLeads || leads;
+  const displayFollowups = tempFollowups || followups;
+
   // 1. กรอง Leads สำหรับแสดงผล KPI และ Pie Chart
   const filteredLeads = filterMonth === "" 
-    ? leads 
-    : leads.filter(l => l.latestContactDate && l.latestContactDate.startsWith(filterMonth));
+    ? displayLeads 
+    : displayLeads.filter(l => l.latestContactDate && l.latestContactDate.startsWith(filterMonth));
 
   // --- คำนวณ KPIs ---
   const total = filteredLeads.length;
@@ -50,14 +58,14 @@ export default function Dashboard({ leads, followups }) {
   // --- คำนวณข้อมูลกราฟเส้นและกราฟแท่ง ---
   const lineData = chartMonths.map(m => ({
     name: m.label,
-    ติดตาม: Object.values(followups).flat().filter(f => f.date && f.date.startsWith(m.key)).length,
-    ปิดการขาย: leads.filter(l => l.latestStatus === "ปิดการขาย" && l.latestContactDate && l.latestContactDate.startsWith(m.key)).length,
+    ติดตาม: Object.values(displayFollowups).flat().filter(f => f.date && f.date.startsWith(m.key)).length,
+    ปิดการขาย: displayLeads.filter(l => l.latestStatus === "ปิดการขาย" && l.latestContactDate && l.latestContactDate.startsWith(m.key)).length,
   }));
 
   const barData = chartMonths.map(m => ({
     name: m.label,
-    โทร: leads.filter(l => l.latestContactDate && l.latestContactDate.startsWith(m.key)).length,
-    ปิด: leads.filter(l => l.latestStatus === "ปิดการขาย" && l.latestContactDate && l.latestContactDate.startsWith(m.key)).length,
+    โทร: displayLeads.filter(l => l.latestContactDate && l.latestContactDate.startsWith(m.key)).length,
+    ปิด: displayLeads.filter(l => l.latestStatus === "ปิดการขาย" && l.latestContactDate && l.latestContactDate.startsWith(m.key)).length,
   }));
 
   // ตรวจสอบว่าเดือนที่เลือกมีข้อมูลแอนิเมชัน/กราฟหรือไม่
@@ -83,27 +91,95 @@ export default function Dashboard({ leads, followups }) {
     }))
   ];
 
-  // ฟังก์ชันจัดการการ Export หน้าแดชบอร์ดเป็นภาพ JPG
-  const handleExport = async () => {
+  // ฟังก์ชันจัดการการ Export หน้าแดชบอร์ด
+  const handleExport = async (e) => {
+    const val = e.target.value;
+    e.target.value = ""; // รีเซ็ต Dropdown
+    if (!val) return;
+
+    const [mode, format] = val.split("_");
+
+    if (mode === "all") {
+      const pwd = prompt("🔒 กรุณากรอกรหัสผ่านเพื่อดึงข้อมูลทั้งหมด (All Report):");
+      if (!pwd) return;
+      try {
+        const allLeads = await fetchAllLeadsMaster(pwd.trim());
+        const allFollowups = await fetchAllFollowups();
+        if (!allLeads || allLeads.length === 0) {
+          alert("ไม่พบข้อมูล หรือรหัสผ่านไม่ถูกต้อง");
+          return;
+        }
+        setTempLeads(allLeads);
+        setTempFollowups(allFollowups);
+        // รอให้ React render ข้อมูลใหม่ก่อน Export
+        await new Promise(resolve => setTimeout(resolve, 800));
+      } catch (err) {
+        alert("API Error: " + (err.response?.data?.error || err.message));
+        return;
+      }
+    }
+
     if (!exportRef.current || isExporting) return;
     setIsExporting(true);
-    // รอให้ React render ส่วนหัวแบบเป็นทางการก่อนทำการถ่ายภาพ
-    await new Promise(resolve => setTimeout(resolve, 150));
+    // รอให้จัดสไตล์หัวและท้ายแบบเป็นทางการ
+    await new Promise(resolve => setTimeout(resolve, 200));
+
     try {
-      const dataUrl = await toJpeg(exportRef.current, {
-        quality: 1.0,
-        backgroundColor: "#FFFFFF", // ใช้สีพื้นหลังสีขาวเพื่อให้ดูเป็นทางการ
-        pixelRatio: 2, // เพิ่มความคมชัดให้กับรูปภาพเป็น 2 เท่า
-      });
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `dashboard-${filterMonth || "overall"}-${new Date().toISOString().slice(0, 10)}.jpg`;
-      a.click();
+      const filename = `dashboard-${mode}-${filterMonth || "overall"}-${new Date().toISOString().slice(0, 10)}`;
+
+      if (format === "png") {
+        const dataUrl = await toPng(exportRef.current, {
+          quality: 1.0,
+          backgroundColor: "#FFFFFF",
+          pixelRatio: 2,
+        });
+        const a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = `${filename}.png`;
+        a.click();
+      } else if (format === "pdf") {
+        const dataUrl = await toJpeg(exportRef.current, {
+          quality: 0.8,
+          backgroundColor: "#FFFFFF",
+          pixelRatio: 1.5,
+        });
+
+        // PDF แนวตั้ง (Portrait)
+        const pdf = new jsPDF("p", "mm", "a4");
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        
+        const imgProps = pdf.getImageProperties(dataUrl);
+        const imgRatio = imgProps.width / imgProps.height;
+        
+        // เราจะใช้พื้นที่กระดาษให้มากที่สุด โดยให้ขอบบางส่วนเป็น padding จาก HTML แทน
+        const margin = 0;
+        let finalWidth = pdfWidth - margin * 2;
+        let finalHeight = finalWidth / imgRatio;
+
+        // ถ้ายาวเกิน A4 ให้ย่อเพื่อให้พอดีหน้า
+        if (finalHeight > (pdfHeight - margin * 2)) {
+          finalHeight = pdfHeight - margin * 2;
+          finalWidth = finalHeight * imgRatio;
+        }
+        
+        // จัดกึ่งกลางแนวนอน
+        const xOffset = (pdfWidth - finalWidth) / 2;
+        // จัดกึ่งกลางแนวตั้งถ้ามีความสูงเหลือ
+        const yOffset = margin + (pdfHeight - margin * 2 - finalHeight) / 2;
+        pdf.addImage(dataUrl, "PNG", xOffset, yOffset, finalWidth, finalHeight);
+        pdf.save(`${filename}.pdf`);
+      }
     } catch (error) {
       console.error("Export failed", error);
       alert("ไม่สามารถส่งออกภาพได้ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setIsExporting(false);
+      // คืนค่า Dashboard กลับเป็น Current View
+      if (mode === "all") {
+        setTempLeads(null);
+        setTempFollowups(null);
+      }
     }
   };
 
@@ -116,22 +192,30 @@ export default function Dashboard({ leads, followups }) {
         <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
           {/* ตัวเลือกเดือน */}
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <input 
-              type="month" 
-              value={filterMonth}
-              onChange={(e) => setFilterMonth(e.target.value)}
-              style={{
-                padding: "8px 12px",
-                borderRadius: "8px",
-                border: `1px solid ${RG.border}`,
-                backgroundColor: RG.surface,
-                color: RG.text,
-                fontSize: "14px",
-                outline: "none",
-                cursor: "pointer",
-                height: "38px"
-              }}
-            />
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <input 
+                type="month" 
+                value={filterMonth}
+                onChange={(e) => setFilterMonth(e.target.value)}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "8px",
+                  border: `1px solid ${RG.border}`,
+                  backgroundColor: RG.surface,
+                  color: filterMonth ? RG.text : "transparent", // ซ่อนขีดถ้าไม่มีค่า
+                  fontSize: "14px",
+                  outline: "none",
+                  cursor: "pointer",
+                  height: "38px",
+                  width: "150px"
+                }}
+              />
+              {!filterMonth && (
+                <span style={{ position: "absolute", left: 12, color: RG.textMuted, fontSize: 14, pointerEvents: "none" }}>
+                  กรุณาเลือกเดือน
+                </span>
+              )}
+            </div>
             {filterMonth && (
               <button 
                 onClick={() => setFilterMonth("")}
@@ -151,47 +235,52 @@ export default function Dashboard({ leads, followups }) {
             )}
           </div>
 
-          {/* ปุ่ม Export JPG ทำงานร่วมกับ html-to-image */}
-          <button 
-            onClick={handleExport}
+          {/* Dropdown Export (PNG/PDF) */}
+          <select 
+            onChange={handleExport}
             disabled={isExporting}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
               padding: "8px 16px",
               borderRadius: "8px",
-              border: "none",
-              backgroundColor: isExporting ? "#ccc" : RG.primary,
-              color: "#fff",
+              border: `1px solid ${RG.border}`,
+              backgroundColor: "#ffffff",
+              color: RG.primary,
               cursor: isExporting ? "not-allowed" : "pointer",
               fontWeight: 600,
               height: "38px",
-              boxShadow: RG.shadowSoft
+              boxShadow: RG.shadowSoft,
+              outline: "none",
+              fontFamily: "'Sarabun', sans-serif"
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            {isExporting ? "กำลังเซฟ..." : "Export JPG"}
-          </button>
+            <option value="">{isExporting ? "กำลังเซฟ..." : "⬇ Export Dashboard"}</option>
+            <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)">
+              <option value="current_png">PNG Image</option>
+              <option value="current_pdf">PDF (Print)</option>
+            </optgroup>
+            <optgroup label="ทั้งหมด (All Report - ใช้รหัส)">
+              <option value="all_png">PNG Image</option>
+              <option value="all_pdf">PDF (Print All)</option>
+            </optgroup>
+          </select>
         </div>
       </div>
 
       {/* พื้นที่ครอบคลุมสำหรับดักจับภาพเพื่อ Export */}
       <div ref={exportRef} style={{ 
-        padding: isExporting ? "60px 50px" : "4px", 
+        padding: isExporting ? "40px 15px" : "4px", 
         borderRadius: isExporting ? "0px" : "16px", 
         background: isExporting ? "#ffffff" : "transparent",
         color: "#000",
-        fontFamily: isExporting ? "'Sarabun', 'Segoe UI', sans-serif" : "inherit"
+        fontFamily: isExporting ? "'Sarabun', 'Segoe UI', sans-serif" : "inherit",
+        width: isExporting ? "1100px" : "100%", // ขยายให้กว้างขึ้นเพื่อดันให้ชิดขอบซ้ายขวาใน PDF
+        boxSizing: "border-box",
+        margin: "0" // ป้องกันบั๊ก html-to-image ครอปภาพซ้ายขวา
       }}>
         
         {/* Formal Header (Visible only during export) */}
         {isExporting && (
-          <div style={{ marginBottom: 32, paddingBottom: 24, borderBottom: `2px solid ${RG.border}`, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div style={{ marginBottom: 40, paddingBottom: 24, borderBottom: `2px solid ${RG.border}`, display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "0 10px" }}>
             <div>
               <div style={{ fontSize: 28, fontWeight: 700, color: RG.text, marginBottom: 8, fontFamily: "'Sarabun', sans-serif" }}>รายงานสรุปภาพรวมการขาย (Sales Overview Report)</div>
               <div style={{ fontSize: 16, color: RG.textMuted }}>
@@ -211,28 +300,28 @@ export default function Dashboard({ leads, followups }) {
         )}
 
         {/* KPIs */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 32 }}>
           {kpis.map(k => (
-            <div key={k.label} style={{ background: isExporting ? "#f8fafc" : RG.surface, borderRadius: 12, border: isExporting ? "1px solid #cbd5e1" : `1px solid ${RG.border}`, padding: "16px 14px", textAlign: "center", boxShadow: isExporting ? "none" : RG.shadowSoft, backdropFilter: isExporting ? "none" : RG.glassFilter }}>
-              <div style={{ fontSize: 28, marginBottom: 6 }}>{k.icon}</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: k.color }}>{k.value}</div>
-              <div style={{ fontSize: 12, color: RG.textMuted, marginTop: 2 }}>{k.label}</div>
+            <div key={k.label} style={{ background: isExporting ? "#f8fafc" : RG.surface, borderRadius: 12, border: isExporting ? "1px solid #cbd5e1" : `1px solid ${RG.border}`, padding: isExporting ? "20px 10px" : "16px 14px", textAlign: "center", boxShadow: isExporting ? "none" : RG.shadowSoft, backdropFilter: isExporting ? "none" : RG.glassFilter }}>
+              <div style={{ fontSize: isExporting ? 32 : 28, marginBottom: 8 }}>{k.icon}</div>
+              <div style={{ fontSize: isExporting ? 32 : 28, fontWeight: 700, color: k.color }}>{k.value}</div>
+              <div style={{ fontSize: isExporting ? 13 : 12, color: RG.textMuted, marginTop: 4 }}>{k.label}</div>
             </div>
           ))}
         </div>
 
         {/* กราฟสัดส่วน และ แนวโน้ม */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
-          <div style={{ background: isExporting ? "#ffffff" : RG.surface, borderRadius: 12, border: isExporting ? "1px solid #cbd5e1" : `1px solid ${RG.border}`, padding: 20, minHeight: 260, boxShadow: isExporting ? "none" : RG.shadowSoft, backdropFilter: isExporting ? "none" : RG.glassFilter }}>
+        <div style={{ display: "grid", gridTemplateColumns: isExporting ? "1fr" : "1fr 1fr", gap: 24, marginBottom: 24 }}>
+          <div style={{ background: isExporting ? "#ffffff" : RG.surface, borderRadius: 12, border: isExporting ? "1px solid #cbd5e1" : `1px solid ${RG.border}`, padding: 20, minHeight: isExporting ? 300 : 260, boxShadow: isExporting ? "none" : RG.shadowSoft, backdropFilter: isExporting ? "none" : RG.glassFilter }}>
             <h4 style={{ margin: "0 0 16px", color: RG.text, fontSize: 14, fontWeight: 700 }}>สัดส่วนสถานะลีด</h4>
             {pieData.length === 0 ? (
               <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 180, color: RG.textMuted, fontSize: 13 }}>
                 ไม่มีข้อมูลสัดส่วนในเดือนนี้
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={isExporting ? 250 : 200}>
                 <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={70} dataKey="value" label={({ name, percent }) => `${name} ${Math.round(percent * 100)}%`} labelLine={false} fontSize={11} isAnimationActive={!isExporting}>
+                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={isExporting ? 100 : 70} dataKey="value" label={({ name, percent }) => `${name} ${Math.round(percent * 100)}%`} labelLine={false} fontSize={13} isAnimationActive={!isExporting}>
                     {pieData.map(entry => <Cell key={entry.name} fill={STATUS_COLORS[entry.name] || "#ccc"} />)}
                   </Pie>
                   <Tooltip />
@@ -241,7 +330,7 @@ export default function Dashboard({ leads, followups }) {
             )}
           </div>
           
-          <div style={{ background: isExporting ? "#ffffff" : RG.surface, borderRadius: 12, border: isExporting ? "1px solid #cbd5e1" : `1px solid ${RG.border}`, padding: 20, minHeight: 260, boxShadow: isExporting ? "none" : RG.shadowSoft, backdropFilter: isExporting ? "none" : RG.glassFilter }}>
+          <div style={{ background: isExporting ? "#ffffff" : RG.surface, borderRadius: 12, border: isExporting ? "1px solid #cbd5e1" : `1px solid ${RG.border}`, padding: 20, minHeight: isExporting ? 300 : 260, boxShadow: isExporting ? "none" : RG.shadowSoft, backdropFilter: isExporting ? "none" : RG.glassFilter }}>
             <h4 style={{ margin: "0 0 16px", color: RG.text, fontSize: 14, fontWeight: 700 }}>
               {filterMonth === "" ? "แนวโน้มการติดตาม (6 เดือน)" : "แนวโน้มการติดตาม (เดือนที่เลือก)"}
             </h4>
@@ -250,11 +339,11 @@ export default function Dashboard({ leads, followups }) {
                 ไม่มีข้อมูลการติดตามในเดือนนี้
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={isExporting ? 250 : 200}>
                 <LineChart data={lineData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0e0e4" />
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="name" tick={{ fontSize: 13 }} />
+                  <YAxis tick={{ fontSize: 13 }} />
                   <Tooltip />
                   <Legend />
                   <Line type="monotone" dataKey="ติดตาม" stroke={RG.primary} strokeWidth={2} dot={{ r: 6 }} activeDot={{ r: 8 }} isAnimationActive={!isExporting} />
@@ -266,7 +355,7 @@ export default function Dashboard({ leads, followups }) {
         </div>
 
         {/* กราฟ Bar Chart */}
-        <div style={{ background: RG.surface, borderRadius: 12, border: `1px solid ${RG.border}`, padding: 20, minHeight: 240 }}>
+        <div style={{ background: RG.surface, borderRadius: 12, border: isExporting ? "1px solid #cbd5e1" : `1px solid ${RG.border}`, padding: 20, minHeight: isExporting ? 320 : 240, boxShadow: isExporting ? "none" : "none" }}>
           <h4 style={{ margin: "0 0 16px", color: RG.text, fontSize: 14, fontWeight: 700 }}>
             {filterMonth === "" ? "Monthly Conversion (6 เดือน)" : "Monthly Conversion (เดือนที่เลือก)"}
           </h4>
@@ -275,7 +364,7 @@ export default function Dashboard({ leads, followups }) {
               ไม่มีข้อมูลสรุป Conversion ในเดือนนี้
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={isExporting ? 270 : 180}>
               <BarChart data={barData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0e0e4" />
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />

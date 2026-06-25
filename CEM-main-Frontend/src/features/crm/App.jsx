@@ -84,7 +84,7 @@ export default function App() {
   const [markDoneLead, setMarkDoneLead] = useState(null);
 
   const syncStatus = "Cloud Synced";
-  const dueTodayCount = leads.filter(l => l.nextFollowupDate && l.nextFollowupDate === today()).length;
+  const dueTodayCount = leads.filter(l => l.nextFollowupDate && l.nextFollowupDate <= today()).length;
 
   // Undo/Redo Stack
   const [history, setHistory] = useState([]);
@@ -184,10 +184,24 @@ export default function App() {
   const saveLead = async updated => {
     const oldLead = leads.find(l => l.id === updated.id);
     try {
-      const savedLead = await updateLeadToApi(updated.id, updated);
+      const response = await updateLeadToApi(updated.id, updated);
+      // Backend ส่งกลับมาในรูปแบบ { lead, followup } ถ้ามีการเปลี่ยนสถานะ
+      // หรืออาจส่งกลับมาแค่ lead object ตรงๆ (กรณี Undo/Redo)
+      const savedLead = response.lead || response;
+      const newFollowup = response.followup || null;
+
       const newLeads = leads.map(l => l.id === updated.id ? savedLead : l);
       setLeads(newLeads);
-      setSelectedLead(savedLead); 
+      setSelectedLead(savedLead);
+
+      // ถ้า Backend งอก Followup ใหม่มาให้ อัปเดต State ทันทีโดยไม่ต้อง Refresh
+      if (newFollowup) {
+        setFollowups(prev => ({
+          ...prev,
+          [updated.id]: [...(prev[updated.id] || []), newFollowup]
+        }));
+      }
+
       pushAction({ type: "EDIT_LEAD", payload: { id: updated.id, oldData: oldLead, newData: savedLead } });
     } catch (e) {
       alert(e.response?.data?.error || "บันทึกไม่สำเร็จ");
@@ -226,16 +240,15 @@ export default function App() {
 
   const markDone = async lead => {
     try {
-      // Find uncompleted
       const fups = followups[lead.id] || [];
       const fup = fups.find(f => !f.completed && f.nextFollowupDate && f.nextFollowupDate <= today());
       if (fup) {
         await markFollowupDoneApi(fup.id);
+        // แก้เฟพาะรายการที่เราเพิ่งกดเท่านั้น ไม่ใช่ทุกรายการ
+        const updated = fups.map(f => f.id === fup.id ? { ...f, completed: true } : f);
+        const newFollowups = { ...followups, [lead.id]: updated };
+        setFollowups(newFollowups);
       }
-      
-      const updated = fups.map(f => ({ ...f, completed: true }));
-      const newFollowups = { ...followups, [lead.id]: updated };
-      setFollowups(newFollowups);
       setMarkDoneLead(lead);
       setShowNotif(false);
     } catch(e) {
@@ -248,9 +261,22 @@ export default function App() {
     if (!lead) return;
     const updated = { ...lead, [key]: value };
     try {
-      const savedLead = await updateLeadToApi(leadId, updated);
+      const response = await updateLeadToApi(leadId, updated);
+      // Backend ส่งกลับมาในรูปแบบ { lead, followup } ถ้ามีการเปลี่ยนสถานะ/วันที่
+      const savedLead = response.lead || response;
+      const newFollowup = response.followup || null;
+
       const newLeads = leads.map(l => l.id === leadId ? savedLead : l);
       setLeads(newLeads);
+
+      // ถ้า Backend งอก Followup ใหม่มาให้ อัปเดต State ทันทีโดยไม่ต้อง Refresh
+      if (newFollowup) {
+        setFollowups(prev => ({
+          ...prev,
+          [leadId]: [...(prev[leadId] || []), newFollowup]
+        }));
+      }
+
       pushAction({ type: "EDIT_LEAD", payload: { id: leadId, oldData: lead, newData: savedLead } });
     } catch (e) {
       alert(e.response?.data?.error || "แก้ไขไม่สำเร็จ");

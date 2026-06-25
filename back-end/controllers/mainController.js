@@ -70,7 +70,6 @@ const createLead = asyncHandler(async (req, res) => {
     throw err;
   }
 
-
   if (!company_name) return res.status(400).json({ error: "กรุณากรอกชื่อบริษัท" });
 
   if (company_number) {
@@ -80,7 +79,20 @@ const createLead = asyncHandler(async (req, res) => {
 
   const insertId = await Lead.create(data);
   await AuditLog.create(req.user.id, 'create', 'leads', insertId, cleanAuditData(data));
-  
+
+  // สร้าง Followup แรกทันทีถ้ามีข้อมูลสถานะส่งมา
+  const initStatus = req.body.latestStatus || req.body.latest_status || "ฝากโปรไฟล์";
+  const initDate = req.body.latestContactDate || req.body.latest_contact_date || new Date().toISOString().slice(0, 10);
+  const initNextDate = req.body.nextFollowupDate || req.body.next_followup_date || null;
+  await Followup.create({
+    lead_id: insertId,
+    sequence: 1,
+    contact_date: initDate,
+    detail: "เพิ่มลีดใหม่เข้าระบบ",
+    status: initStatus,
+    next_followup_date: initNextDate,
+  });
+
   const latestRow = await Lead.findByIdWithDetails(insertId);
   res.status(201).json(formatLead(latestRow));
 });
@@ -125,26 +137,29 @@ const updateLead = asyncHandler(async (req, res) => {
   const existingDate = existing.latest_contact_date ? new Date(existing.latest_contact_date).toISOString().slice(0,10) : "";
   const existingNextDate = existing.next_followup_date ? new Date(existing.next_followup_date).toISOString().slice(0,10) : "";
 
+  let newFollowup = null;
   if (
     (newStatus && newStatus !== existingStatus) ||
     (newDate && newDate.slice(0, 10) !== existingDate) ||
     (newNextDate && newNextDate.slice(0, 10) !== existingNextDate)
   ) {
-    const Followup = require("../models/Followup");
     const fups = await Followup.findAllByLeadId(id);
     const nextSeq = fups.length > 0 ? Math.max(...fups.map(f => f.sequence)) + 1 : 1;
-    await Followup.create({
+    // ใช้ข้อความที่ Frontend ส่งมา ถ้าไม่มีก็ใช้ค่าเริ่มต้นตามประเภทการแก้ไข
+    const noteText = req.body.editDetail || (req.body.latestStatus ? "อัปเดตสถานะ" : "อัปเดตข้อมูล");
+    newFollowup = await Followup.create({
       lead_id: id,
       sequence: nextSeq,
       contact_date: newDate || existingDate || new Date().toISOString().slice(0, 10),
-      detail: "อัปเดตข้อมูลจากตาราง (Inline Edit)",
+      detail: noteText,
       status: newStatus || existingStatus,
       next_followup_date: newNextDate || existingNextDate || null
     });
   }
 
   const updated = await Lead.findByIdWithDetails(id);
-  res.json(formatLead(updated));
+  // ส่งทั้ง lead และ followup ใหม่ (ถ้ามี) กลับไปให้ Frontend อัปเดต State ได้ทันที
+  res.json({ lead: formatLead(updated), followup: newFollowup ? formatFollowup(newFollowup) : null });
 });
 
 const toggleStar = asyncHandler(async (req, res) => {
