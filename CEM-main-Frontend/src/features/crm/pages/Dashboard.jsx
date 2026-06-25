@@ -63,12 +63,24 @@ export default function Dashboard({ leads, followups }) {
   // ตรวจสอบว่าเดือนที่เลือกมีข้อมูลแอนิเมชัน/กราฟหรือไม่
   const hasChartData = lineData.some(d => d.ติดตาม > 0 || d.ปิดการขาย > 0) || barData.some(d => d.โทร > 0 || d.ปิด > 0);
 
+  const statusIcons = {
+    "มีตติ้ง": "📅",
+    "ฝากโปรไฟล์": "📝",
+    "ต้องตามต่อ": "📞",
+    "ติดต่อไม่ได้": "📵",
+    "ไม่สนใจ": "❌",
+    "ปิดการขาย": "✅",
+  };
+
   const kpis = [
     { label: "ลีดทั้งหมด", value: total, icon: "👥", color: "#7B68EE" },
-    { label: "ปิดการขาย", value: closed, icon: "✅", color: RG.success },
     { label: "ต้องติดตามวันนี้", value: needFollow, icon: "🔔", color: RG.warn },
-    { label: "ไม่สนใจ", value: notInterested, icon: "❌", color: RG.danger },
-    { label: "นัดประชุม", value: meetings, icon: "📅", color: RG.primary },
+    ...STATUSES.map(s => ({
+      label: s,
+      value: filteredLeads.filter(l => l.latestStatus === s).length,
+      icon: statusIcons[s] || "📌",
+      color: STATUS_COLORS[s] || RG.primary
+    }))
   ];
 
   // ฟังก์ชันจัดการการ Export หน้าแดชบอร์ดเป็นภาพ JPG
@@ -199,7 +211,7 @@ export default function Dashboard({ leads, followups }) {
         )}
 
         {/* KPIs */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14, marginBottom: 28 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
           {kpis.map(k => (
             <div key={k.label} style={{ background: isExporting ? "#f8fafc" : RG.surface, borderRadius: 12, border: isExporting ? "1px solid #cbd5e1" : `1px solid ${RG.border}`, padding: "16px 14px", textAlign: "center", boxShadow: isExporting ? "none" : RG.shadowSoft, backdropFilter: isExporting ? "none" : RG.glassFilter }}>
               <div style={{ fontSize: 28, marginBottom: 6 }}>{k.icon}</div>
@@ -220,7 +232,7 @@ export default function Dashboard({ leads, followups }) {
             ) : (
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={70} dataKey="value" label={({ name, percent }) => `${name} ${Math.round(percent * 100)}%`} labelLine={false} fontSize={11}>
+                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={70} dataKey="value" label={({ name, percent }) => `${name} ${Math.round(percent * 100)}%`} labelLine={false} fontSize={11} isAnimationActive={!isExporting}>
                     {pieData.map(entry => <Cell key={entry.name} fill={STATUS_COLORS[entry.name] || "#ccc"} />)}
                   </Pie>
                   <Tooltip />
@@ -245,8 +257,8 @@ export default function Dashboard({ leads, followups }) {
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Legend />
-                  <Line type="monotone" dataKey="ติดตาม" stroke={RG.primary} strokeWidth={2} dot={{ r: 6 }} activeDot={{ r: 8 }} />
-                  <Line type="monotone" dataKey="ปิดการขาย" stroke={RG.success} strokeWidth={2} dot={{ r: 6 }} activeDot={{ r: 8 }} />
+                  <Line type="monotone" dataKey="ติดตาม" stroke={RG.primary} strokeWidth={2} dot={{ r: 6 }} activeDot={{ r: 8 }} isAnimationActive={!isExporting} />
+                  <Line type="monotone" dataKey="ปิดการขาย" stroke={RG.success} strokeWidth={2} dot={{ r: 6 }} activeDot={{ r: 8 }} isAnimationActive={!isExporting} />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -270,8 +282,8 @@ export default function Dashboard({ leads, followups }) {
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="โทร" fill={RG.primary} radius={[4, 4, 0, 0]} maxBarSize={60} />
-                <Bar dataKey="ปิด" fill={RG.success} radius={[4, 4, 0, 0]} maxBarSize={60} />
+                <Bar dataKey="โทร" fill={RG.primary} radius={[4, 4, 0, 0]} maxBarSize={60} isAnimationActive={!isExporting} />
+                <Bar dataKey="ปิด" fill={RG.success} radius={[4, 4, 0, 0]} maxBarSize={60} isAnimationActive={!isExporting} />
               </BarChart>
             </ResponsiveContainer>
           )}
