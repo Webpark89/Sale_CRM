@@ -7,8 +7,8 @@ export const fetchLeads = async () => {
   return data;
 };
 
-export const fetchAllLeadsMaster = async (password) => {
-  const { data } = await api.post("/leads/all", { password });
+export const fetchAllLeadsMaster = async () => {
+  const { data } = await api.post("/leads/all");
   return data;
 };
 

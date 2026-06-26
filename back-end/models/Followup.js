@@ -17,6 +17,14 @@ const Followup = {
     return rows;
   },
 
+  findByIdWithLead: async (id) => {
+    const [rows] = await db.execute(
+      "SELECT f.*, l.owner_id FROM followups f JOIN leads l ON f.lead_id = l.id WHERE f.id = ?",
+      [id]
+    );
+    return rows[0];
+  },
+
   create: async (data) => {
     await db.execute(
       `INSERT INTO followups (lead_id, sequence, contact_date, detail, status, next_followup_date)

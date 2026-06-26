@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
-import { STATUSES, STATUS_COLORS } from "./constants/status";
+import { STATUSES, STATUS_COLORS, STATUS_ENUM } from "./constants/status";
 import { RG } from "./constants/theme";
 import { createNewLead, parseDateTH, today, uuid } from "./crmHelpers/helpers";
 import LoginScreen from "./components/auth/LoginScreen";
@@ -31,14 +31,14 @@ import { printHTMLTable } from "../../utils/exportHelpers";
 
 // กำหนดน้ำหนักความสำคัญสำหรับการจัดเรียงข้อมูล
 const PRIORITY_WEIGHT = {
-  "ปิดการขาย": 7,
+  [STATUS_ENUM.CLOSED]: 7,
   "ด่วนมาก": 6,
-  "มีตติ้ง": 5,
-  "ต้องตามต่อ": 4,
-  "ฝากโปรไฟล์": 3,
+  [STATUS_ENUM.MEETING]: 5,
+  [STATUS_ENUM.FOLLOW_UP]: 4,
+  [STATUS_ENUM.PROFILE]: 3,
   "ทั่วไป": 2,
-  "ติดต่อไม่ได้": 1,
-  "ไม่สนใจ": 0
+  [STATUS_ENUM.UNREACHABLE]: 1,
+  [STATUS_ENUM.NOT_INTERESTED]: 0
 };
 
 export default function App() {
@@ -77,14 +77,16 @@ export default function App() {
   const handleTopScroll = (e) => { if (bottomScrollRef.current) bottomScrollRef.current.scrollLeft = e.target.scrollLeft; };
   const handleBottomScroll = (e) => { if (topScrollRef.current) topScrollRef.current.scrollLeft = e.target.scrollLeft; };
 
-  // เพิ่ม State สำหรับกรองเฉพาะรายการโปรด
   const [showFavorites, setShowFavorites] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const [filterSellers, setFilterSellers] = useState([]); // [] means all sellers
+  const [isSellerDropdownOpen, setIsSellerDropdownOpen] = useState(false);
   
   const [markDoneLead, setMarkDoneLead] = useState(null);
 
   const syncStatus = "Cloud Synced";
-  const dueTodayCount = leads.filter(l => l.nextFollowupDate && l.nextFollowupDate <= today()).length;
+  const currentDateStr = today();
+  const dueTodayCount = leads.filter(l => l.nextFollowupDate && l.nextFollowupDate <= currentDateStr).length;
 
   // Undo/Redo Stack
   const [history, setHistory] = useState([]);
@@ -105,7 +107,9 @@ export default function App() {
     if (!authenticated) return;
     setIsLoading(true);
     try {
-      const fetchedLeads = await fetchLeads();
+      const fetchedLeads = currentUser?.role === "admin" 
+        ? await fetchAllLeadsMaster() 
+        : await fetchLeads();
       const fetchedFollowups = await fetchAllFollowups();
       setLeads(fetchedLeads);
       
@@ -120,7 +124,7 @@ export default function App() {
     } finally {
       setIsLoading(false);
     }
-  }, [authenticated]);
+  }, [authenticated, currentUser]);
 
   useEffect(() => {
     loadData();
@@ -311,12 +315,29 @@ export default function App() {
     }
   };
 
-  const dupNumbers = leads.map(l => l.companyNumber).filter((n, i, arr) => n && String(n).trim() !== "" && arr.indexOf(n) !== i);
+  const seenNumbers = new Set();
+  const dupNumbersSet = new Set();
+  
+  for (const l of leads) {
+    const n = String(l.companyNumber || "").trim();
+    if (!n) continue;
+    
+    if (seenNumbers.has(n)) {
+      dupNumbersSet.add(n);
+    } else {
+      seenNumbers.add(n);
+    }
+  }
+  const dupNumbers = [...dupNumbersSet];
 
-  // 1. คัดกรองข้อมูลตามสิทธิ์ (Admin เห็นทั้งหมด, Sales เห็นเฉพาะที่ตัวเองเป็น owner)
-  const accessibleLeads = currentUser?.role === "admin" 
+  // 1. คัดกรองข้อมูลตามสิทธิ์และ filterSellers
+  const roleFilteredLeads = currentUser?.role === "admin" 
     ? leads 
     : leads.filter(l => l.owner === currentUser?.username);
+  
+  const accessibleLeads = filterSellers.length === 0
+    ? roleFilteredLeads
+    : roleFilteredLeads.filter(l => filterSellers.includes(l.owner));
 
   // ปรับปรุง logic กรองข้อมูล + เพิ่มการจัดเรียง
   const filtered = accessibleLeads
@@ -453,12 +474,6 @@ export default function App() {
 
     const [mode, format] = value.split("_"); 
     
-    let pwd = null;
-    if (mode === "all") {
-      pwd = prompt("🔒 กรุณากรอกรหัสผ่านเพื่อพิมพ์รายงานทั้งหมด (All Report):");
-      if (!pwd) return; // ยกเลิกถ้าไม่ใส่รหัส
-    }
-
     let printWindow = null;
     if (format === "pdf") {
       printWindow = window.open('', '_blank');
@@ -472,10 +487,10 @@ export default function App() {
     
     if (mode === "all") {
       try {
-        targetLeads = await fetchAllLeadsMaster(pwd.trim());
+        targetLeads = await fetchAllLeadsMaster();
         if (!targetLeads || targetLeads.length === 0) {
           if (printWindow) printWindow.close();
-          alert("ไม่พบข้อมูล หรือรหัสผ่านไม่ถูกต้อง");
+          alert("ไม่พบข้อมูล");
           return;
         }
       } catch (err) {
@@ -589,6 +604,15 @@ export default function App() {
         <div style={{ padding: "32px 40px", paddingTop: 90 }}>
         {page === "leads" && (
           <>
+            <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #0f766e, #14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", boxShadow: "0 4px 6px rgba(15, 118, 110, 0.2)" }}>
+                👥
+              </div>
+              <div>
+                <h2 style={{ margin: 0, color: "#0f766e", fontSize: 24, fontWeight: 800 }}>จัดการข้อมูลลูกค้า (Leads)</h2>
+                <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: 14 }}>ระบบจัดการฐานข้อมูลลูกค้าและการติดตามการขาย</p>
+              </div>
+            </div>
             <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
               <Btn onClick={() => setShowAddLead(true)}>+ เพิ่มลีดใหม่</Btn>
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 ค้นหาบริษัท, เลขนิติบุคคล, เบอร์..." style={{ ...inputStyle, width: 280 }} />
@@ -617,10 +641,76 @@ export default function App() {
                 </button>
               </div>
 
-              <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+              <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
+                {currentUser?.role === "admin" && (
+                  <div style={{ position: "relative" }}>
+                    <div 
+                      onClick={() => setIsSellerDropdownOpen(!isSellerDropdownOpen)}
+                      style={{ ...inputStyle, width: "180px", cursor: "pointer", backgroundColor: filterSellers.length > 0 ? "#fffbeb" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", border: filterSellers.length > 0 ? "1px solid #fcd34d" : `1px solid ${RG.border}` }}
+                    >
+                      <span style={{ color: filterSellers.length > 0 ? "#b45309" : RG.text }}>
+                        {filterSellers.length === 0 ? "👥 แสดงทุกเซลส์" : `👥 เลือกแล้ว ${filterSellers.length} เซลส์`}
+                      </span>
+                      <span style={{ fontSize: 10 }}>▼</span>
+                    </div>
+                    {isSellerDropdownOpen && (
+                      <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 50, padding: "8px 0", marginTop: "4px", maxHeight: "250px", overflowY: "auto" }}>
+                        <label style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13, borderBottom: "1px solid #eee" }}>
+                          <input type="checkbox" checked={filterSellers.length === 0} onChange={() => setFilterSellers([])} style={{ marginRight: 8 }} />
+                          แสดงทุกเซลส์
+                        </label>
+                        {[...new Set(leads.map(l => l.owner).filter(Boolean))].map(seller => (
+                          <label key={seller} style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13 }}>
+                            <input 
+                              type="checkbox" 
+                              checked={filterSellers.includes(seller)} 
+                              onChange={() => {
+                                setFilterSellers(prev => 
+                                  prev.includes(seller) ? prev.filter(s => s !== seller) : [...prev, seller]
+                                );
+                              }} 
+                              style={{ marginRight: 8 }} 
+                            />
+                            {seller}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <label style={{ 
+                  padding: "0 14px",
+                  borderRadius: "8px",
+                  border: `1px solid ${RG.border}`,
+                  backgroundColor: "#ffffff",
+                  color: RG.text,
+                  cursor: "pointer",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  height: "36px",
+                  display: "flex",
+                  alignItems: "center",
+                  fontFamily: "'Sarabun', sans-serif",
+                  boxSizing: "border-box"
+                }}>
+                  ⬆ Import <input type="file" accept=".json" onChange={importFile} style={{ display: "none" }} />
+                </label>
                 <select 
                   onChange={handleExport}
-                  style={{ padding: "6px 14px", borderRadius: 8, background: "#ffffff", color: RG.primary, border: `1px solid ${RG.border}`, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "'Sarabun', sans-serif", outline: "none" }}
+                  style={{ 
+                    padding: "0 14px",
+                    borderRadius: "8px",
+                    border: `1px solid ${RG.primary}`,
+                    backgroundColor: "#ffffff",
+                    color: RG.primary,
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    height: "36px",
+                    outline: "none",
+                    fontFamily: "'Sarabun', sans-serif",
+                    boxSizing: "border-box"
+                  }}
                 >
                   <option value="">⬇ Export</option>
                   <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)">
@@ -628,15 +718,14 @@ export default function App() {
                     <option value="current_json">JSON</option>
                     <option value="current_pdf">PDF (Print)</option>
                   </optgroup>
-                  <optgroup label="ทั้งหมด (All Report - ใช้รหัส)">
-                    <option value="all_csv">Excel / CSV</option>
-                    <option value="all_json">JSON</option>
-                    <option value="all_pdf">PDF (Print All)</option>
-                  </optgroup>
+                  {currentUser?.role === 'admin' && (
+                    <optgroup label="ทั้งหมด (All Report)">
+                      <option value="all_csv">Excel / CSV</option>
+                      <option value="all_json">JSON</option>
+                      <option value="all_pdf">PDF (Print All)</option>
+                    </optgroup>
+                  )}
                 </select>
-                <label style={{ padding: "6px 14px", borderRadius: 8, background: "#ffffff", color: RG.primary, border: `1px solid ${RG.border}`, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                  ⬆ Import <input type="file" accept=".json" onChange={importFile} style={{ display: "none" }} />
-                </label>
               </div>
             </div>
 
@@ -673,6 +762,7 @@ export default function App() {
                       {/* เพิ่ม Column สำหรับติดดาว */}
                       <th style={{ padding: "12px 8px", color: "#fff", fontSize: 13, width: 36 }} />
                       <th style={{ padding: "12px 8px", color: "#fff", fontSize: 13, width: 36 }} />
+                      <th style={{ padding: "12px 10px", color: "#fff", fontSize: 12, fontWeight: 600, width: 40, textAlign: "center" }}>#</th>
                       {[
                         { label: "บริษัท", key: "companyName" },
                         { label: "เลขนิติบุคคล", key: "companyNumber" },
@@ -705,7 +795,7 @@ export default function App() {
                   <tbody>
                     {paginatedLeads.length === 0 && (
                       <tr>
-                        <td colSpan={14} style={{ textAlign: "center", padding: "40px", color: RG.textMuted }}>
+                        <td colSpan={15} style={{ textAlign: "center", padding: "40px", color: RG.textMuted }}>
                           ไม่พบข้อมูล
                         </td>
                       </tr>
@@ -738,6 +828,9 @@ export default function App() {
                           </td>
                           <td style={{ padding: "8px 6px" }}>
                             <button onClick={() => setSelectedLead(lead)} style={{ background: RG.gradient, border: "none", color: "#fff", width: 26, height: 26, borderRadius: 6, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>👁</button>
+                          </td>
+                          <td style={{ padding: "8px 10px", textAlign: "center", fontSize: 13, color: RG.textMuted, fontWeight: 600 }}>
+                            {(actualPage - 1) * itemsPerPage + i + 1}
                           </td>
                           <td style={{ padding: "8px 10px", fontWeight: lead.isStarred ? 600 : 400 }}><EditableCell value={lead.companyName} onSave={v => inlineEdit(lead.id, "companyName", v)} /></td>
                           <td style={{ padding: "8px 10px" }}>
@@ -803,16 +896,32 @@ export default function App() {
 
         {page === "dashboard" && (
           <div>
-            <h2 style={{ margin: "0 0 20px", color: RG.text, fontSize: 20, fontWeight: 700 }}>📊 Dashboard</h2>
-            <Dashboard leads={leads} followups={followups} />
+            <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #0f766e, #14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", boxShadow: "0 4px 6px rgba(15, 118, 110, 0.2)" }}>
+                📊
+              </div>
+              <div>
+                <h2 style={{ margin: 0, color: "#0f766e", fontSize: 24, fontWeight: 800 }}>ภาพรวมและสถิติ (Dashboard)</h2>
+                <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: 14 }}>สรุปผลการดำเนินงานและสถิติการขาย</p>
+              </div>
+            </div>
+            <Dashboard leads={leads} followups={followups} currentUser={currentUser} />
           </div>
         )}
 
         {page === "reports" && (
           <div>
-            <h2 style={{ margin: "0 0 20px", color: RG.text, fontSize: 20, fontWeight: 700 }}>📄 รายงาน</h2>
+            <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #0f766e, #14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", boxShadow: "0 4px 6px rgba(15, 118, 110, 0.2)" }}>
+                📄
+              </div>
+              <div>
+                <h2 style={{ margin: 0, color: "#0f766e", fontSize: 24, fontWeight: 800 }}>รายงานการติดตาม (Reports)</h2>
+                <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: 14 }}>สร้างรายงานและสรุปผลข้อมูลลูกค้าสำหรับการส่งมอบ</p>
+              </div>
+            </div>
             {/* ส่งฟังก์ชัน setSelectedLead เข้าไปเป็น onViewLead */}
-            <Reports leads={leads} onViewLead={setSelectedLead} />
+            <Reports leads={leads} onViewLead={setSelectedLead} isMaster={false} onExitMaster={() => {}} currentUser={currentUser} />
           </div>
         )}
         </div>

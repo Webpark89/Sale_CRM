@@ -22,7 +22,7 @@ const formatLead = (row) => ({
     : new Date().toISOString().slice(0, 10), 
   nextFollowupDate: row.next_followup_date
     ? (row.next_followup_date.toISOString?.().slice(0, 10) ?? String(row.next_followup_date).slice(0, 10))
-    : new Date().toISOString().slice(0, 10), 
+    : null,
   companyName:     row.company_name,
   companyNumber:   row.company_number,
   contactName:     row.contact_name,

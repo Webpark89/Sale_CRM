@@ -8,3 +8,12 @@ export const STATUS_COLORS = {
   ไม่สนใจ: "#E57373",
   ปิดการขาย: "#4CAF50",
 };
+
+export const STATUS_ENUM = {
+  MEETING: "มีตติ้ง",
+  PROFILE: "ฝากโปรไฟล์",
+  FOLLOW_UP: "ต้องตามต่อ",
+  UNREACHABLE: "ติดต่อไม่ได้",
+  NOT_INTERESTED: "ไม่สนใจ",
+  CLOSED: "ปิดการขาย"
+};

@@ -1,43 +1,57 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { PieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { STATUSES, STATUS_COLORS } from "../constants/status";
+import { STATUSES, STATUS_COLORS, STATUS_ENUM } from "../constants/status";
 import { RG } from "../constants/theme";
 import { today } from "../crmHelpers/helpers";
 import { toJpeg, toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
-import { fetchAllLeadsMaster, fetchAllFollowups } from "../services/apiService";
+import { inputStyle } from "../components/common/styles";
+export default function Dashboard({ leads, followups, currentUser }) {
+  const [filterMonths, setFilterMonths] = useState([]);
+  const [isExporting, setIsExporting] = useState(false); 
+  const exportRef = useRef(null); 
 
-export default function Dashboard({ leads, followups }) {
-  const [filterMonth, setFilterMonth] = useState("");
-  const [isExporting, setIsExporting] = useState(false); // State สำหรับควบคุมสถานะการ Export
-  const exportRef = useRef(null); // Ref สำหรับกำหนดพื้นที่จำลองภาพเพื่อดาวน์โหลด
+  const [filterSellers, setFilterSellers] = useState([]);
+  const [isSellerDropdownOpen, setIsSellerDropdownOpen] = useState(false);
+  const sellerList = [...new Set(leads.map(l => l.owner).filter(Boolean))];
 
-  const [tempLeads, setTempLeads] = useState(null);
-  const [tempFollowups, setTempFollowups] = useState(null);
-
-  const displayLeads = tempLeads || leads;
-  const displayFollowups = tempFollowups || followups;
+  const displayLeads = (filterSellers.length === 0 || currentUser?.role !== "admin")
+    ? leads
+    : leads.filter(l => filterSellers.includes(l.owner));
 
   // 1. กรอง Leads สำหรับแสดงผล KPI และ Pie Chart
-  const filteredLeads = filterMonth === "" 
+  const filteredLeads = filterMonths.length === 0 
     ? displayLeads 
-    : displayLeads.filter(l => l.latestContactDate && l.latestContactDate.startsWith(filterMonth));
+    : displayLeads.filter(l => filterMonths.some(m => l.latestContactDate && l.latestContactDate.startsWith(m)));
 
   // --- คำนวณ KPIs ---
+  const currentDateStr = today();
+  const kpiStats = filteredLeads.reduce((acc, l) => {
+    if (l.latestStatus === STATUS_ENUM.CLOSED) acc.closed++;
+    else if (l.latestStatus === STATUS_ENUM.NOT_INTERESTED) acc.notInterested++;
+    else if (l.latestStatus === STATUS_ENUM.MEETING) acc.meetings++;
+
+    if (l.nextFollowupDate && l.nextFollowupDate <= currentDateStr) {
+      acc.needFollow++;
+    }
+
+    if (l.latestStatus) {
+      acc.statusCounts[l.latestStatus] = (acc.statusCounts[l.latestStatus] || 0) + 1;
+    }
+    return acc;
+  }, { closed: 0, needFollow: 0, notInterested: 0, meetings: 0, statusCounts: {} });
+
   const total = filteredLeads.length;
-  const closed = filteredLeads.filter(l => l.latestStatus === "ปิดการขาย").length;
-  const needFollow = filteredLeads.filter(l => l.nextFollowupDate && l.nextFollowupDate <= today()).length;
-  const notInterested = filteredLeads.filter(l => l.latestStatus === "ไม่สนใจ").length;
-  const meetings = filteredLeads.filter(l => l.latestStatus === "มีตติ้ง").length;
+  const { closed, needFollow, notInterested, meetings, statusCounts } = kpiStats;
 
   const pieData = STATUSES.map(s => ({ 
     name: s, 
-    value: filteredLeads.filter(l => l.latestStatus === s).length 
+    value: statusCounts[s] || 0 
   })).filter(d => d.value > 0);
 
   // --- จัดการแกนเวลา (X-Axis) สำหรับกราฟ ---
   let chartMonths = [];
-  if (filterMonth === "") {
+  if (filterMonths.length === 0) {
     chartMonths = Array.from({ length: 6 }, (_, i) => {
       const d = new Date();
       d.setMonth(d.getMonth() - 5 + i);
@@ -47,37 +61,68 @@ export default function Dashboard({ leads, followups }) {
       };
     });
   } else {
-    const [year, month] = filterMonth.split("-");
-    const d = new Date(year, month - 1);
-    chartMonths = [{
-      key: filterMonth,
-      label: d.toLocaleDateString("th-TH", { month: "short", year: "2-digit" })
-    }];
+    // เรียงเดือนตามเวลา (จากเก่าไปใหม่)
+    const sortedMonths = [...filterMonths].sort();
+    chartMonths = sortedMonths.map(m => {
+      const [year, month] = m.split("-");
+      const d = new Date(year, month - 1);
+      return {
+        key: m,
+        label: d.toLocaleDateString("th-TH", { month: "short", year: "2-digit" })
+      };
+    });
   }
 
   // --- คำนวณข้อมูลกราฟเส้นและกราฟแท่ง ---
+  const chartKeys = new Set(chartMonths.map(m => m.key));
+  
+  const leadStatsByMonth = displayLeads.reduce((acc, l) => {
+    if (!l.latestContactDate) return acc;
+    
+    const mKey = l.latestContactDate.slice(0, 7);
+    if (!chartKeys.has(mKey)) return acc;
+    
+    acc[mKey] = acc[mKey] || { totalContact: 0, closed: 0 };
+    acc[mKey].totalContact++;
+    
+    if (l.latestStatus === STATUS_ENUM.CLOSED) {
+      acc[mKey].closed++;
+    }
+    return acc;
+  }, {});
+
+  const followupStatsByMonth = Object.values(followups).flat().reduce((acc, f) => {
+    if (!f.date) return acc;
+    
+    const mKey = f.date.slice(0, 7);
+    if (chartKeys.has(mKey)) {
+      acc[mKey] = (acc[mKey] || 0) + 1;
+    }
+    return acc;
+  }, {});
+
   const lineData = chartMonths.map(m => ({
     name: m.label,
-    ติดตาม: Object.values(displayFollowups).flat().filter(f => f.date && f.date.startsWith(m.key)).length,
-    ปิดการขาย: displayLeads.filter(l => l.latestStatus === "ปิดการขาย" && l.latestContactDate && l.latestContactDate.startsWith(m.key)).length,
+    ติดตาม: followupStatsByMonth[m.key] || 0,
+    ปิดการขาย: leadStatsByMonth[m.key]?.closed || 0,
   }));
 
   const barData = chartMonths.map(m => ({
     name: m.label,
-    โทร: displayLeads.filter(l => l.latestContactDate && l.latestContactDate.startsWith(m.key)).length,
-    ปิด: displayLeads.filter(l => l.latestStatus === "ปิดการขาย" && l.latestContactDate && l.latestContactDate.startsWith(m.key)).length,
+    โทร: leadStatsByMonth[m.key]?.totalContact || 0,
+    ปิด: leadStatsByMonth[m.key]?.closed || 0,
   }));
 
   // ตรวจสอบว่าเดือนที่เลือกมีข้อมูลแอนิเมชัน/กราฟหรือไม่
   const hasChartData = lineData.some(d => d.ติดตาม > 0 || d.ปิดการขาย > 0) || barData.some(d => d.โทร > 0 || d.ปิด > 0);
 
   const statusIcons = {
-    "มีตติ้ง": "📅",
-    "ฝากโปรไฟล์": "📝",
-    "ต้องตามต่อ": "📞",
-    "ติดต่อไม่ได้": "📵",
-    "ไม่สนใจ": "❌",
-    "ปิดการขาย": "✅",
+    [STATUS_ENUM.MEETING]: "📅",
+    [STATUS_ENUM.PROFILE]: "📝",
+    [STATUS_ENUM.FOLLOW_UP]: "📞",
+    [STATUS_ENUM.UNREACHABLE]: "📵",
+    [STATUS_ENUM.NOT_INTERESTED]: "❌",
+    [STATUS_ENUM.CLOSED]: "✅",
   };
 
   const kpis = [
@@ -85,7 +130,7 @@ export default function Dashboard({ leads, followups }) {
     { label: "ต้องติดตามวันนี้", value: needFollow, icon: "🔔", color: RG.warn },
     ...STATUSES.map(s => ({
       label: s,
-      value: filteredLeads.filter(l => l.latestStatus === s).length,
+      value: statusCounts[s] || 0,
       icon: statusIcons[s] || "📌",
       color: STATUS_COLORS[s] || RG.primary
     }))
@@ -99,24 +144,11 @@ export default function Dashboard({ leads, followups }) {
 
     const [mode, format] = val.split("_");
 
-    if (mode === "all") {
-      const pwd = prompt("🔒 กรุณากรอกรหัสผ่านเพื่อดึงข้อมูลทั้งหมด (All Report):");
-      if (!pwd) return;
-      try {
-        const allLeads = await fetchAllLeadsMaster(pwd.trim());
-        const allFollowups = await fetchAllFollowups();
-        if (!allLeads || allLeads.length === 0) {
-          alert("ไม่พบข้อมูล หรือรหัสผ่านไม่ถูกต้อง");
-          return;
-        }
-        setTempLeads(allLeads);
-        setTempFollowups(allFollowups);
-        // รอให้ React render ข้อมูลใหม่ก่อน Export
-        await new Promise(resolve => setTimeout(resolve, 800));
-      } catch (err) {
-        alert("API Error: " + (err.response?.data?.error || err.message));
-        return;
-      }
+    let prevSeller = filterSellers;
+    if (mode === "all" && currentUser?.role === "admin") {
+      setFilterSellers([]);
+      // รอให้ React render ข้อมูลใหม่ก่อน Export
+      await new Promise(resolve => setTimeout(resolve, 800));
     }
 
     if (!exportRef.current || isExporting) return;
@@ -125,7 +157,7 @@ export default function Dashboard({ leads, followups }) {
     await new Promise(resolve => setTimeout(resolve, 200));
 
     try {
-      const filename = `dashboard-${mode}-${filterMonth || "overall"}-${new Date().toISOString().slice(0, 10)}`;
+      const filename = `dashboard-${mode}-${filterMonths.length > 0 ? filterMonths.join("_") : "overall"}-${new Date().toISOString().slice(0, 10)}`;
 
       if (format === "png") {
         const dataUrl = await toPng(exportRef.current, {
@@ -176,9 +208,8 @@ export default function Dashboard({ leads, followups }) {
     } finally {
       setIsExporting(false);
       // คืนค่า Dashboard กลับเป็น Current View
-      if (mode === "all") {
-        setTempLeads(null);
-        setTempFollowups(null);
+      if (mode === "all" && currentUser?.role === "admin") {
+        setFilterSellers(prevSeller);
       }
     }
   };
@@ -186,23 +217,28 @@ export default function Dashboard({ leads, followups }) {
   return (
     <div>
       {/* ส่วนหัวและตัวกรองเดือน */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
-        <h2 style={{ margin: 0, color: RG.primary }}>ภาพรวมการขาย</h2>
-        
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          {/* ตัวเลือกเดือน */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          
+          {/* ตัวเลือกเดือน (รองรับหลายเดือน) */}
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px" }}>
             <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
               <input 
                 type="month" 
-                value={filterMonth}
-                onChange={(e) => setFilterMonth(e.target.value)}
+                title="เพิ่มเดือนที่ต้องการดูข้อมูล"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val && !filterMonths.includes(val)) {
+                    setFilterMonths([...filterMonths, val]);
+                  }
+                  e.target.value = ""; // reset
+                }}
                 style={{
                   padding: "8px 12px",
                   borderRadius: "8px",
                   border: `1px solid ${RG.border}`,
                   backgroundColor: RG.surface,
-                  color: filterMonth ? RG.text : "transparent", // ซ่อนขีดถ้าไม่มีค่า
+                  color: "transparent", // hide native text
                   fontSize: "14px",
                   outline: "none",
                   cursor: "pointer",
@@ -210,62 +246,108 @@ export default function Dashboard({ leads, followups }) {
                   width: "150px"
                 }}
               />
-              {!filterMonth && (
-                <span style={{ position: "absolute", left: 12, color: RG.textMuted, fontSize: 14, pointerEvents: "none" }}>
-                  กรุณาเลือกเดือน
-                </span>
-              )}
+              <span style={{ position: "absolute", left: 12, color: RG.textMuted, fontSize: 14, pointerEvents: "none" }}>
+                กรุณาเลือกเดือน
+              </span>
             </div>
-            {filterMonth && (
+            
+            {filterMonths.length === 0 && (
+              <span style={{ color: RG.textMuted, fontSize: 13 }}>แสดงข้อมูลทั้งหมด (6 เดือนล่าสุด)</span>
+            )}
+
+            {filterMonths.map(m => {
+              const [year, month] = m.split("-");
+              const d = new Date(year, month - 1);
+              return (
+                <div key={m} style={{ display: "flex", alignItems: "center", gap: 6, background: RG.primaryPale, color: RG.primary, padding: "6px 12px", borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
+                  {d.toLocaleDateString("th-TH", { month: "short", year: "2-digit" })}
+                  <button onClick={() => setFilterMonths(filterMonths.filter(x => x !== m))} style={{ background: "transparent", border: "none", color: RG.primary, cursor: "pointer", fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
+                </div>
+              );
+            })}
+
+            {filterMonths.length > 0 && (
               <button 
-                onClick={() => setFilterMonth("")}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: "6px",
-                  border: "none",
-                  backgroundColor: "#f0f0f0",
-                  color: "#555",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                  height: "34px"
-                }}
+                onClick={() => setFilterMonths([])}
+                style={{ padding: "6px 12px", borderRadius: "6px", border: "none", backgroundColor: "#fef2f2", color: "#ef4444", cursor: "pointer", fontSize: "12px", fontWeight: 600 }}
               >
-                Clear
+                Clear All
               </button>
             )}
           </div>
-
-          {/* Dropdown Export (PNG/PDF) */}
-          <select 
-            onChange={handleExport}
-            disabled={isExporting}
-            style={{
-              padding: "8px 16px",
-              borderRadius: "8px",
-              border: `1px solid ${RG.border}`,
-              backgroundColor: "#ffffff",
-              color: RG.primary,
-              cursor: isExporting ? "not-allowed" : "pointer",
-              fontWeight: 600,
-              height: "38px",
-              boxShadow: RG.shadowSoft,
-              outline: "none",
-              fontFamily: "'Sarabun', sans-serif"
-            }}
-          >
-            <option value="">{isExporting ? "กำลังเซฟ..." : "⬇ Export Dashboard"}</option>
-            <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)">
-              <option value="current_png">PNG Image</option>
-              <option value="current_pdf">PDF (Print)</option>
-            </optgroup>
-            <optgroup label="ทั้งหมด (All Report - ใช้รหัส)">
-              <option value="all_png">PNG Image</option>
-              <option value="all_pdf">PDF (Print All)</option>
-            </optgroup>
-          </select>
         </div>
-      </div>
+          <div style={{ display: "flex", flexDirection: "row", gap: 10, alignItems: "center" }}>
+            {currentUser?.role === "admin" && (
+              <div style={{ position: "relative" }}>
+                <div 
+                  onClick={() => setIsSellerDropdownOpen(!isSellerDropdownOpen)}
+                  style={{ ...inputStyle, width: "180px", cursor: "pointer", backgroundColor: filterSellers.length > 0 ? "#fffbeb" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", border: filterSellers.length > 0 ? "1px solid #fcd34d" : `1px solid ${RG.border}` }}
+                >
+                  <span style={{ color: filterSellers.length > 0 ? "#b45309" : RG.text }}>
+                    {filterSellers.length === 0 ? "👥 แสดงทุกเซลส์" : `👥 เลือกแล้ว ${filterSellers.length} เซลส์`}
+                  </span>
+                  <span style={{ fontSize: 10 }}>▼</span>
+                </div>
+                {isSellerDropdownOpen && (
+                  <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 50, padding: "8px 0", marginTop: "4px", maxHeight: "250px", overflowY: "auto" }}>
+                    <label style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13, borderBottom: "1px solid #eee" }}>
+                      <input type="checkbox" checked={filterSellers.length === 0} onChange={() => setFilterSellers([])} style={{ marginRight: 8 }} />
+                      แสดงทุกเซลส์
+                    </label>
+                    {sellerList.map(seller => (
+                      <label key={seller} style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13 }}>
+                        <input 
+                          type="checkbox" 
+                          checked={filterSellers.includes(seller)} 
+                          onChange={() => {
+                            setFilterSellers(prev => 
+                              prev.includes(seller) ? prev.filter(s => s !== seller) : [...prev, seller]
+                            );
+                          }} 
+                          style={{ marginRight: 8 }} 
+                        />
+                        {seller}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
+            {/* Dropdown Export (PNG/PDF) */}
+            <select 
+              onChange={handleExport}
+              disabled={isExporting}
+              value=""
+              style={{
+                padding: "0 14px",
+                borderRadius: "8px",
+                border: `1px solid ${RG.primary}`,
+                backgroundColor: "#ffffff",
+                color: RG.primary,
+                cursor: isExporting ? "not-allowed" : "pointer",
+                fontSize: "13px",
+                fontWeight: 600,
+                height: "36px",
+                outline: "none",
+                fontFamily: "'Sarabun', sans-serif",
+                boxSizing: "border-box"
+              }}
+            >
+              <option value="" disabled>{isExporting ? "กำลังเซฟ..." : "⬇ Export Dashboard"}</option>
+              <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)">
+                <option value="current_png">PNG Image</option>
+                <option value="current_pdf">PDF (Print)</option>
+              </optgroup>
+              {currentUser?.role === "admin" && (
+                <optgroup label="ทั้งหมด (All Report)">
+                  <option value="all_png">PNG Image</option>
+                  <option value="all_pdf">PDF (Print All)</option>
+                </optgroup>
+              )}
+            </select>
+          </div>
+        </div>
       {/* พื้นที่ครอบคลุมสำหรับดักจับภาพเพื่อ Export */}
       <div ref={exportRef} style={{ 
         padding: isExporting ? "40px 15px" : "4px", 
@@ -284,7 +366,7 @@ export default function Dashboard({ leads, followups }) {
             <div>
               <div style={{ fontSize: 28, fontWeight: 700, color: RG.text, marginBottom: 8, fontFamily: "'Sarabun', sans-serif" }}>รายงานสรุปภาพรวมการขาย (Sales Overview Report)</div>
               <div style={{ fontSize: 16, color: RG.textMuted }}>
-                ประจำเดือน: <span style={{ fontWeight: 600, color: RG.primaryMid }}>{filterMonth ? new Date(filterMonth + "-01").toLocaleDateString("th-TH", { month: "long", year: "numeric" }) : "ทั้งหมด (All Time)"}</span>
+                ประจำเดือน: <span style={{ fontWeight: 600, color: RG.primaryMid }}>{filterMonths.length > 0 ? filterMonths.map(m => new Date(m + "-01").toLocaleDateString("th-TH", { month: "long", year: "numeric" })).join(", ") : "ทั้งหมด (All Time)"}</span>
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
@@ -320,8 +402,8 @@ export default function Dashboard({ leads, followups }) {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={isExporting ? 250 : 200}>
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={isExporting ? 100 : 70} dataKey="value" label={({ name, percent }) => `${name} ${Math.round(percent * 100)}%`} labelLine={false} fontSize={13} isAnimationActive={!isExporting}>
+                <PieChart style={{ overflow: "visible" }}>
+                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={isExporting ? 85 : 70} dataKey="value" label={({ name, percent }) => `${name} ${Math.round(percent * 100)}%`} labelLine={false} fontSize={13} isAnimationActive={!isExporting}>
                     {pieData.map(entry => <Cell key={entry.name} fill={STATUS_COLORS[entry.name] || "#ccc"} />)}
                   </Pie>
                   <Tooltip />
@@ -331,10 +413,10 @@ export default function Dashboard({ leads, followups }) {
           </div>
           
           <div style={{ background: isExporting ? "#ffffff" : RG.surface, borderRadius: 12, border: isExporting ? "1px solid #cbd5e1" : `1px solid ${RG.border}`, padding: 20, minHeight: isExporting ? 300 : 260, boxShadow: isExporting ? "none" : RG.shadowSoft, backdropFilter: isExporting ? "none" : RG.glassFilter }}>
-            <h4 style={{ margin: "0 0 16px", color: RG.text, fontSize: 14, fontWeight: 700 }}>
-              {filterMonth === "" ? "แนวโน้มการติดตาม (6 เดือน)" : "แนวโน้มการติดตาม (เดือนที่เลือก)"}
-            </h4>
-            {!hasChartData && filterMonth !== "" ? (
+            <h3 style={{ margin: "0 0 16px", color: RG.primary, fontSize: 16 }}>
+              {filterMonths.length === 0 ? "แนวโน้มการติดตาม (6 เดือน)" : "แนวโน้มการติดตาม (เดือนที่เลือก)"}
+            </h3>
+            {!hasChartData && filterMonths.length > 0 ? (
               <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 180, color: RG.textMuted, fontSize: 13 }}>
                 ไม่มีข้อมูลการติดตามในเดือนนี้
               </div>
@@ -356,10 +438,10 @@ export default function Dashboard({ leads, followups }) {
 
         {/* กราฟ Bar Chart */}
         <div style={{ background: RG.surface, borderRadius: 12, border: isExporting ? "1px solid #cbd5e1" : `1px solid ${RG.border}`, padding: 20, minHeight: isExporting ? 320 : 240, boxShadow: isExporting ? "none" : "none" }}>
-          <h4 style={{ margin: "0 0 16px", color: RG.text, fontSize: 14, fontWeight: 700 }}>
-            {filterMonth === "" ? "Monthly Conversion (6 เดือน)" : "Monthly Conversion (เดือนที่เลือก)"}
-          </h4>
-          {!hasChartData && filterMonth !== "" ? (
+          <h3 style={{ margin: "0 0 16px", color: RG.primary, fontSize: 16 }}>
+            {filterMonths.length === 0 ? "Monthly Conversion (6 เดือน)" : "Monthly Conversion (เดือนที่เลือก)"}
+          </h3>
+          {!hasChartData && filterMonths.length > 0 ? (
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 150, color: RG.textMuted, fontSize: 13 }}>
               ไม่มีข้อมูลสรุป Conversion ในเดือนนี้
             </div>

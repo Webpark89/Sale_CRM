@@ -53,7 +53,7 @@ const getLeads = asyncHandler(async (req, res) => {
 });
 
 const getAllLeadsMaster = asyncHandler(async (req, res) => {
-  if (req.body.password !== '123456') return res.status(403).json({ error: 'รหัสกลางไม่ถูกต้อง' });
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'ไม่มีสิทธิ์เข้าถึงข้อมูลนี้' });
   const rows = await Lead.findAllMaster();
   res.json(rows.map(formatLead));
 });
@@ -64,10 +64,17 @@ const createLead = asyncHandler(async (req, res) => {
   const company_name = req.body.company_name || req.body.companyName;
   const company_number = req.body.company_number || req.body.companyNumber;
   const contact_email = req.body.contact_email || req.body.contactEmail;
-  if (contact_email && /[ก-๙]/.test(contact_email)) {
-    const err = new Error("ห้ามใส่อีเมลเป็นภาษาไทย");
-    err.name = "ValidationError";
-    throw err;
+  if (contact_email) {
+    if (/[ก-๙]/.test(contact_email)) {
+      const err = new Error("ห้ามใส่อีเมลเป็นภาษาไทย");
+      err.name = "ValidationError";
+      throw err;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(contact_email)) {
+      const err = new Error("รูปแบบอีเมลไม่ถูกต้อง");
+      err.name = "ValidationError";
+      throw err;
+    }
   }
 
   if (!company_name) return res.status(400).json({ error: "กรุณากรอกชื่อบริษัท" });
@@ -107,10 +114,17 @@ const updateLead = asyncHandler(async (req, res) => {
 
   const company_number = req.body.company_number || req.body.companyNumber;
   const contact_email = req.body.contact_email || req.body.contactEmail;
-  if (contact_email && /[ก-๙]/.test(contact_email)) {
-    const err = new Error("ห้ามใส่อีเมลเป็นภาษาไทย");
-    err.name = "ValidationError";
-    throw err;
+  if (contact_email) {
+    if (/[ก-๙]/.test(contact_email)) {
+      const err = new Error("ห้ามใส่อีเมลเป็นภาษาไทย");
+      err.name = "ValidationError";
+      throw err;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(contact_email)) {
+      const err = new Error("รูปแบบอีเมลไม่ถูกต้อง");
+      err.name = "ValidationError";
+      throw err;
+    }
   }
 
   if (company_number) {
@@ -198,10 +212,7 @@ const deleteLeads = asyncHandler(async (req, res) => {
 
   const ownerIdParam = req.user.role !== "admin" ? req.user.id : null;
   await Lead.deleteMany(ids, ownerIdParam);
-  
-  for (const id of ids) {
-    await AuditLog.create(req.user.id, 'delete', 'leads', id, null);
-  }
+  await AuditLog.createMany(req.user.id, 'delete', 'leads', ids);
   
   res.json({ message: `ลบ ${ids.length} รายการสำเร็จ` });
 });
@@ -211,9 +222,7 @@ const restoreLeads = asyncHandler(async (req, res) => {
   if (!ids || !Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: "กรุณาระบุรายการที่ต้องการคืนค่า" });
 
   await Lead.restoreMany(ids);
-  for (const id of ids) {
-    await AuditLog.create(req.user.id, 'restore', 'leads', id, null);
-  }
+  await AuditLog.createMany(req.user.id, 'restore', 'leads', ids);
   res.json({ message: `คืนค่า ${ids.length} รายการสำเร็จ` });
 });
 
@@ -235,8 +244,21 @@ const hardDeleteLead = asyncHandler(async (req, res) => {
 
 const getFollowups = asyncHandler(async (req, res) => {
   const { leadId } = req.params;
-  const rows = leadId ? await Followup.findAllByLeadId(leadId) : await Followup.findAllByOwnerId(req.user.id);
-  res.json(rows.map(formatFollowup));
+
+  // Guard Clause: ถ้าไม่มี leadId ให้ดึงเฉพาะของตัวเองแล้วจบ
+  if (!leadId) {
+    const rows = await Followup.findAllByOwnerId(req.user.id);
+    return res.json(rows.map(formatFollowup));
+  }
+
+  const lead = await Lead.findById(leadId);
+  if (!lead) return res.status(404).json({ error: "ไม่พบข้อมูลลีด" });
+  if (req.user.role !== "admin" && lead.owner_id !== req.user.id) {
+    return res.status(403).json({ error: "ไม่มีสิทธิ์เข้าถึงข้อมูลการติดตามนี้" });
+  }
+
+  const rows = await Followup.findAllByLeadId(leadId);
+  return res.json(rows.map(formatFollowup));
 });
 
 const createFollowup = asyncHandler(async (req, res) => {
@@ -245,6 +267,9 @@ const createFollowup = asyncHandler(async (req, res) => {
 
   const lead = await Lead.findById(leadId);
   if (!lead) return res.status(404).json({ error: "ไม่พบข้อมูลลีด" });
+  if (req.user.role !== "admin" && lead.owner_id !== req.user.id) {
+    return res.status(403).json({ error: "ไม่มีสิทธิ์สร้างการติดตามสำหรับลีดนี้" });
+  }
 
   const newFup = await Followup.create({
     lead_id: leadId,
@@ -259,14 +284,25 @@ const createFollowup = asyncHandler(async (req, res) => {
 });
 
 const markDone = asyncHandler(async (req, res) => {
+  const fup = await Followup.findByIdWithLead(req.params.id);
+  if (!fup) return res.status(404).json({ error: "ไม่พบการติดตามนี้" });
+  if (req.user.role !== "admin" && fup.owner_id !== req.user.id) {
+    return res.status(403).json({ error: "ไม่มีสิทธิ์แก้ไขการติดตามนี้" });
+  }
+
   const isDoneValue = req.body.is_done !== undefined ? req.body.is_done : true;
-  const success = await Followup.markDone(req.params.id, isDoneValue);
+  await Followup.markDone(req.params.id, isDoneValue);
   
-  if (!success) return res.status(404).json({ error: "ไม่พบการติดตามนี้" });
   res.json({ message: "อัปเดตสถานะการติดตามสำเร็จ", completed: isDoneValue });
 });
 
 const deleteFollowup = asyncHandler(async (req, res) => {
+  const fup = await Followup.findByIdWithLead(req.params.id);
+  if (!fup) return res.status(404).json({ error: "ไม่พบการติดตามนี้" });
+  if (req.user.role !== "admin" && fup.owner_id !== req.user.id) {
+    return res.status(403).json({ error: "ไม่มีสิทธิ์ลบการติดตามนี้" });
+  }
+
   await Followup.delete(req.params.id);
   res.json({ message: "ลบการติดตามสำเร็จ" });
 });
