@@ -11,10 +11,16 @@ export default function FilterModal({
   filterStatus, 
   setFilterStatus, 
   finFilters, 
-  setFinFilters 
+  setFinFilters,
+  dateFilters,
+  setDateFilters
 }) {
   const [localStatus, setLocalStatus] = React.useState([...filterStatus]);
   const [localFin, setLocalFin] = React.useState(finFilters);
+  const [localDate, setLocalDate] = React.useState(dateFilters || {
+    latestContactDate: { min: "", max: "" },
+    nextFollowupDate: { min: "", max: "" }
+  });
 
   const toggleStatus = (s) => {
     setLocalStatus(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
@@ -30,9 +36,20 @@ export default function FilterModal({
     }));
   };
 
+  const handleDateChange = (field, type, value) => {
+    setLocalDate(prev => ({
+      ...prev,
+      [field]: {
+        ...prev[field],
+        [type]: value
+      }
+    }));
+  };
+
   const handleApply = () => {
     setFilterStatus(localStatus);
     setFinFilters(localFin);
+    if (setDateFilters) setDateFilters(localDate);
     onClose();
   };
 
@@ -42,6 +59,10 @@ export default function FilterModal({
       revenue: { min: "", max: "" },
       registeredCapital: { min: "", max: "" },
       profit: { min: "", max: "" }
+    });
+    setLocalDate({
+      latestContactDate: { min: "", max: "" },
+      nextFollowupDate: { min: "", max: "" }
     });
   };
 
@@ -137,6 +158,48 @@ export default function FilterModal({
                 placeholder="สูงสุด" 
                 value={formatNumberWithCommas(localFin.profit.max)} 
                 onChange={e => handleFinChange("profit", "max", parseNumberFromCommas(e.target.value))} 
+                style={{ ...inputStyle, flex: 1 }} 
+              />
+            </div>
+
+          </div>
+        </div>
+
+        {/* Date Filters */}
+        <div>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 12 }}>กรองข้อมูลวันที่</label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 120, fontSize: 13, color: RG.textMuted }}>ติดต่อล่าสุด:</div>
+              <input 
+                type="date" 
+                value={localDate.latestContactDate.min} 
+                onChange={e => handleDateChange("latestContactDate", "min", e.target.value)} 
+                style={{ ...inputStyle, flex: 1 }} 
+              />
+              <span style={{ color: RG.textMuted }}>-</span>
+              <input 
+                type="date" 
+                value={localDate.latestContactDate.max} 
+                onChange={e => handleDateChange("latestContactDate", "max", e.target.value)} 
+                style={{ ...inputStyle, flex: 1 }} 
+              />
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 120, fontSize: 13, color: RG.textMuted }}>นัดถัดไป:</div>
+              <input 
+                type="date" 
+                value={localDate.nextFollowupDate.min} 
+                onChange={e => handleDateChange("nextFollowupDate", "min", e.target.value)} 
+                style={{ ...inputStyle, flex: 1 }} 
+              />
+              <span style={{ color: RG.textMuted }}>-</span>
+              <input 
+                type="date" 
+                value={localDate.nextFollowupDate.max} 
+                onChange={e => handleDateChange("nextFollowupDate", "max", e.target.value)} 
                 style={{ ...inputStyle, flex: 1 }} 
               />
             </div>

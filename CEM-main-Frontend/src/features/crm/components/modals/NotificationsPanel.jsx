@@ -16,7 +16,7 @@ const PRIORITY_WEIGHT = {
   "ไม่สนใจ": 0
 };
 
-export default function NotificationsPanel({ leads, onMarkDone, onClose }) {
+export default function NotificationsPanel({ leads, onMarkDone, onViewLead, onClose }) {
   // 1. เพิ่ม State สำหรับเก็บวันที่คัดกรอง (ค่าเริ่มต้นคือวันนี้)
   const [filterDate, setFilterDate] = useState(today());
 
@@ -36,16 +36,18 @@ export default function NotificationsPanel({ leads, onMarkDone, onClose }) {
       return l.nextFollowupDate === targetDate;
     })
     .sort((a, b) => {
-      const weightA = PRIORITY_WEIGHT[a.latestStatus] || 0;
-      const weightB = PRIORITY_WEIGHT[b.latestStatus] || 0;
-      
-      if (weightB !== weightA) {
-        return weightB - weightA; 
-      }
-      
       const dateA = new Date(a.nextFollowupDate).getTime();
       const dateB = new Date(b.nextFollowupDate).getTime();
-      return dateA - dateB;
+      
+      // เรียงตามวันที่ก่อน (ค้างนานให้อยู่ล่างสุด = เรียงจากมากไปน้อย)
+      if (dateA !== dateB) {
+        return dateB - dateA;
+      }
+
+      // ถ้าวันที่เท่ากัน ให้เรียงตามความสำคัญของสถานะ
+      const weightA = PRIORITY_WEIGHT[a.latestStatus] || 0;
+      const weightB = PRIORITY_WEIGHT[b.latestStatus] || 0;
+      return weightB - weightA; 
     });
 
   return (
@@ -88,18 +90,26 @@ export default function NotificationsPanel({ leads, onMarkDone, onClose }) {
         due.map(l => {
           const isOverdue = l.nextFollowupDate < today();
           return (
-            <div key={l.id} style={{ border: `1px solid ${isOverdue ? "#fca5a5" : RG.border}`, borderRadius: 10, padding: "14px 16px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", background: isOverdue ? "#fff5f5" : RG.rowOdd }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div key={l.id} style={{ border: `1px solid ${isOverdue ? "#fca5a5" : RG.border}`, borderRadius: 10, padding: "14px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 16, background: isOverdue ? "#fff5f5" : RG.rowOdd }}>
+              
+              {/* ข้อความฝั่งซ้าย */}
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                   <p style={{ margin: 0, fontWeight: 600, color: RG.text, fontSize: 14 }}>{l.companyName}</p>
-                  {isOverdue && <span style={{ fontSize: 11, background: "#fee2e2", color: "#dc2626", padding: "2px 8px", borderRadius: 12, fontWeight: 700 }}>ค้าง!</span>}
+                  {isOverdue && <span style={{ fontSize: 11, background: "#fee2e2", color: "#dc2626", padding: "2px 8px", borderRadius: 12, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>ค้าง!</span>}
                 </div>
                 <p style={{ margin: "2px 0 0", fontSize: 12, color: isOverdue ? "#dc2626" : RG.textMuted }}>กำหนดติดตาม: {parseDateTH(l.nextFollowupDate)}</p>
                 <div style={{ marginTop: 6 }}>
                   <StatusBadge status={l.latestStatus} />
                 </div>
               </div>
-              <Btn small variant="success" onClick={() => onMarkDone(l)}>ติดตามแล้ว ✓</Btn>
+
+              {/* ปุ่มฝั่งขวา */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, width: 105, flexShrink: 0 }}>
+                <Btn small variant="Third" onClick={() => onViewLead(l)} style={{ width: "100%", textAlign: "center", padding: "6px 0", fontSize: 12 }}>ข้อมูลเพิ่มเติม</Btn>
+                <Btn small variant="success" onClick={() => onMarkDone(l)} style={{ width: "100%", textAlign: "center", padding: "6px 0", fontSize: 12 }}>ติดตามแล้ว ✓</Btn>
+              </div>
+
             </div>
           );
         })

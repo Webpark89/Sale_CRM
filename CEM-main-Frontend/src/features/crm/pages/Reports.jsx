@@ -6,12 +6,13 @@ import { RG } from "../constants/theme";
 import { today, fmtNum } from "../crmHelpers/helpers";
 import StatusBadge from "../components/common/StatusBadge";
 import { inputStyle } from "../components/common/styles";
+import Modal from "../components/common/Modal";
 import { fetchAllLeadsMaster } from "../services/apiService";
 
 export default function Reports({ leads, onViewLead, isMaster, onExitMaster, currentUser }) {
   const [mode, setMode] = useState("all");
-  const [selDate, setSelDate] = useState(today());
-  const [selMonth, setSelMonth] = useState(today().slice(0, 7));
+  const [reportDateRange, setReportDateRange] = useState({ min: "", max: "" });
+  const [showDateModal, setShowDateModal] = useState(false);
   
   const [filterStatuses, setFilterStatuses] = useState([]);
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
@@ -33,9 +34,12 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
   const footerRef = useRef(null);
 
   // คำนวณข้อมูล
-  const dailyLeads = displayLeads.filter(l => l.latestContactDate === selDate);
-  const monthlyLeads = displayLeads.filter(l => l.latestContactDate && l.latestContactDate.startsWith(selMonth));
-  const reportLeads = mode === "all" ? displayLeads : (mode === "daily" ? dailyLeads : monthlyLeads);
+  const reportLeads = displayLeads.filter(l => {
+    if (mode === "all") return true;
+    if (reportDateRange.min && (!l.latestContactDate || l.latestContactDate < reportDateRange.min)) return false;
+    if (reportDateRange.max && (!l.latestContactDate || l.latestContactDate > reportDateRange.max)) return false;
+    return true;
+  });
   
   const filteredLeads = filterStatuses.length === 0
     ? [...reportLeads] 
@@ -117,7 +121,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `รายงานรายละเอียด_${mode === "all" ? "ทั้งหมด" : (mode === "daily" ? `รายวัน_${selDate}` : `รายเดือน_${selMonth}`)}.csv`;
+    link.download = `รายงานรายละเอียด_${reportDateRange.min || "all"}_to_${reportDateRange.max || "all"}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -151,7 +155,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
         pdf.addImage(dataUrl, "JPEG", 0, 0, pdfWidth, pdfHeight);
       }
       
-      pdf.save(`รายงานสรุป_${mode === "all" ? "ทั้งหมด" : (mode === "daily" ? `รายวัน_${selDate}` : `รายเดือน_${selMonth}`)}.pdf`);
+      pdf.save(`รายงานสรุป_${reportDateRange.min || "all"}_to_${reportDateRange.max || "all"}.pdf`);
     } catch (error) {
       console.error(error);
       alert("ไม่สามารถสร้างรูปภาพได้ กรุณาลองใหม่อีกครั้ง");
@@ -175,9 +179,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
       
       try {
         if (format === "csv") {
-          const dLeads = leads.filter(l => l.latestContactDate === selDate);
-          const mLeads = leads.filter(l => l.latestContactDate && l.latestContactDate.startsWith(selMonth));
-          const rLeads = modeStr === "all" ? leads : (modeStr === "daily" ? dLeads : mLeads);
+          const rLeads = leads; // ในโหมด admin all report จะดึงข้อมูลทั้งหมด
           const fLeads = filterStatuses.length === 0 ? rLeads : rLeads.filter(l => filterStatuses.includes(l.latestStatus));
           doExportCSV(fLeads);
         } else if (format === "pdf") {
@@ -214,20 +216,19 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20, alignItems: "center" }}>
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 8 }}>
-            {["all", "daily", "monthly"].map(m => (
-              <button 
-                key={m} onClick={() => { setMode(m); handleToggleStatus("all"); }} 
-                style={{ padding: "8px 20px", borderRadius: 8, border: `2px solid ${mode === m ? RG.primary : RG.border}`, background: mode === m ? RG.gradient : "#fff", color: mode === m ? "#fff" : RG.textMuted, cursor: "pointer", fontWeight: 600, fontSize: 13, transition: "all 0.2s" }}
-              >
-                {m === "all" ? "ทั้งหมด" : (m === "daily" ? "รายวัน" : "รายเดือน")}
-              </button>
-            ))}
+            <button 
+              onClick={() => { setMode("all"); setReportDateRange({ min: "", max: "" }); }} 
+              style={{ padding: "8px 20px", borderRadius: 8, border: `2px solid ${mode === "all" ? RG.primary : RG.border}`, background: mode === "all" ? RG.gradient : "#fff", color: mode === "all" ? "#fff" : RG.textMuted, cursor: "pointer", fontWeight: 600, fontSize: 13, transition: "all 0.2s" }}
+            >
+              ทั้งหมด
+            </button>
+            <button 
+              onClick={() => { setMode("custom"); setShowDateModal(true); }} 
+              style={{ padding: "8px 20px", borderRadius: 8, border: `2px solid ${mode === "custom" ? RG.primary : RG.border}`, background: mode === "custom" ? RG.gradient : "#fff", color: mode === "custom" ? "#fff" : RG.textMuted, cursor: "pointer", fontWeight: 600, fontSize: 13, transition: "all 0.2s" }}
+            >
+              📅 เลือกช่วงเวลา {(mode === "custom" && (reportDateRange.min || reportDateRange.max)) ? "(กรองแล้ว)" : ""}
+            </button>
           </div>
-          {mode === "daily" ? (
-            <input type="date" value={selDate} onChange={e => setSelDate(e.target.value)} style={{ ...inputStyle, width: "auto" }} />
-          ) : mode === "monthly" ? (
-            <input type="month" value={selMonth} onChange={e => setSelMonth(e.target.value)} style={{ ...inputStyle, width: "auto" }} />
-          ) : null}
           <div style={{ position: "relative" }}>
             <div 
               onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
@@ -438,10 +439,10 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: 24, fontWeight: 700, color: RG.text, letterSpacing: "0.5px", marginBottom: "4px", fontFamily: "'Sarabun', sans-serif" }}>
-                      {mode === "all" ? "รายงานสรุปการขายทั้งหมด" : (mode === "daily" ? "รายงานสรุปการขายรายวัน" : "รายงานสรุปการขายรายเดือน")}
+                      รายงานสรุปการขาย
                     </div>
                     <div style={{ fontSize: 14, color: RG.textMuted }}>
-                      ประจำวันที่: <span style={{ color: RG.text, fontWeight: 500 }}>{mode === "all" ? "ทั้งหมด" : (mode === "daily" ? selDate : selMonth)}</span>
+                      ประจำวันที่: <span style={{ color: RG.text, fontWeight: 500 }}>{(reportDateRange.min || reportDateRange.max) ? `${reportDateRange.min || "-"} ถึง ${reportDateRange.max || "-"}` : "ทั้งหมด"}</span>
                     </div>
                   </div>
                 </div>
@@ -519,6 +520,42 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
         </div>
       </div>
 
+      {showDateModal && (
+        <Modal title="กรองข้อมูลวันที่" onClose={() => setShowDateModal(false)} width={400}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 100, fontSize: 13, color: RG.textMuted }}>ติดต่อล่าสุด:</div>
+              <input 
+                type="date" 
+                value={reportDateRange.min} 
+                onChange={e => setReportDateRange(prev => ({ ...prev, min: e.target.value }))} 
+                style={{ ...inputStyle, flex: 1 }} 
+              />
+              <span style={{ color: RG.textMuted }}>-</span>
+              <input 
+                type="date" 
+                value={reportDateRange.max} 
+                onChange={e => setReportDateRange(prev => ({ ...prev, max: e.target.value }))} 
+                style={{ ...inputStyle, flex: 1 }} 
+              />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12 }}>
+              <button 
+                onClick={() => setReportDateRange({ min: "", max: "" })}
+                style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${RG.border}`, background: "#f5e6ea", color: RG.primary, cursor: "pointer", fontWeight: 600, fontSize: 13 }}
+              >
+                ล้างตัวกรอง
+              </button>
+              <button 
+                onClick={() => setShowDateModal(false)}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: RG.gradient, color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 13 }}
+              >
+                ตกลง
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

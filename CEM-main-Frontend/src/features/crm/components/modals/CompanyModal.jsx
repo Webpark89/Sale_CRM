@@ -9,7 +9,7 @@ import Modal from "../common/Modal";
 import StatusBadge from "../common/StatusBadge";
 import { inputStyle, selectStyle } from "../common/styles";
 
-export default function CompanyModal({ lead, leads = [], followups, onClose, onSave, onSaveFollowup }) {
+export default function CompanyModal({ lead, leads = [], followups, onClose, onSave, onSaveFollowup, readOnly = false }) {
   const [tab, setTab] = useState("info");
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ ...lead });
@@ -290,7 +290,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
               </div>
             </div>
 
-            {/* ซ่อนปุ่ม บันทึก/แก้ไข ตอน Export รูป */}
+            {/* ซ่อนปุ่ม บันทึก/แก้ไข ตอน Export รูป หรือเมื่อเป็น readOnly */}
             <div data-html2canvas-ignore="true" style={{ display: "flex", gap: 8, marginTop: 16 }}>
               {editing ? (
                 <>
@@ -298,7 +298,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                   <Btn variant="Third" onClick={() => { setForm({ ...lead }); setEditing(false); setTaxIdError(""); }}>ยกเลิก</Btn>
                 </>
               ) : (
-                <Btn variant="Third" onClick={() => setEditing(true)}>แก้ไข</Btn>
+                !readOnly && <Btn variant="Third" onClick={() => setEditing(true)}>แก้ไข</Btn>
               )}
             </div>
           </div>
@@ -327,27 +327,29 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
               </table>
             )}
             
-            {/* ซ่อนปุ่ม/ฟอร์มเพิ่มการติดตามตอน Export */}
-            <div data-html2canvas-ignore="true">
-              {!showFollowForm ? (
-                <Btn onClick={() => setShowFollowForm(true)}>+ เพิ่มการติดตาม</Btn>
-              ) : (
-                <div style={{ background: "#ffffff", border: `1px solid ${RG.border}`, borderRadius: 12, padding: 20 }}>
-                  <h4 style={{ margin: "0 0 16px", color: RG.text, fontSize: 14 }}>บันทึกการติดตามใหม่</h4>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
-                    <Field label="ครั้งที่"><select value={fForm.sequence} onChange={e => setFForm(f => ({ ...f, sequence: Number(e.target.value) }))} style={selectStyle}>{Array.from({ length: 50 }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}</select></Field>
-                    <Field label="วันที่"><input type="date" value={fForm.date} onChange={e => setFForm(f => ({ ...f, date: e.target.value }))} style={inputStyle} /></Field>
-                    <Field label="สถานะ"><select value={fForm.status} onChange={e => setFForm(f => ({ ...f, status: e.target.value }))} style={selectStyle}>{STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></Field>
-                    <Field label="วันที่ติดตามครั้งถัดไป"><input type="date" value={fForm.nextFollowupDate} onChange={e => setFForm(f => ({ ...f, nextFollowupDate: e.target.value }))} style={inputStyle} /></Field>
+            {/* ซ่อนปุ่ม/ฟอร์มเพิ่มการติดตามตอน Export หรือเมื่อเป็น readOnly */}
+            {!readOnly && (
+              <div data-html2canvas-ignore="true">
+                {!showFollowForm ? (
+                  <Btn onClick={() => setShowFollowForm(true)}>+ เพิ่มการติดตาม</Btn>
+                ) : (
+                  <div style={{ background: "#ffffff", border: `1px solid ${RG.border}`, borderRadius: 12, padding: 20 }}>
+                    <h4 style={{ margin: "0 0 16px", color: RG.text, fontSize: 14 }}>บันทึกการติดตามใหม่</h4>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
+                      <Field label="ครั้งที่"><select value={fForm.sequence} onChange={e => setFForm(f => ({ ...f, sequence: Number(e.target.value) }))} style={selectStyle}>{Array.from({ length: 50 }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}</select></Field>
+                      <Field label="วันที่"><input type="date" value={fForm.date} onChange={e => setFForm(f => ({ ...f, date: e.target.value }))} style={inputStyle} /></Field>
+                      <Field label="สถานะ"><select value={fForm.status} onChange={e => setFForm(f => ({ ...f, status: e.target.value }))} style={selectStyle}>{STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></Field>
+                      <Field label="วันที่ติดตามครั้งถัดไป"><input type="date" value={fForm.nextFollowupDate} onChange={e => setFForm(f => ({ ...f, nextFollowupDate: e.target.value }))} style={inputStyle} /></Field>
+                    </div>
+                    <Field label="รายละเอียด"><textarea value={fForm.detail} onChange={e => setFForm(f => ({ ...f, detail: e.target.value }))} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></Field>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <Btn onClick={() => { onSaveFollowup(lead.id, fForm); setShowFollowForm(false); setFForm({ sequence: nextSeq + 1, date: today(), detail: "", status: STATUSES[0], nextFollowupDate: "", completed: false }); }}>บันทึก</Btn>
+                      <Btn variant="Third" onClick={() => setShowFollowForm(false)}>ยกเลิก</Btn>
+                    </div>
                   </div>
-                  <Field label="รายละเอียด"><textarea value={fForm.detail} onChange={e => setFForm(f => ({ ...f, detail: e.target.value }))} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></Field>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <Btn onClick={() => { onSaveFollowup(lead.id, fForm); setShowFollowForm(false); setFForm({ sequence: nextSeq + 1, date: today(), detail: "", status: STATUSES[0], nextFollowupDate: "", completed: false }); }}>บันทึก</Btn>
-                    <Btn variant="Third" onClick={() => setShowFollowForm(false)}>ยกเลิก</Btn>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

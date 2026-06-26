@@ -61,6 +61,7 @@ export default function App() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState([]);
+  const [isModalReadOnly, setIsModalReadOnly] = useState(false);
   
   // เพิ่ม State สำหรับตัวกรองและการจัดเรียง
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -68,6 +69,10 @@ export default function App() {
     revenue: { min: "", max: "" },
     registeredCapital: { min: "", max: "" },
     profit: { min: "", max: "" }
+  });
+  const [dateFilters, setDateFilters] = useState({
+    latestContactDate: { min: "", max: "" },
+    nextFollowupDate: { min: "", max: "" }
   });
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
   const [currentPage, setCurrentPage] = useState(1);
@@ -356,6 +361,12 @@ export default function App() {
       if (finFilters.profit.min && Number(l.profit || 0) < Number(finFilters.profit.min)) return false;
       if (finFilters.profit.max && Number(l.profit || 0) > Number(finFilters.profit.max)) return false;
       
+      //ตัวกรองวันที่
+      if (dateFilters.latestContactDate.min && (!l.latestContactDate || l.latestContactDate < dateFilters.latestContactDate.min)) return false;
+      if (dateFilters.latestContactDate.max && (!l.latestContactDate || l.latestContactDate > dateFilters.latestContactDate.max)) return false;
+      if (dateFilters.nextFollowupDate.min && (!l.nextFollowupDate || l.nextFollowupDate < dateFilters.nextFollowupDate.min)) return false;
+      if (dateFilters.nextFollowupDate.max && (!l.nextFollowupDate || l.nextFollowupDate > dateFilters.nextFollowupDate.max)) return false;
+
       return true;
     })
     .sort((a, b) => {
@@ -927,9 +938,9 @@ export default function App() {
         </div>
       </main>
 
-      {showNotif && <NotificationsPanel leads={leads} onMarkDone={markDone} onClose={() => setShowNotif(false)} />}
+      {showNotif && <NotificationsPanel leads={leads} onMarkDone={markDone} onViewLead={(lead) => { setSelectedLead(lead); setIsModalReadOnly(true); }} onClose={() => setShowNotif(false)} />}
       
-      {showFilterModal && <FilterModal filterStatus={filterStatus} setFilterStatus={setFilterStatus} finFilters={finFilters} setFinFilters={setFinFilters} onClose={() => setShowFilterModal(false)} />}
+      {showFilterModal && <FilterModal filterStatus={filterStatus} setFilterStatus={setFilterStatus} finFilters={finFilters} setFinFilters={setFinFilters} dateFilters={dateFilters} setDateFilters={setDateFilters} onClose={() => setShowFilterModal(false)} />}
 
       {markDoneLead && (
         <Modal title={`บันทึกการติดตาม — ${markDoneLead.companyName}`} onClose={() => setMarkDoneLead(null)}>
@@ -946,7 +957,7 @@ export default function App() {
       {showAddLead && <AddLeadModal leads={leads} onClose={() => setShowAddLead(false)} onSave={addLead} />}
 
       {/* ส่ง leads={leads} ไปให้ CompanyModal เพื่อตรวจสอบเลขนิติบุคคลซ้ำ */}
-      {selectedLead && <CompanyModal lead={selectedLead} leads={leads} followups={followups} onClose={() => setSelectedLead(null)} onSave={saveLead} onSaveFollowup={saveFollowup} />}
+      {selectedLead && <CompanyModal readOnly={isModalReadOnly} lead={selectedLead} leads={leads} followups={followups} onClose={() => { setSelectedLead(null); setIsModalReadOnly(false); }} onSave={saveLead} onSaveFollowup={saveFollowup} />}
 
       {showDeleteConfirm && (
         <Modal title="ยืนยันการลบ" onClose={() => setShowDeleteConfirm(false)}>
