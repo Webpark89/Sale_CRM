@@ -6,8 +6,112 @@ import { today } from "../crmHelpers/helpers";
 import { toJpeg, toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import { inputStyle } from "../components/common/styles";
+import Modal from "../components/common/Modal";
+
+const getPresetRange = (preset) => {
+  const d = new Date();
+  const format = (date) => {
+    const offset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - offset).toISOString().split('T')[0];
+  };
+  const todayStr = format(d);
+  
+  if (preset === "today") return { min: todayStr, max: todayStr };
+  if (preset === "last6months") {
+    const past = new Date(d.getFullYear(), d.getMonth() - 5, 1);
+    return { min: format(past), max: todayStr };
+  }
+  if (preset === "thismonth") {
+    const firstDay = new Date(d.getFullYear(), d.getMonth(), 1);
+    return { min: format(firstDay), max: todayStr };
+  }
+  if (preset === "lastmonth") {
+    const firstDay = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+    const lastDay = new Date(d.getFullYear(), d.getMonth(), 0);
+    return { min: format(firstDay), max: format(lastDay) };
+  }
+  if (preset === "thisquarter") {
+    const currentQuarter = Math.floor(d.getMonth() / 3);
+    const firstDay = new Date(d.getFullYear(), currentQuarter * 3, 1);
+    return { min: format(firstDay), max: todayStr };
+  }
+  if (preset === "lastquarter") {
+    const currentQuarter = Math.floor(d.getMonth() / 3);
+    const firstDay = new Date(d.getFullYear(), currentQuarter * 3 - 3, 1);
+    const lastDay = new Date(d.getFullYear(), currentQuarter * 3, 0);
+    return { min: format(firstDay), max: format(lastDay) };
+  }
+  if (preset === "thisyear") {
+    const firstDay = new Date(d.getFullYear(), 0, 1);
+    return { min: format(firstDay), max: todayStr };
+  }
+  return { min: "", max: "" };
+};
+
+const formatThaiShortDate = (dateStr) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  const day = d.getDate();
+  const month = thaiMonths[d.getMonth()];
+  const year = (d.getFullYear() + 543).toString().slice(-2);
+  return `${day} ${month} ${year}`;
+};
+
+const getDateRangeLabel = (range) => {
+  if (range.type === "last6months") return "6 เดือนล่าสุด";
+  if (range.type === "thismonth") return "เดือนนี้";
+  if (range.type === "lastmonth") return "เดือนที่แล้ว";
+  if (range.type === "thisquarter") return "ไตรมาสนี้";
+  if (range.type === "lastquarter") return "ไตรมาสที่แล้ว";
+  if (range.type === "thisyear") return "ปีนี้";
+  if (range.type === "today") return "วันนี้";
+  if (range.type === "all") return "ทั้งหมด (ไม่กรอง)";
+  if (range.type === "custom") {
+    if (range.min && range.max) return `${formatThaiShortDate(range.min)} - ${formatThaiShortDate(range.max)}`;
+    if (range.min) return `ตั้งแต่ ${formatThaiShortDate(range.min)}`;
+    if (range.max) return `ถึง ${formatThaiShortDate(range.max)}`;
+    return "กำหนดเอง";
+  }
+  return "เลือกช่วงเวลา";
+};
+
 export default function Dashboard({ leads, followups, currentUser }) {
-  const [filterMonths, setFilterMonths] = useState([]);
+  const [dashboardDateRange, setDashboardDateRange] = useState({ 
+    ...getPresetRange("last6months"), 
+    type: "last6months" 
+  });
+  const [showDateModal, setShowDateModal] = useState(false);
+
+  const handleDatePreset = (preset) => {
+    const range = getPresetRange(preset);
+    setDashboardDateRange({ ...range, type: preset });
+  };
+
+  const checkOneYearLimit = (minStr, maxStr) => {
+    if (minStr && maxStr) {
+      const minD = new Date(minStr);
+      const maxD = new Date(maxStr);
+      const diffDays = Math.ceil(Math.abs(maxD - minD) / (1000 * 60 * 60 * 24));
+      if (diffDays > 365) {
+        alert("ระยะเวลาที่เลือกเกิน 1 ปี กรุณาเลือกช่วงเวลาไม่เกิน 365 วันเพื่อป้องกันปัญหาข้อมูลมหาศาล");
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleCustomDateChange = (field, val) => {
+    setDashboardDateRange(prev => {
+      const next = { ...prev, [field]: val, type: "custom" };
+      if (!checkOneYearLimit(next.min, next.max)) {
+        return prev;
+      }
+      return next;
+    });
+  };
+
   const [isExporting, setIsExporting] = useState(false); 
   const exportRef = useRef(null); 
 
@@ -20,9 +124,12 @@ export default function Dashboard({ leads, followups, currentUser }) {
     : leads.filter(l => filterSellers.includes(l.owner));
 
   // 1. กรอง Leads สำหรับแสดงผล KPI และ Pie Chart
-  const filteredLeads = filterMonths.length === 0 
-    ? displayLeads 
-    : displayLeads.filter(l => filterMonths.some(m => l.latestContactDate && l.latestContactDate.startsWith(m)));
+  const filteredLeads = displayLeads.filter(l => {
+    if (dashboardDateRange.type === "all" || (!dashboardDateRange.min && !dashboardDateRange.max)) return true;
+    if (dashboardDateRange.min && (!l.latestContactDate || l.latestContactDate < dashboardDateRange.min)) return false;
+    if (dashboardDateRange.max && (!l.latestContactDate || l.latestContactDate > dashboardDateRange.max)) return false;
+    return true;
+  });
 
   // --- คำนวณ KPIs ---
   const currentDateStr = today();
@@ -51,7 +158,7 @@ export default function Dashboard({ leads, followups, currentUser }) {
 
   // --- จัดการแกนเวลา (X-Axis) สำหรับกราฟ ---
   let chartMonths = [];
-  if (filterMonths.length === 0) {
+  if (dashboardDateRange.type === "all" || (!dashboardDateRange.min && !dashboardDateRange.max)) {
     chartMonths = Array.from({ length: 6 }, (_, i) => {
       const d = new Date();
       d.setMonth(d.getMonth() - 5 + i);
@@ -61,16 +168,23 @@ export default function Dashboard({ leads, followups, currentUser }) {
       };
     });
   } else {
-    // เรียงเดือนตามเวลา (จากเก่าไปใหม่)
-    const sortedMonths = [...filterMonths].sort();
-    chartMonths = sortedMonths.map(m => {
-      const [year, month] = m.split("-");
-      const d = new Date(year, month - 1);
-      return {
-        key: m,
-        label: d.toLocaleDateString("th-TH", { month: "short", year: "2-digit" })
-      };
-    });
+    let startD = dashboardDateRange.min ? new Date(dashboardDateRange.min) : new Date(new Date().setMonth(new Date().getMonth() - 5));
+    let endD = dashboardDateRange.max ? new Date(dashboardDateRange.max) : new Date();
+    
+    if (startD > endD) {
+      const temp = startD; startD = endD; endD = temp;
+    }
+    
+    let currentD = new Date(startD.getFullYear(), startD.getMonth(), 1);
+    const lastD = new Date(endD.getFullYear(), endD.getMonth(), 1);
+    
+    while (currentD <= lastD) {
+      chartMonths.push({
+        key: `${currentD.getFullYear()}-${String(currentD.getMonth() + 1).padStart(2, "0")}`,
+        label: currentD.toLocaleDateString("th-TH", { month: "short", year: "2-digit" })
+      });
+      currentD.setMonth(currentD.getMonth() + 1);
+    }
   }
 
   // --- คำนวณข้อมูลกราฟเส้นและกราฟแท่ง ---
@@ -157,7 +271,7 @@ export default function Dashboard({ leads, followups, currentUser }) {
     await new Promise(resolve => setTimeout(resolve, 200));
 
     try {
-      const filename = `dashboard-${mode}-${filterMonths.length > 0 ? filterMonths.join("_") : "overall"}-${new Date().toISOString().slice(0, 10)}`;
+      const filename = `dashboard-${(dashboardDateRange.min || "all")}-${new Date().toISOString().slice(0, 10)}`;
 
       if (format === "png") {
         const dataUrl = await toPng(exportRef.current, {
@@ -220,60 +334,28 @@ export default function Dashboard({ leads, followups, currentUser }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           
-          {/* ตัวเลือกเดือน (รองรับหลายเดือน) */}
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px" }}>
-            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-              <input 
-                type="month" 
-                title="เพิ่มเดือนที่ต้องการดูข้อมูล"
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val && !filterMonths.includes(val)) {
-                    setFilterMonths([...filterMonths, val]);
-                  }
-                  e.target.value = ""; // reset
-                }}
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: "8px",
-                  border: `1px solid ${RG.border}`,
-                  backgroundColor: RG.surface,
-                  color: "transparent", // hide native text
-                  fontSize: "14px",
-                  outline: "none",
-                  cursor: "pointer",
-                  height: "38px",
-                  width: "150px"
-                }}
-              />
-              <span style={{ position: "absolute", left: 12, color: RG.textMuted, fontSize: 14, pointerEvents: "none" }}>
-                กรุณาเลือกเดือน
-              </span>
+          {/* ตัวเลือกช่วงเวลา */}
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "16px" }}>
+            <button 
+              onClick={() => setShowDateModal(true)} 
+              style={{ 
+                padding: "8px 16px", 
+                borderRadius: 8, 
+                border: `2px solid ${RG.primary}`, 
+                background: "#fff", 
+                color: RG.primary, 
+                cursor: "pointer", 
+                fontWeight: 600, 
+                fontSize: 13, 
+                transition: "all 0.2s",
+                whiteSpace: "nowrap"
+              }}
+            >
+              📅 เลือกช่วงเวลา
+            </button>
+            <div style={{ fontSize: 14, color: RG.textMuted, background: "#f8fafc", padding: "6px 12px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+              แสดงข้อมูล: <span style={{ fontWeight: 600, color: RG.primaryMid }}>{getDateRangeLabel(dashboardDateRange)}</span>
             </div>
-            
-            {filterMonths.length === 0 && (
-              <span style={{ color: RG.textMuted, fontSize: 13 }}>แสดงข้อมูลทั้งหมด (6 เดือนล่าสุด)</span>
-            )}
-
-            {filterMonths.map(m => {
-              const [year, month] = m.split("-");
-              const d = new Date(year, month - 1);
-              return (
-                <div key={m} style={{ display: "flex", alignItems: "center", gap: 6, background: RG.primaryPale, color: RG.primary, padding: "6px 12px", borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
-                  {d.toLocaleDateString("th-TH", { month: "short", year: "2-digit" })}
-                  <button onClick={() => setFilterMonths(filterMonths.filter(x => x !== m))} style={{ background: "transparent", border: "none", color: RG.primary, cursor: "pointer", fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
-                </div>
-              );
-            })}
-
-            {filterMonths.length > 0 && (
-              <button 
-                onClick={() => setFilterMonths([])}
-                style={{ padding: "6px 12px", borderRadius: "6px", border: "none", backgroundColor: "#fef2f2", color: "#ef4444", cursor: "pointer", fontSize: "12px", fontWeight: 600 }}
-              >
-                Clear All
-              </button>
-            )}
           </div>
         </div>
           <div style={{ display: "flex", flexDirection: "row", gap: 10, alignItems: "center" }}>
@@ -366,7 +448,11 @@ export default function Dashboard({ leads, followups, currentUser }) {
             <div>
               <div style={{ fontSize: 28, fontWeight: 700, color: RG.text, marginBottom: 8, fontFamily: "'Sarabun', sans-serif" }}>รายงานสรุปภาพรวมการขาย (Sales Overview Report)</div>
               <div style={{ fontSize: 16, color: RG.textMuted }}>
-                ประจำเดือน: <span style={{ fontWeight: 600, color: RG.primaryMid }}>{filterMonths.length > 0 ? filterMonths.map(m => new Date(m + "-01").toLocaleDateString("th-TH", { month: "long", year: "numeric" })).join(", ") : "ทั้งหมด (All Time)"}</span>
+                ช่วงเวลา: <span style={{ fontWeight: 600, color: RG.primaryMid }}>
+                  {dashboardDateRange.type === "last6months" ? "6 เดือนล่าสุด (ค่าเริ่มต้น)" :
+                   dashboardDateRange.type === "all" ? "ทั้งหมด (All Time)" :
+                   (dashboardDateRange.min || dashboardDateRange.max) ? `${dashboardDateRange.min || "..."} ถึง ${dashboardDateRange.max || "..."}` : "ทั้งหมด (All Time)"}
+                </span>
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
@@ -398,7 +484,7 @@ export default function Dashboard({ leads, followups, currentUser }) {
             <h4 style={{ margin: "0 0 16px", color: RG.text, fontSize: 14, fontWeight: 700 }}>สัดส่วนสถานะลีด</h4>
             {pieData.length === 0 ? (
               <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 180, color: RG.textMuted, fontSize: 13 }}>
-                ไม่มีข้อมูลสัดส่วนในเดือนนี้
+                ไม่มีข้อมูลสัดส่วนในช่วงเวลานี้
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={isExporting ? 250 : 200}>
@@ -414,11 +500,11 @@ export default function Dashboard({ leads, followups, currentUser }) {
           
           <div style={{ background: isExporting ? "#ffffff" : RG.surface, borderRadius: 12, border: isExporting ? "1px solid #cbd5e1" : `1px solid ${RG.border}`, padding: 20, minHeight: isExporting ? 300 : 260, boxShadow: isExporting ? "none" : RG.shadowSoft, backdropFilter: isExporting ? "none" : RG.glassFilter }}>
             <h3 style={{ margin: "0 0 16px", color: RG.primary, fontSize: 16 }}>
-              {filterMonths.length === 0 ? "แนวโน้มการติดตาม (6 เดือน)" : "แนวโน้มการติดตาม (เดือนที่เลือก)"}
+              แนวโน้มการติดตาม
             </h3>
-            {!hasChartData && filterMonths.length > 0 ? (
+            {!hasChartData ? (
               <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 180, color: RG.textMuted, fontSize: 13 }}>
-                ไม่มีข้อมูลการติดตามในเดือนนี้
+                ไม่มีข้อมูลการติดตามในช่วงเวลานี้
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={isExporting ? 250 : 200}>
@@ -439,11 +525,11 @@ export default function Dashboard({ leads, followups, currentUser }) {
         {/* กราฟ Bar Chart */}
         <div style={{ background: RG.surface, borderRadius: 12, border: isExporting ? "1px solid #cbd5e1" : `1px solid ${RG.border}`, padding: 20, minHeight: isExporting ? 320 : 240, boxShadow: isExporting ? "none" : "none" }}>
           <h3 style={{ margin: "0 0 16px", color: RG.primary, fontSize: 16 }}>
-            {filterMonths.length === 0 ? "Monthly Conversion (6 เดือน)" : "Monthly Conversion (เดือนที่เลือก)"}
+            Monthly Conversion
           </h3>
-          {!hasChartData && filterMonths.length > 0 ? (
+          {!hasChartData ? (
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 150, color: RG.textMuted, fontSize: 13 }}>
-              ไม่มีข้อมูลสรุป Conversion ในเดือนนี้
+              ไม่มีข้อมูลสรุป Conversion ในช่วงเวลานี้
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={isExporting ? 270 : 180}>
@@ -462,6 +548,66 @@ export default function Dashboard({ leads, followups, currentUser }) {
 
       </div>
     
+      {/* Modal Filter Date */}
+      {showDateModal && (
+        <Modal title="กรองข้อมูลวันที่" onClose={() => setShowDateModal(false)} width={450}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 120, fontSize: 13, color: RG.textMuted }}>ติดต่อล่าสุด:</div>
+              <select 
+                value={dashboardDateRange.type || "all"}
+                onChange={(e) => handleDatePreset(e.target.value)}
+                style={{ ...inputStyle, flex: 1 }}
+              >
+                <option value="today">วันนี้</option>
+                <option value="thismonth">เดือนนี้</option>
+                <option value="lastmonth">เดือนที่แล้ว</option>
+                <option value="thisquarter">ไตรมาสนี้</option>
+                <option value="lastquarter">ไตรมาสที่แล้ว</option>
+                <option value="last6months">6 เดือนล่าสุด (ค่าเริ่มต้น)</option>
+                <option value="thisyear">ปีนี้</option>
+                <option value="all">ทั้งหมด (ไม่กรอง)</option>
+                <option value="custom">กำหนดช่วงเวลาแทน (สูงสุด 1 ปี)</option>
+              </select>
+            </div>
+
+            {(dashboardDateRange.type === "custom") && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, paddingLeft: 132 }}>
+                <input 
+                  type="date" 
+                  value={dashboardDateRange.min} 
+                  onChange={e => handleCustomDateChange("min", e.target.value)} 
+                  style={{ ...inputStyle, flex: 1 }} 
+                />
+                <span style={{ color: RG.textMuted }}>-</span>
+                <input 
+                  type="date" 
+                  value={dashboardDateRange.max} 
+                  onChange={e => handleCustomDateChange("max", e.target.value)} 
+                  style={{ ...inputStyle, flex: 1 }} 
+                />
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12 }}>
+              <button 
+                onClick={() => setDashboardDateRange({ ...getPresetRange("last6months"), type: "last6months" })}
+                style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${RG.border}`, background: "#f5e6ea", color: RG.primary, cursor: "pointer", fontWeight: 600, fontSize: 13 }}
+              >
+                กลับเป็นค่าเริ่มต้น
+              </button>
+              <button 
+                onClick={() => setShowDateModal(false)}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: RG.gradient, color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 13 }}
+              >
+                ตกลง
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
         {/* Formal Footer */}
         {isExporting && (
           <div style={{ marginTop: 50, borderTop: "2px solid #e2e8f0", paddingTop: 20, display: "flex", justifyContent: "space-between", color: "#64748b", fontSize: 13 }}>

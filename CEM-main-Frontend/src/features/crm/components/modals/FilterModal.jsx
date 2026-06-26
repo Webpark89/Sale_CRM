@@ -36,12 +36,61 @@ export default function FilterModal({
     }));
   };
 
+  const getDateRangeByPreset = (preset) => {
+    const d = new Date();
+    const format = (date) => {
+      const offset = date.getTimezoneOffset() * 60000;
+      return new Date(date.getTime() - offset).toISOString().split('T')[0];
+    };
+    const todayStr = format(d);
+    
+    if (preset === "today") return { min: todayStr, max: todayStr };
+    if (preset === "last6months") {
+      const past = new Date(d.getFullYear(), d.getMonth() - 5, 1);
+      return { min: format(past), max: todayStr };
+    }
+    if (preset === "thismonth") {
+      const firstDay = new Date(d.getFullYear(), d.getMonth(), 1);
+      return { min: format(firstDay), max: todayStr };
+    }
+    if (preset === "lastmonth") {
+      const firstDay = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+      const lastDay = new Date(d.getFullYear(), d.getMonth(), 0);
+      return { min: format(firstDay), max: format(lastDay) };
+    }
+    if (preset === "thisquarter") {
+      const currentQuarter = Math.floor(d.getMonth() / 3);
+      const firstDay = new Date(d.getFullYear(), currentQuarter * 3, 1);
+      return { min: format(firstDay), max: todayStr };
+    }
+    if (preset === "lastquarter") {
+      const currentQuarter = Math.floor(d.getMonth() / 3);
+      const firstDay = new Date(d.getFullYear(), currentQuarter * 3 - 3, 1);
+      const lastDay = new Date(d.getFullYear(), currentQuarter * 3, 0);
+      return { min: format(firstDay), max: format(lastDay) };
+    }
+    if (preset === "thisyear") {
+      const firstDay = new Date(d.getFullYear(), 0, 1);
+      return { min: format(firstDay), max: todayStr };
+    }
+    return { min: "", max: "" };
+  };
+
+  const handleDatePreset = (field, preset) => {
+    const range = getDateRangeByPreset(preset);
+    setLocalDate(prev => ({
+      ...prev,
+      [field]: { ...range, type: preset }
+    }));
+  };
+
   const handleDateChange = (field, type, value) => {
     setLocalDate(prev => ({
       ...prev,
       [field]: {
         ...prev[field],
-        [type]: value
+        [type]: value,
+        type: "custom"
       }
     }));
   };
@@ -61,9 +110,55 @@ export default function FilterModal({
       profit: { min: "", max: "" }
     });
     setLocalDate({
-      latestContactDate: { min: "", max: "" },
-      nextFollowupDate: { min: "", max: "" }
+      latestContactDate: { min: "", max: "", type: "all" },
+      nextFollowupDate: { min: "", max: "", type: "all" }
     });
+  };
+
+  const renderDateField = (label, field) => {
+    const val = localDate[field] || { min: "", max: "", type: "all" };
+    const currentType = val.type || "all";
+    
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 120, fontSize: 13, color: RG.textMuted }}>{label}:</div>
+          <select 
+            value={currentType}
+            onChange={(e) => handleDatePreset(field, e.target.value)}
+            style={{ ...inputStyle, flex: 1 }}
+          >
+            <option value="today">วันนี้</option>
+            <option value="thismonth">เดือนนี้</option>
+            <option value="lastmonth">เดือนที่แล้ว</option>
+            <option value="thisquarter">ไตรมาสนี้</option>
+            <option value="lastquarter">ไตรมาสที่แล้ว</option>
+            <option value="last6months">6 เดือนล่าสุด</option>
+            <option value="thisyear">ปีนี้</option>
+            <option value="all">ทั้งหมด (ไม่กรอง)</option>
+            <option value="custom">กำหนดช่วงเวลาแทน</option>
+          </select>
+        </div>
+        
+        {currentType === "custom" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, paddingLeft: 132 }}>
+            <input 
+              type="date" 
+              value={val.min || ""} 
+              onChange={e => handleDateChange(field, "min", e.target.value)} 
+              style={{ ...inputStyle, flex: 1 }} 
+            />
+            <span style={{ color: RG.textMuted }}>-</span>
+            <input 
+              type="date" 
+              value={val.max || ""} 
+              onChange={e => handleDateChange(field, "max", e.target.value)} 
+              style={{ ...inputStyle, flex: 1 }} 
+            />
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -169,41 +264,8 @@ export default function FilterModal({
         <div>
           <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 12 }}>กรองข้อมูลวันที่</label>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 120, fontSize: 13, color: RG.textMuted }}>ติดต่อล่าสุด:</div>
-              <input 
-                type="date" 
-                value={localDate.latestContactDate.min} 
-                onChange={e => handleDateChange("latestContactDate", "min", e.target.value)} 
-                style={{ ...inputStyle, flex: 1 }} 
-              />
-              <span style={{ color: RG.textMuted }}>-</span>
-              <input 
-                type="date" 
-                value={localDate.latestContactDate.max} 
-                onChange={e => handleDateChange("latestContactDate", "max", e.target.value)} 
-                style={{ ...inputStyle, flex: 1 }} 
-              />
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 120, fontSize: 13, color: RG.textMuted }}>นัดถัดไป:</div>
-              <input 
-                type="date" 
-                value={localDate.nextFollowupDate.min} 
-                onChange={e => handleDateChange("nextFollowupDate", "min", e.target.value)} 
-                style={{ ...inputStyle, flex: 1 }} 
-              />
-              <span style={{ color: RG.textMuted }}>-</span>
-              <input 
-                type="date" 
-                value={localDate.nextFollowupDate.max} 
-                onChange={e => handleDateChange("nextFollowupDate", "max", e.target.value)} 
-                style={{ ...inputStyle, flex: 1 }} 
-              />
-            </div>
-
+            {renderDateField("ติดต่อล่าสุด", "latestContactDate")}
+            {renderDateField("นัดถัดไป", "nextFollowupDate")}
           </div>
         </div>
 
