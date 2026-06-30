@@ -108,6 +108,20 @@ export default function App() {
   
   const topScrollRef = useRef(null);
   const bottomScrollRef = useRef(null);
+  const [syncTableWidth, setSyncTableWidth] = useState(1600);
+  
+  useEffect(() => {
+    if (bottomScrollRef.current) {
+      const observer = new ResizeObserver(() => {
+        if (bottomScrollRef.current) {
+          setSyncTableWidth(bottomScrollRef.current.scrollWidth);
+        }
+      });
+      observer.observe(bottomScrollRef.current);
+      return () => observer.disconnect();
+    }
+  }, []);
+
   const handleTopScroll = (e) => { if (bottomScrollRef.current) bottomScrollRef.current.scrollLeft = e.target.scrollLeft; };
   const handleBottomScroll = (e) => { if (topScrollRef.current) topScrollRef.current.scrollLeft = e.target.scrollLeft; };
 
@@ -594,23 +608,7 @@ export default function App() {
     document.body.removeChild(link);
   };
 
-  const importFile = e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try {
-        const data = JSON.parse(ev.target.result);
-        if (data.leads && data.followups) {
-          updateLeads(data.leads, data.followups);
-          alert("นำเข้าข้อมูลสำเร็จ");
-        }
-      } catch {
-        alert("ไฟล์ไม่ถูกต้อง");
-      }
-    };
-    reader.readAsText(file);
-  };
+
 
   const handleExport = async (e) => {
     const value = e.target.value;
@@ -864,23 +862,7 @@ export default function App() {
                     )}
                   </div>
                 )}
-                <label style={{ 
-                  padding: "0 14px",
-                  borderRadius: "8px",
-                  border: `1px solid ${RG.border}`,
-                  backgroundColor: "#ffffff",
-                  color: RG.text,
-                  cursor: "pointer",
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  height: "36px",
-                  display: "flex",
-                  alignItems: "center",
-                  fontFamily: "'Sarabun', sans-serif",
-                  boxSizing: "border-box"
-                }}>
-                  ⬆ Import <input type="file" accept=".json" onChange={importFile} style={{ display: "none" }} />
-                </label>
+
                 {canExport && (
                   <select 
                     onChange={handleExport}
@@ -923,9 +905,9 @@ export default function App() {
               <div 
                 ref={topScrollRef} 
                 onScroll={handleTopScroll} 
-                style={{ overflowX: "auto", maxWidth: "100%", height: 16 }}
+                style={{ overflowX: "auto", maxWidth: "100%" }}
               >
-                <div style={{ width: "100%", minWidth: 1600, height: 1 }}></div>
+                <div style={{ width: syncTableWidth, height: 1 }}></div>
               </div>
 
               {/* ตารางหลัก */}
