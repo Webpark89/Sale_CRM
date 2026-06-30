@@ -69,14 +69,87 @@ export default function NotificationsPanel({ currentUser, leads, onMarkDone, onV
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6, width: 105, flexShrink: 0 }}>
-          <Btn small variant="Third" onClick={() => onViewLead(l)} style={{ width: "100%", textAlign: "center", padding: "6px 0", fontSize: 12 }}>ข้อมูลเพิ่มเติม</Btn>
-          <Btn small variant="success" onClick={() => onMarkDone(l)} style={{ width: "100%", textAlign: "center", padding: "6px 0", fontSize: 12 }}>ติดตามแล้ว ✓</Btn>
+          <Btn small variant="Third" onClick={(e) => { e.stopPropagation(); onViewLead(l); }} style={{ width: "100%", textAlign: "center", padding: "6px 0", fontSize: 12 }}>ข้อมูลเพิ่มเติม</Btn>
+          <Btn small variant="success" onClick={(e) => { e.stopPropagation(); onMarkDone(l); }} style={{ width: "100%", textAlign: "center", padding: "6px 0", fontSize: 12 }}>ติดตามแล้ว ✓</Btn>
         </div>
       </div>
     );
   };
 
+  const renderSection = (title, list, isOverdue, sectionType, color) => {
+    if (list.length === 0) return null;
+    const count = list.length;
 
+    return (
+      <div style={{ marginBottom: 24 }}>
+        <h4 style={{ margin: "0 0 12px 0", color: color }}>
+          {title} <span style={{ color: RG.textMuted, fontSize: 14, fontWeight: "normal" }}>({count} รายการ)</span>
+        </h4>
+        
+        {count === 1 ? (
+          renderLeadCard(list[0], isOverdue, sectionType)
+        ) : (
+          <div 
+            style={{ position: 'relative', cursor: 'pointer', marginTop: 4, marginBottom: 20 }}
+            onClick={() => setExpandedSection(sectionType)}
+          >
+            {/* Stack background 2 */}
+            <div style={{ position: 'absolute', top: 10, left: 8, right: 8, height: "100%", border: `1px solid ${isOverdue ? "#fca5a5" : RG.border}`, borderRadius: 10, background: isOverdue ? "#fff5f5" : RG.rowOdd, opacity: 0.4, zIndex: 1 }} />
+            {/* Stack background 1 */}
+            <div style={{ position: 'absolute', top: 5, left: 4, right: 4, height: "100%", border: `1px solid ${isOverdue ? "#fca5a5" : RG.border}`, borderRadius: 10, background: isOverdue ? "#fff5f5" : RG.rowOdd, opacity: 0.7, zIndex: 2 }} />
+            
+            {/* Main Card Wrapper (disabled interactions so clicking anywhere goes to the list) */}
+            <div style={{ position: 'relative', zIndex: 3, pointerEvents: 'none' }}>
+               {renderLeadCard(list[0], isOverdue, sectionType)}
+            </div>
+            
+            {/* Badge Indicator */}
+            <div style={{ position: 'absolute', top: -10, right: -10, zIndex: 4, background: color, color: 'white', borderRadius: '20px', padding: '4px 10px', fontSize: 12, fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+              +{count - 1} ซ่อนอยู่
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderExpandedView = () => {
+    let list = [];
+    let title = "";
+    let color = "";
+    let isOverdue = false;
+
+    if (expandedSection === 'dueToday') {
+      list = dueToday;
+      title = "📅 การติดตาม ณ ปัจจุบัน (วันนี้)";
+      color = RG.primary;
+    } else if (expandedSection === 'overdue') {
+      list = overdue;
+      title = "⚠️ การติดตามที่ค้างอยู่ (ผ่านมาแล้ว)";
+      color = "#dc2626";
+      isOverdue = true;
+    } else if (expandedSection === 'general') {
+      list = general;
+      title = "🔔 การแจ้งเตือนทั่วไป (ลีดใหม่/รอติดต่อ)";
+      color = "#8b5cf6";
+    }
+
+    return (
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <button 
+            onClick={() => setExpandedSection(null)} 
+            style={{ background: "#fff", border: `1px solid ${RG.border}`, color: RG.text, borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontFamily: "'Sarabun', sans-serif", display: "flex", alignItems: "center", gap: 6 }}
+          >
+            <span>&larr;</span> ย้อนกลับ
+          </button>
+          <h4 style={{ margin: 0, color: color, fontSize: 16 }}>{title} ({list.length})</h4>
+        </div>
+        
+        {list.map(l => renderLeadCard(l, isOverdue, expandedSection))}
+      </div>
+    );
+  };
 
   const totalCount = dueToday.length + overdue.length + general.length;
   const titleText = isDefaultDate ? `แจ้งเตือนการติดตามทั้งหมด (${totalCount} รายการ)` : `แจ้งเตือนการติดตาม (${totalCount} รายการ)`;
@@ -84,7 +157,7 @@ export default function NotificationsPanel({ currentUser, leads, onMarkDone, onV
   return (
     <Modal title={titleText} onClose={onClose}>
       
-      <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 10, padding: "10px", background: RG.surface, borderRadius: 8, border: `1px solid ${RG.border}` }}>
+      <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 10, padding: "10px", background: RG.surface, borderRadius: 8, border: `1px solid ${RG.border}`, opacity: expandedSection ? 0.5 : 1, pointerEvents: expandedSection ? 'none' : 'auto' }}>
         <span style={{ fontSize: 14, color: RG.text, fontWeight: 600 }}>เลือกวันที่:</span>
         <input 
           type="date" 
@@ -102,34 +175,13 @@ export default function NotificationsPanel({ currentUser, leads, onMarkDone, onV
       <div style={{ maxHeight: "65vh", overflowY: "auto", paddingRight: 8, paddingBottom: 10 }}>
         {totalCount === 0 ? (
           <p style={{ color: RG.textMuted, textAlign: "center", padding: "30px 0", fontSize: 16 }}>ไม่มีรายการแจ้งเตือน 🎉</p>
+        ) : expandedSection ? (
+          renderExpandedView()
         ) : (
           <div>
-            {dueToday.length > 0 && (
-              <div style={{ marginBottom: 20 }}>
-                <h4 style={{ margin: "0 0 10px 0", color: RG.primary }}>
-                  📅 การติดตาม ณ ปัจจุบัน (วันนี้) <span style={{ color: RG.textMuted, fontSize: 14, fontWeight: "normal" }}>({dueToday.length} รายการ)</span>
-                </h4>
-                {dueToday.map(l => renderLeadCard(l, false, 'dueToday'))}
-              </div>
-            )}
-            
-            {overdue.length > 0 && (
-              <div style={{ marginBottom: 20 }}>
-                <h4 style={{ margin: "0 0 10px 0", color: "#dc2626" }}>
-                  ⚠️ การติดตามที่ค้างอยู่ (ผ่านมาแล้ว) <span style={{ color: RG.textMuted, fontSize: 14, fontWeight: "normal" }}>({overdue.length} รายการ)</span>
-                </h4>
-                {overdue.map(l => renderLeadCard(l, true, 'overdue'))}
-              </div>
-            )}
-            
-            {general.length > 0 && (
-              <div style={{ marginBottom: 20 }}>
-                <h4 style={{ margin: "0 0 10px 0", color: "#8b5cf6" }}>
-                  🔔 การแจ้งเตือนทั่วไป (ลีดใหม่/รอติดต่อ) <span style={{ color: RG.textMuted, fontSize: 14, fontWeight: "normal" }}>({general.length} รายการ)</span>
-                </h4>
-                {general.map(l => renderLeadCard(l, false, 'general'))}
-              </div>
-            )}
+            {renderSection("📅 การติดตาม ณ ปัจจุบัน (วันนี้)", dueToday, false, 'dueToday', RG.primary)}
+            {renderSection("⚠️ การติดตามที่ค้างอยู่ (ผ่านมาแล้ว)", overdue, true, 'overdue', "#dc2626")}
+            {renderSection("🔔 การแจ้งเตือนทั่วไป (ลีดใหม่/รอติดต่อ)", general, false, 'general', "#8b5cf6")}
           </div>
         )}
       </div>

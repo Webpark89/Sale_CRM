@@ -53,14 +53,10 @@ const formatFollowup = (row) => ({
   id:              row.id,
   leadId:          row.lead_id,
   sequence:        row.sequence,
-  date:            row.contact_date
-    ? (row.contact_date.toISOString?.().slice(0, 10) ?? String(row.contact_date).slice(0, 10))
-    : null,
+  date:            formatDateLocal(row.contact_date),
   detail:          row.detail,
   status:          row.status,
-  nextFollowupDate: row.next_followup_date
-    ? (row.next_followup_date.toISOString?.().slice(0, 10) ?? String(row.next_followup_date).slice(0, 10))
-    : null,
+  nextFollowupDate: formatDateLocal(row.next_followup_date),
   completed:       !!row.completed,
   createdAt:       row.created_at,
 });

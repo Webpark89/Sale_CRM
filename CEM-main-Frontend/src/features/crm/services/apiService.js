@@ -121,11 +121,11 @@ export const fetchTeamStatsApi = async () => {
 };
 
 export const reassignLeadApi = async (leadId, newOwnerId) => {
-  const { data } = await api.put(`/leads/${leadId}/reassign`, { newOwnerId });
+  const { data } = await api.put(`/leads/${leadId}/reassign`, { owner_id: newOwnerId });
   return data;
 };
 
 export const bulkReassignLeadsApi = async (fromOwnerId, toOwnerId) => {
-  const { data } = await api.put("/leads/team/bulk-reassign", { fromOwnerId, toOwnerId });
+  const { data } = await api.put("/leads/team/bulk-reassign", { from_owner_id: fromOwnerId, to_owner_id: toOwnerId });
   return data;
 };

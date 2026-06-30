@@ -425,8 +425,8 @@ export default function App() {
     try {
       const { fetchAllUsers } = await import('./services/apiService.js');
       const users = await fetchAllUsers();
-      // Filter out only active users who can own leads (salers, header_salers)
-      const sellers = users.filter(u => u.is_active === 1 && u.role !== 'admin');
+      // Filter out only active users who can own leads
+      const sellers = users.filter(u => u.is_active === 1 && u.role_name !== 'admin' && u.role_is_system !== 1);
       setAllSellers(sellers);
     } catch (e) {
       console.error("Failed to fetch sellers", e);
