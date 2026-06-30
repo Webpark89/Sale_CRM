@@ -5,6 +5,7 @@ import { createNewLead, parseDateTH, today, uuid } from "./crmHelpers/helpers";
 import LoginScreen from "./components/auth/LoginScreen";
 import Btn from "./components/common/Btn";
 import EditableCell from "./components/common/EditableCell";
+import StatusBadge from "./components/common/StatusBadge";
 import Modal from "./components/common/Modal";
 import { inputStyle } from "./components/common/styles";
 import AddLeadModal from "./components/modals/AddLeadModal";
@@ -14,6 +15,8 @@ import NotificationsPanel from "./components/modals/NotificationsPanel";
 import FilterModal from "./components/modals/FilterModal";
 import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
+import UserManagement from "./pages/UserManagement";
+import RoleManagementPage from "./pages/RoleManagementPage";
 import {
   fetchLeads,
   fetchAllFollowups,
@@ -44,8 +47,15 @@ const PRIORITY_WEIGHT = {
 export default function App() {
   const [authenticated, setAuthenticated] = useState(() => localStorage.getItem("crm_session") === "authenticated");
   const [currentUser, setCurrentUser] = useState(() => {
-    const user = localStorage.getItem("crm_user");
-    return user ? JSON.parse(user) : null;
+    const userString = localStorage.getItem("crm_user");
+    if (!userString) return null;
+    try {
+      const u = JSON.parse(userString);
+      if (typeof u.permissions === 'string') {
+        try { u.permissions = JSON.parse(u.permissions); } catch(e){}
+      }
+      return u;
+    } catch { return null; }
   });
   
   // State for API data
@@ -53,10 +63,29 @@ export default function App() {
   const [followups, setFollowups] = useState({});
   const [isLoading, setIsLoading] = useState(true);
 
-  const [page, setPage] = useState("leads");
+  // Default page: หน้าแรกของ navItems ที่ user มีสิทธิ์
+  // ต้องคำนวณหลังจาก currentUser พร้อมแล้ว จึงใช้ฟังก์ชันช่วย
+  const getDefaultPage = (user) => {
+    if (!user) return "leads";
+    if (user.role_is_system || user.permissions?.leads?.menu) return "leads";
+    if (user.permissions?.dashboard?.menu) return "dashboard";
+    if (user.permissions?.reports?.menu) return "reports";
+    if (user.permissions?.roles?.menu) return "role_management";
+    if (user.permissions?.users?.menu) return "user_management";
+    return "leads"; // fallback
+  };
+  const [page, setPage] = useState(() => getDefaultPage(currentUser));
   const [selectedLead, setSelectedLead] = useState(null);
   const [showAddLead, setShowAddLead] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
+  
+  // Reassignment states
+  const [reassignConfirm, setReassignConfirm] = useState(null); // { leadId, oldOwner, companyName }
+  const [confirmFinalReassign, setConfirmFinalReassign] = useState(false);
+  const [allSellers, setAllSellers] = useState([]);
+  const [selectedNewOwner, setSelectedNewOwner] = useState("");
+  const [isReassigning, setIsReassigning] = useState(false);
+  const [alertModal, setAlertModal] = useState(null); // { type, message }
   const [checked, setChecked] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [search, setSearch] = useState("");
@@ -83,7 +112,30 @@ export default function App() {
   const handleBottomScroll = (e) => { if (topScrollRef.current) topScrollRef.current.scrollLeft = e.target.scrollLeft; };
 
   const [showFavorites, setShowFavorites] = useState(false);
-  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  // Fetch fresh user data on load
+  useEffect(() => {
+    const fetchMe = async () => {
+      if (authenticated && currentUser?.id) {
+        try {
+          const { default: api } = await import('./services/api.js');
+          const res = await api.get('/auth/me');
+          if (res.data) {
+            let u = res.data;
+            if (typeof u.permissions === 'string') {
+              try { u.permissions = JSON.parse(u.permissions); } catch(e){}
+            }
+            setCurrentUser(u);
+            localStorage.setItem("crm_user", JSON.stringify(u));
+          }
+        } catch (e) {
+          console.error("Failed to fetch fresh user data", e);
+        }
+      }
+    };
+    fetchMe();
+  }, [authenticated]);
+
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [filterSellers, setFilterSellers] = useState([]); // [] means all sellers
   const [isSellerDropdownOpen, setIsSellerDropdownOpen] = useState(false);
   
@@ -91,7 +143,19 @@ export default function App() {
 
   const syncStatus = "Cloud Synced";
   const currentDateStr = today();
-  const dueTodayCount = leads.filter(l => l.nextFollowupDate && l.nextFollowupDate <= currentDateStr).length;
+  const myLeads = leads.filter(l => l.ownerId === currentUser?.id);
+  const generalCount = myLeads.filter(l => {
+    if (l.latestStatus === "ปิดการขาย") return false;
+    
+    const isNewlyAssigned = l.isAcknowledged === 0;
+    if (isNewlyAssigned) return true;
+
+    const isNewlyCreatedByMe = l.latestStatus === "ฝากโปรไฟล์" && (l.createdBy === currentUser?.id || l.createdBy === null);
+    
+    return isNewlyCreatedByMe;
+  }).length;
+  
+  const dueTodayCount = myLeads.filter(l => (l.nextFollowupDate && l.nextFollowupDate <= currentDateStr && l.latestStatus !== "ปิดการขาย")).length + generalCount;
 
   // Undo/Redo Stack
   const [history, setHistory] = useState([]);
@@ -112,7 +176,15 @@ export default function App() {
     if (!authenticated) return;
     setIsLoading(true);
     try {
-      const fetchedLeads = currentUser?.role === "admin" 
+      const canViewAllLeads = currentUser?.role === 'admin' || currentUser?.role_is_system 
+        || currentUser?.permissions?.leads?.view === 'all'
+        || currentUser?.permissions?.leads?.view_select
+        || currentUser?.permissions?.dashboard?.view === 'all'
+        || currentUser?.permissions?.dashboard?.view_select
+        || currentUser?.permissions?.reports?.view === 'all'
+        || currentUser?.permissions?.reports?.view_select;
+        
+      const fetchedLeads = canViewAllLeads
         ? await fetchAllLeadsMaster() 
         : await fetchLeads();
       const fetchedFollowups = await fetchAllFollowups();
@@ -257,6 +329,10 @@ export default function App() {
         const updated = fups.map(f => f.id === fup.id ? { ...f, completed: true } : f);
         const newFollowups = { ...followups, [lead.id]: updated };
         setFollowups(newFollowups);
+        
+        // เคลียร์ nextFollowupDate ออกจาก lead ด้วยเพื่อให้หายจากแจ้งเตือน
+        const newLeads = leads.map(l => l.id === lead.id ? { ...l, nextFollowupDate: null } : l);
+        setLeads(newLeads);
       }
       setMarkDoneLead(lead);
       setShowNotif(false);
@@ -320,6 +396,56 @@ export default function App() {
     }
   };
 
+  const deleteLead = async (id) => {
+    if (!window.confirm("ยืนยันการลบลีดนี้ (ลบชั่วคราว)?")) return;
+    try {
+      await deleteLeadApi(id);
+      loadData();
+    } catch (e) {
+      alert("ลบข้อมูลไม่สำเร็จ");
+    }
+  };
+
+  const fetchAllSellers = async () => {
+    if (allSellers.length > 0) return; // already fetched
+    try {
+      const { fetchAllUsers } = await import('./services/apiService.js');
+      const users = await fetchAllUsers();
+      // Filter out only active users who can own leads (salers, header_salers)
+      const sellers = users.filter(u => u.is_active === 1 && u.role !== 'admin');
+      setAllSellers(sellers);
+    } catch (e) {
+      console.error("Failed to fetch sellers", e);
+    }
+  };
+
+  const handleReassignClick = () => {
+    if (!selectedNewOwner) return setAlertModal({ type: 'error', message: "กรุณาเลือกเซลส์คนใหม่" });
+    setConfirmFinalReassign(true);
+  };
+
+  const handleReassign = async () => {
+    const { reassignLeadApi } = await import('./services/apiService.js');
+    setIsReassigning(true);
+    try {
+      await reassignLeadApi(reassignConfirm.leadId, selectedNewOwner);
+      setReassignConfirm(null);
+      setSelectedNewOwner("");
+      setConfirmFinalReassign(false);
+      loadData();
+      setAlertModal({ type: 'success', message: "โอนย้ายลีดสำเร็จ" });
+      // if selectedLead is open, update its owner too
+      if (selectedLead && selectedLead.id === reassignConfirm.leadId) {
+        const newSeller = allSellers.find(s => s.id.toString() === selectedNewOwner);
+        setSelectedLead({...selectedLead, owner: newSeller ? newSeller.username : selectedLead.owner});
+      }
+    } catch (e) {
+      setAlertModal({ type: 'error', message: e.response?.data?.error || "เกิดข้อผิดพลาดในการโอนย้าย" });
+    } finally {
+      setIsReassigning(false);
+    }
+  };
+
   const seenNumbers = new Set();
   const dupNumbersSet = new Set();
   
@@ -336,7 +462,15 @@ export default function App() {
   const dupNumbers = [...dupNumbersSet];
 
   // 1. คัดกรองข้อมูลตามสิทธิ์และ filterSellers
-  const roleFilteredLeads = currentUser?.role === "admin" 
+  // สิทธิ์ดูลีด — admin และ role_is_system เห็นทุกอย่างเสมอ
+  const canViewAll = currentUser?.role === 'admin' || currentUser?.role_is_system || currentUser?.permissions?.leads?.view === 'all';
+  const canViewSelect = currentUser?.role === 'admin' || currentUser?.role_is_system || currentUser?.permissions?.leads?.view_select;
+
+  // สิทธิ์ Export
+  const canExportAll = currentUser?.role === 'admin' || currentUser?.role_is_system || currentUser?.permissions?.leads?.export === 'all';
+  const canExport = canExportAll || currentUser?.permissions?.leads?.export === 'own';
+  
+  const roleFilteredLeads = (canViewAll || (canViewSelect && filterSellers.length > 0))
     ? leads 
     : leads.filter(l => l.owner === currentUser?.username);
   
@@ -497,6 +631,10 @@ export default function App() {
     let targetLeads = filtered;
     
     if (mode === "all") {
+      if (!canExportAll) {
+        if (printWindow) printWindow.close();
+        return alert("ไม่มีสิทธิ์ Export ข้อมูลทั้งหมด");
+      }
       try {
         targetLeads = await fetchAllLeadsMaster();
         if (!targetLeads || targetLeads.length === 0) {
@@ -529,9 +667,11 @@ export default function App() {
   }} />;
 
   const navItems = [
-    { key: "leads", label: "จัดการลีด", icon: "👥" },
-    { key: "dashboard", label: "Dashboard", icon: "📊" },
-    { key: "reports", label: "รายงาน", icon: "📄" },
+    ...(currentUser?.role_is_system || currentUser?.permissions?.leads?.menu ? [{ key: "leads", label: "จัดการลีด", icon: "👥" }] : []),
+    ...(currentUser?.role_is_system || currentUser?.permissions?.dashboard?.menu ? [{ key: "dashboard", label: "Dashboard", icon: "📊" }] : []),
+    ...(currentUser?.role_is_system || currentUser?.permissions?.reports?.menu ? [{ key: "reports", label: "รายงาน", icon: "📄" }] : []),
+    ...(currentUser?.role_is_system || currentUser?.permissions?.roles?.menu ? [{ key: "role_management", label: "จัดการ Role", icon: "🔐" }] : []),
+    ...(currentUser?.role_is_system || currentUser?.permissions?.users?.menu ? [{ key: "user_management", label: "จัดการผู้ใช้งาน", icon: "⚙️" }] : [])
   ];
 
   return (
@@ -540,12 +680,10 @@ export default function App() {
 
       {/* Left Sidebar (Hoverable) */}
       <aside 
-        onMouseEnter={() => setIsSidebarHovered(true)}
-        onMouseLeave={() => setIsSidebarHovered(false)}
         style={{ 
-          width: isSidebarHovered ? 240 : 80, 
+          width: isSidebarExpanded ? 240 : 80, 
           background: RG.navbarBg, 
-          padding: isSidebarHovered ? "32px 20px" : "32px 10px", 
+          padding: isSidebarExpanded ? "32px 20px" : "32px 10px", 
           display: "flex", 
           flexDirection: "column", 
           borderRight: `1px solid ${RG.border}`, 
@@ -554,33 +692,68 @@ export default function App() {
           left: 0,
           height: "100vh", 
           zIndex: 110,
-          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-          overflowX: "hidden"
+          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         }}
       >
+        {/* Toggle Button */}
+        <button 
+          onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+          style={{
+            position: "absolute",
+            top: "50%",
+            marginTop: -16,
+            right: -16,
+            width: 32,
+            height: 32,
+            background: "#fff",
+            border: `2px solid ${RG.primary}`,
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            color: RG.primary,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+            zIndex: 120,
+            transition: "transform 0.2s"
+          }}
+          onMouseOver={(e) => e.currentTarget.style.transform = "scale(1.1)"}
+          onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}
+        >
+          {isSidebarExpanded ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: -2 }}>
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: -2 }}>
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          )}
+        </button>
+
         {/* Logo Section */}
-        <div style={{ display: "flex", alignItems: "center", gap: isSidebarHovered ? 12 : 0, justifyContent: isSidebarHovered ? "flex-start" : "center", marginBottom: 48, transition: "all 0.3s" }}>
-          <div style={{ minWidth: 40, width: 40, height: 40, background: RG.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 20, boxShadow: RG.shadowSoft }}>Q</div>
-          <div style={{ display: "flex", flexDirection: "column", opacity: isSidebarHovered ? 1 : 0, width: isSidebarHovered ? "auto" : 0, overflow: "hidden", transition: "all 0.2s", whiteSpace: "nowrap" }}>
-            <span style={{ color: RG.primary, fontWeight: 700, fontSize: 18, lineHeight: 1.2 }}>QoraQot CRM</span>
-            <span style={{ color: RG.textMuted, fontSize: 11, lineHeight: 1.2 }}>Lead & Sales</span>
+        <div style={{ display: "flex", alignItems: "center", gap: isSidebarExpanded ? 12 : 0, justifyContent: isSidebarExpanded ? "flex-start" : "center", marginBottom: 48, transition: "all 0.3s" }}>
+          <div style={{ minWidth: 40, width: 40, height: 40, background: RG.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 20, boxShadow: RG.shadowSoft }}>S</div>
+          <div style={{ display: "flex", flexDirection: "column", opacity: isSidebarExpanded ? 1 : 0, width: isSidebarExpanded ? "auto" : 0, overflow: "hidden", transition: "all 0.2s", whiteSpace: "nowrap" }}>
+            <span style={{ color: RG.primary, fontWeight: 700, fontSize: 18, lineHeight: 1.2 }}>Sales CRM System</span>
+            <span style={{ color: RG.textMuted, fontSize: 11, lineHeight: 1.2 }}>Lead & Sales Management</span>
           </div>
         </div>
 
         {/* Menu Navigation */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
-          {isSidebarHovered && <div style={{ fontSize: 11, fontWeight: 700, color: RG.textMuted, letterSpacing: 1, marginBottom: 8, paddingLeft: 20, textAlign: "left", opacity: isSidebarHovered ? 1 : 0.5, transition: "all 0.3s" }}>MENU</div>}
+          {isSidebarExpanded && <div style={{ fontSize: 11, fontWeight: 700, color: RG.textMuted, letterSpacing: 1, marginBottom: 8, paddingLeft: 20, textAlign: "left", opacity: isSidebarExpanded ? 1 : 0.5, transition: "all 0.3s" }}>MENU</div>}
           {navItems.map(n => (
-            <button key={n.key} onClick={() => setPage(n.key)} style={{ padding: isSidebarHovered ? "14px 20px" : "14px 0", borderRadius: 12, border: "none", background: page === n.key ? RG.primary : "transparent", color: page === n.key ? "#fff" : RG.textMuted, cursor: "pointer", fontWeight: page === n.key ? 700 : 500, fontSize: 15, fontFamily: "'Sarabun', sans-serif", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: isSidebarHovered ? "flex-start" : "center", gap: isSidebarHovered ? 12 : 0, boxShadow: page === n.key ? RG.shadowSoft : "none", whiteSpace: "nowrap" }}>
+            <button key={n.key} onClick={() => setPage(n.key)} style={{ padding: isSidebarExpanded ? "14px 20px" : "14px 0", borderRadius: 12, border: "none", background: page === n.key ? RG.primary : "transparent", color: page === n.key ? "#fff" : RG.textMuted, cursor: "pointer", fontWeight: page === n.key ? 700 : 500, fontSize: 15, fontFamily: "'Sarabun', sans-serif", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: isSidebarExpanded ? "flex-start" : "center", gap: isSidebarExpanded ? 12 : 0, boxShadow: page === n.key ? RG.shadowSoft : "none", whiteSpace: "nowrap" }}>
               <span style={{ fontSize: 20, width: 24, display: "flex", justifyContent: "center", opacity: page === n.key ? 1 : 0.7 }}>{n.icon}</span> 
-              <span style={{ opacity: isSidebarHovered ? 1 : 0, width: isSidebarHovered ? "auto" : 0, overflow: "hidden", transition: "all 0.2s" }}>{n.label}</span>
+              <span style={{ opacity: isSidebarExpanded ? 1 : 0, width: isSidebarExpanded ? "auto" : 0, overflow: "hidden", transition: "all 0.2s" }}>{n.label}</span>
             </button>
           ))}
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main style={{ flex: 1, marginLeft: 80, height: "100vh", overflowY: "auto", position: "relative", transition: "margin-left 0.3s" }}>
+      <main style={{ flex: 1, marginLeft: isSidebarExpanded ? 240 : 80, height: "100vh", overflowY: "auto", position: "relative", transition: "margin-left 0.3s" }}>
         
         {/* Floating Top-Right Actions */}
         <div style={{ position: "absolute", top: 24, right: 40, display: "flex", alignItems: "center", gap: 16, zIndex: 100 }}>
@@ -606,7 +779,9 @@ export default function App() {
             </div>
             <div style={{ display: "flex", flexDirection: "column" }}>
               <span style={{ color: RG.text, fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>{currentUser?.username || "admin"}</span>
-              <span style={{ color: RG.textMuted, fontSize: 10, lineHeight: 1.2 }}>ADMIN</span>
+              <span style={{ color: RG.textMuted, fontSize: 10, lineHeight: 1.2 }}>
+                {{ admin: "ผู้ดูแลระบบ", header_saler: "หัวหน้าเซลส์", saler: "เซลส์" }[currentUser?.role] || "USER"}
+              </span>
             </div>
             <button onClick={() => { localStorage.removeItem("crm_session"); setAuthenticated(false); }} title="ออกจากระบบ" style={{ background: "transparent", border: "none", color: RG.primary, cursor: "pointer", fontSize: 20, padding: "4px", marginLeft: 8 }}>🚪</button>
           </div>
@@ -653,7 +828,7 @@ export default function App() {
               </div>
 
               <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
-                {currentUser?.role === "admin" && (
+                {(canViewAll || canViewSelect) && (
                   <div style={{ position: "relative" }}>
                     <div 
                       onClick={() => setIsSellerDropdownOpen(!isSellerDropdownOpen)}
@@ -706,37 +881,39 @@ export default function App() {
                 }}>
                   ⬆ Import <input type="file" accept=".json" onChange={importFile} style={{ display: "none" }} />
                 </label>
-                <select 
-                  onChange={handleExport}
-                  style={{ 
-                    padding: "0 14px",
-                    borderRadius: "8px",
-                    border: `1px solid ${RG.primary}`,
-                    backgroundColor: "#ffffff",
-                    color: RG.primary,
-                    cursor: "pointer",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    height: "36px",
-                    outline: "none",
-                    fontFamily: "'Sarabun', sans-serif",
-                    boxSizing: "border-box"
-                  }}
-                >
-                  <option value="">⬇ Export</option>
-                  <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)">
-                    <option value="current_csv">Excel / CSV</option>
-                    <option value="current_json">JSON</option>
-                    <option value="current_pdf">PDF (Print)</option>
-                  </optgroup>
-                  {currentUser?.role === 'admin' && (
-                    <optgroup label="ทั้งหมด (All Report)">
-                      <option value="all_csv">Excel / CSV</option>
-                      <option value="all_json">JSON</option>
-                      <option value="all_pdf">PDF (Print All)</option>
+                {canExport && (
+                  <select 
+                    onChange={handleExport}
+                    style={{ 
+                      padding: "0 14px",
+                      borderRadius: "8px",
+                      border: `1px solid ${RG.primary}`,
+                      backgroundColor: "#ffffff",
+                      color: RG.primary,
+                      cursor: "pointer",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      height: "36px",
+                      outline: "none",
+                      fontFamily: "'Sarabun', sans-serif",
+                      boxSizing: "border-box"
+                    }}
+                  >
+                    <option value="">⬇ Export</option>
+                    <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)">
+                      <option value="current_csv">Excel / CSV</option>
+                      <option value="current_json">JSON</option>
+                      <option value="current_pdf">PDF (Print)</option>
                     </optgroup>
-                  )}
-                </select>
+                    {canExportAll && (
+                      <optgroup label="ทั้งหมด (All Report)">
+                        <option value="all_csv">Excel / CSV</option>
+                        <option value="all_json">JSON</option>
+                        <option value="all_pdf">PDF (Print All)</option>
+                      </optgroup>
+                    )}
+                  </select>
+                )}
               </div>
             </div>
 
@@ -781,6 +958,9 @@ export default function App() {
                         { label: "เบอร์", key: "contactPhone" },
                         { label: "อีเมล", key: "contactEmail" },
                         { label: "รายละเอียด", key: "description" },
+                        ...(currentUser?.permissions?.leads?.view_owner || currentUser?.role === 'admin' || currentUser?.role === 'header_saler'
+                          ? [{ label: "เซลผู้ดูแล", key: "owner", sortable: true }]
+                          : []),
                         { label: "รายได้รวม", key: "revenue", sortable: true },
                         { label: "ทุนจดทะเบียน", key: "registeredCapital", sortable: true },
                         { label: "กำไร", key: "profit", sortable: true },
@@ -854,10 +1034,19 @@ export default function App() {
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.contactPhone} onSave={v => inlineEdit(lead.id, "contactPhone", v)} type="phone" /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.contactEmail} onSave={v => inlineEdit(lead.id, "contactEmail", v)} /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.description} onSave={v => inlineEdit(lead.id, "description", v)} /></td>
+                          {(currentUser?.permissions?.leads?.view_owner || currentUser?.role === 'admin' || currentUser?.role === 'header_saler') && (
+                            <td style={{ padding: "8px 10px", whiteSpace: "nowrap", color: RG.primaryMid, fontWeight: 600 }}>
+                              {currentUser?.role === 'admin' || currentUser?.role === 'header_saler' || currentUser?.permissions?.leads?.reassign ? (
+                                <span onClick={() => { setReassignConfirm({ leadId: lead.id, oldOwner: lead.owner, companyName: lead.companyName }); fetchAllSellers(); }} style={{ cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}>{lead.owner || "-"}</span>
+                              ) : (
+                                lead.owner || "-"
+                              )}
+                            </td>
+                          )}
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.revenue} onSave={v => inlineEdit(lead.id, "revenue", Number(v))} type="number" /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.registeredCapital} onSave={v => inlineEdit(lead.id, "registeredCapital", Number(v))} type="number" /></td>
                           <td style={{ padding: "8px 10px" }}><EditableCell value={lead.profit} onSave={v => inlineEdit(lead.id, "profit", Number(v))} type="number" /></td>
-                          <td style={{ padding: "8px 10px" }}><div style={{ color: lead.latestStatus === "ฝากโปรไฟล์" ? "#007bff" : "inherit", fontWeight: lead.latestStatus === "ฝากโปรไฟล์" ? 700 : 400 }}><EditableCell key={lead.latestStatus} value={lead.latestStatus} onSave={v => inlineEdit(lead.id, "latestStatus", v)} type="select" options={STATUSES} /></div></td>
+                          <td style={{ padding: "8px 10px" }}><StatusBadge status={lead.latestStatus} /></td>
                           <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}><EditableCell value={lead.latestContactDate} onSave={v => inlineEdit(lead.id, "latestContactDate", v)} type="date" /></td>
                           <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>{lead.nextFollowupDate && lead.nextFollowupDate === today() ? (
                               /* 1. เคสวันปัจจุบัน: แสดงข้อความ "ถึงกำหนดแล้ว" สีดำตัวหนา */
@@ -935,10 +1124,29 @@ export default function App() {
             <Reports leads={leads} onViewLead={setSelectedLead} isMaster={false} onExitMaster={() => {}} currentUser={currentUser} />
           </div>
         )}
+
+        {page === "role_management" && (currentUser?.role_is_system || currentUser?.permissions?.roles?.menu) && (
+          <RoleManagementPage currentUser={currentUser} />
+        )}
+
+        {page === "user_management" && (currentUser?.role_is_system || currentUser?.permissions?.users?.menu) && (
+          <div>
+            <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #0f766e, #14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", boxShadow: "0 4px 6px rgba(15, 118, 110, 0.2)" }}>
+                ⚙️
+              </div>
+              <div>
+                <h2 style={{ margin: 0, color: "#0f766e", fontSize: 24, fontWeight: 800 }}>จัดการผู้ใช้งาน (User Management)</h2>
+                <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: 14 }}>สร้างและจัดการสิทธิ์ผู้ใช้งานระบบ</p>
+              </div>
+            </div>
+            <UserManagement currentUser={currentUser} />
+          </div>
+        )}
         </div>
       </main>
 
-      {showNotif && <NotificationsPanel leads={leads} onMarkDone={markDone} onViewLead={(lead) => { setSelectedLead(lead); setIsModalReadOnly(true); }} onClose={() => setShowNotif(false)} />}
+      {showNotif && <NotificationsPanel currentUser={currentUser} leads={myLeads} onMarkDone={markDone} onViewLead={(lead) => { setSelectedLead(lead); setIsModalReadOnly(true); }} onClose={() => setShowNotif(false)} />}
       
       {showFilterModal && <FilterModal filterStatus={filterStatus} setFilterStatus={setFilterStatus} finFilters={finFilters} setFinFilters={setFinFilters} dateFilters={dateFilters} setDateFilters={setDateFilters} onClose={() => setShowFilterModal(false)} />}
 
@@ -954,10 +1162,70 @@ export default function App() {
       )}
 
       {/* ส่ง leads={leads} ไปให้ AddLeadModal เพื่อตรวจสอบเลขนิติบุคคลซ้ำ */}
-      {showAddLead && <AddLeadModal leads={leads} onClose={() => setShowAddLead(false)} onSave={addLead} />}
+      {showAddLead && <AddLeadModal leads={leads} onClose={() => setShowAddLead(false)} onSave={addLead} currentUser={currentUser} allSellers={allSellers} fetchAllSellers={fetchAllSellers} />}
 
       {/* ส่ง leads={leads} ไปให้ CompanyModal เพื่อตรวจสอบเลขนิติบุคคลซ้ำ */}
-      {selectedLead && <CompanyModal readOnly={isModalReadOnly} lead={selectedLead} leads={leads} followups={followups} onClose={() => { setSelectedLead(null); setIsModalReadOnly(false); }} onSave={saveLead} onSaveFollowup={saveFollowup} />}
+      {selectedLead && <CompanyModal readOnly={isModalReadOnly} lead={selectedLead} leads={leads} followups={followups} onClose={() => { setSelectedLead(null); setIsModalReadOnly(false); }} onSave={saveLead} onSaveFollowup={saveFollowup} allSellers={allSellers} fetchAllSellers={fetchAllSellers} handleReassign={handleReassign} setReassignConfirm={setReassignConfirm} currentUser={currentUser} />}
+
+      {reassignConfirm && (
+        <Modal title={`โอนย้ายผู้ดูแล: ${reassignConfirm.companyName}`} onClose={() => { setReassignConfirm(null); setSelectedNewOwner(""); }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div>
+              <span style={{ color: RG.textMuted, fontSize: 14 }}>ผู้ดูแลปัจจุบัน:</span>
+              <div style={{ fontWeight: 600, fontSize: 16, color: RG.text }}>{reassignConfirm.oldOwner || "-"}</div>
+            </div>
+            <div>
+              <span style={{ color: RG.textMuted, fontSize: 14 }}>เลือกผู้ดูแลใหม่:</span>
+              <select 
+                value={selectedNewOwner} 
+                onChange={e => setSelectedNewOwner(e.target.value)} 
+                style={{ ...inputStyle, width: "100%", marginTop: 8 }}
+              >
+                <option value="" disabled>-- เลือกเซลส์ --</option>
+                {allSellers.map(s => (
+                  <option key={s.id} value={s.id}>{s.username} {s.display_name ? `(${s.display_name})` : ""}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+              <button onClick={() => { setReassignConfirm(null); setSelectedNewOwner(""); }} style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid #ccc", background: "#fff", cursor: "pointer" }}>ยกเลิก</button>
+              <button onClick={handleReassignClick} disabled={isReassigning} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: RG.primary, color: "#fff", cursor: isReassigning ? "not-allowed" : "pointer" }}>
+                ยืนยันการโอนย้าย
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {confirmFinalReassign && (
+        <Modal title="ยืนยันการโอนย้าย" onClose={() => setConfirmFinalReassign(false)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <p style={{ margin: 0 }}>แน่ใจว่าจะเปลี่ยนใช่มั้ย?</p>
+            <div style={{ display: "flex", gap: 10, marginTop: 10, justifyContent: "flex-end" }}>
+              <button onClick={() => setConfirmFinalReassign(false)} style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid #ccc", background: "#fff", cursor: "pointer" }}>ยกเลิก</button>
+              <button onClick={handleReassign} disabled={isReassigning} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: RG.danger, color: "#fff", cursor: isReassigning ? "not-allowed" : "pointer" }}>
+                {isReassigning ? "กำลังบันทึก..." : "ยืนยัน"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {alertModal && (
+        <Modal title={alertModal.type === 'success' ? "สำเร็จ" : "ข้อผิดพลาด"} onClose={() => setAlertModal(null)}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "16px 0" }}>
+            <div style={{ fontSize: 48 }}>
+              {alertModal.type === 'success' ? '✅' : '❌'}
+            </div>
+            <p style={{ color: RG.text, fontSize: 16, textAlign: "center", margin: 0 }}>
+              {alertModal.message}
+            </p>
+            <button onClick={() => setAlertModal(null)} style={{ padding: "8px 24px", borderRadius: 6, border: "none", background: RG.primary, color: "#fff", cursor: "pointer", marginTop: 16, fontSize: 14, fontWeight: 600 }}>
+              ตกลง
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {showDeleteConfirm && (
         <Modal title="ยืนยันการลบ" onClose={() => setShowDeleteConfirm(false)}>

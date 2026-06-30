@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { PieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { STATUSES, STATUS_COLORS, STATUS_ENUM } from "../constants/status";
 import { RG } from "../constants/theme";
@@ -119,116 +119,137 @@ export default function Dashboard({ leads, followups, currentUser }) {
   const [isSellerDropdownOpen, setIsSellerDropdownOpen] = useState(false);
   const sellerList = [...new Set(leads.map(l => l.owner).filter(Boolean))];
 
-  const displayLeads = (filterSellers.length === 0 || currentUser?.role !== "admin")
-    ? leads
-    : leads.filter(l => filterSellers.includes(l.owner));
+  const canViewAll = currentUser?.role === 'admin' || currentUser?.role_is_system || currentUser?.permissions?.dashboard?.view === 'all';
+  const canViewSelect = currentUser?.role === 'admin' || currentUser?.role_is_system || currentUser?.permissions?.dashboard?.view_select;
 
-  // 1. กรอง Leads สำหรับแสดงผล KPI และ Pie Chart
-  const filteredLeads = displayLeads.filter(l => {
-    if (dashboardDateRange.type === "all" || (!dashboardDateRange.min && !dashboardDateRange.max)) return true;
-    if (dashboardDateRange.min && (!l.latestContactDate || l.latestContactDate < dashboardDateRange.min)) return false;
-    if (dashboardDateRange.max && (!l.latestContactDate || l.latestContactDate > dashboardDateRange.max)) return false;
-    return true;
-  });
+  // สิทธิ์ Export Dashboard
+  const canExportAll = currentUser?.role === 'admin' || currentUser?.role_is_system || currentUser?.permissions?.dashboard?.export === 'all';
+  const canExport = canExportAll || currentUser?.permissions?.dashboard?.export === 'own';
+  const roleFilteredLeads = (canViewAll || (canViewSelect && filterSellers.length > 0))
+    ? leads 
+    : leads.filter(l => l.owner === currentUser?.username);
+    
+  const displayLeads = filterSellers.length === 0
+    ? roleFilteredLeads
+    : roleFilteredLeads.filter(l => filterSellers.includes(l.owner));
 
-  // --- คำนวณ KPIs ---
-  const currentDateStr = today();
-  const kpiStats = filteredLeads.reduce((acc, l) => {
-    if (l.latestStatus === STATUS_ENUM.CLOSED) acc.closed++;
-    else if (l.latestStatus === STATUS_ENUM.NOT_INTERESTED) acc.notInterested++;
-    else if (l.latestStatus === STATUS_ENUM.MEETING) acc.meetings++;
-
-    if (l.nextFollowupDate && l.nextFollowupDate <= currentDateStr) {
-      acc.needFollow++;
-    }
-
-    if (l.latestStatus) {
-      acc.statusCounts[l.latestStatus] = (acc.statusCounts[l.latestStatus] || 0) + 1;
-    }
-    return acc;
-  }, { closed: 0, needFollow: 0, notInterested: 0, meetings: 0, statusCounts: {} });
-
-  const total = filteredLeads.length;
-  const { closed, needFollow, notInterested, meetings, statusCounts } = kpiStats;
-
-  const pieData = STATUSES.map(s => ({ 
-    name: s, 
-    value: statusCounts[s] || 0 
-  })).filter(d => d.value > 0);
-
-  // --- จัดการแกนเวลา (X-Axis) สำหรับกราฟ ---
-  let chartMonths = [];
-  if (dashboardDateRange.type === "all" || (!dashboardDateRange.min && !dashboardDateRange.max)) {
-    chartMonths = Array.from({ length: 6 }, (_, i) => {
-      const d = new Date();
-      d.setMonth(d.getMonth() - 5 + i);
-      return { 
-        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, 
-        label: d.toLocaleDateString("th-TH", { month: "short", year: "2-digit" }) 
-      };
+  const chartData = useMemo(() => {
+    // 1. กรอง Leads สำหรับแสดงผล KPI และ Pie Chart
+    const _filteredLeads = displayLeads.filter(l => {
+      if (dashboardDateRange.type === "all" || (!dashboardDateRange.min && !dashboardDateRange.max)) return true;
+      if (dashboardDateRange.min && (!l.latestContactDate || l.latestContactDate < dashboardDateRange.min)) return false;
+      if (dashboardDateRange.max && (!l.latestContactDate || l.latestContactDate > dashboardDateRange.max)) return false;
+      return true;
     });
-  } else {
-    let startD = dashboardDateRange.min ? new Date(dashboardDateRange.min) : new Date(new Date().setMonth(new Date().getMonth() - 5));
-    let endD = dashboardDateRange.max ? new Date(dashboardDateRange.max) : new Date();
-    
-    if (startD > endD) {
-      const temp = startD; startD = endD; endD = temp;
-    }
-    
-    let currentD = new Date(startD.getFullYear(), startD.getMonth(), 1);
-    const lastD = new Date(endD.getFullYear(), endD.getMonth(), 1);
-    
-    while (currentD <= lastD) {
-      chartMonths.push({
-        key: `${currentD.getFullYear()}-${String(currentD.getMonth() + 1).padStart(2, "0")}`,
-        label: currentD.toLocaleDateString("th-TH", { month: "short", year: "2-digit" })
+
+    const currentDateStr = today();
+    const _kpiStats = _filteredLeads.reduce((acc, l) => {
+      if (l.latestStatus === STATUS_ENUM.CLOSED) acc.closed++;
+      else if (l.latestStatus === STATUS_ENUM.NOT_INTERESTED) acc.notInterested++;
+      else if (l.latestStatus === STATUS_ENUM.MEETING) acc.meetings++;
+
+      if (l.nextFollowupDate && l.nextFollowupDate <= currentDateStr) {
+        acc.needFollow++;
+      }
+
+      if (l.latestStatus) {
+        acc.statusCounts[l.latestStatus] = (acc.statusCounts[l.latestStatus] || 0) + 1;
+      }
+      return acc;
+    }, { closed: 0, needFollow: 0, notInterested: 0, meetings: 0, statusCounts: {} });
+
+    const _total = _filteredLeads.length;
+    const { closed: _closed, needFollow: _needFollow, notInterested: _notInterested, meetings: _meetings, statusCounts: _statusCounts } = _kpiStats;
+
+    const _pieData = STATUSES.map(s => ({ 
+      name: s, 
+      value: _statusCounts[s] || 0 
+    })).filter(d => d.value > 0);
+
+    let _chartMonths = [];
+    if (dashboardDateRange.type === "all" || (!dashboardDateRange.min && !dashboardDateRange.max)) {
+      _chartMonths = Array.from({ length: 6 }, (_, i) => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 5 + i);
+        return { 
+          key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, 
+          label: d.toLocaleDateString("th-TH", { month: "short", year: "2-digit" }) 
+        };
       });
-      currentD.setMonth(currentD.getMonth() + 1);
+    } else {
+      let startD = dashboardDateRange.min ? new Date(dashboardDateRange.min) : new Date(new Date().setMonth(new Date().getMonth() - 5));
+      let endD = dashboardDateRange.max ? new Date(dashboardDateRange.max) : new Date();
+      
+      if (startD > endD) {
+        const temp = startD; startD = endD; endD = temp;
+      }
+      
+      let currentD = new Date(startD.getFullYear(), startD.getMonth(), 1);
+      const lastD = new Date(endD.getFullYear(), endD.getMonth(), 1);
+      
+      while (currentD <= lastD) {
+        _chartMonths.push({
+          key: `${currentD.getFullYear()}-${String(currentD.getMonth() + 1).padStart(2, "0")}`,
+          label: currentD.toLocaleDateString("th-TH", { month: "short", year: "2-digit" })
+        });
+        currentD.setMonth(currentD.getMonth() + 1);
+      }
     }
-  }
 
-  // --- คำนวณข้อมูลกราฟเส้นและกราฟแท่ง ---
-  const chartKeys = new Set(chartMonths.map(m => m.key));
-  
-  const leadStatsByMonth = displayLeads.reduce((acc, l) => {
-    if (!l.latestContactDate) return acc;
+    const _chartKeys = new Set(_chartMonths.map(m => m.key));
     
-    const mKey = l.latestContactDate.slice(0, 7);
-    if (!chartKeys.has(mKey)) return acc;
-    
-    acc[mKey] = acc[mKey] || { totalContact: 0, closed: 0 };
-    acc[mKey].totalContact++;
-    
-    if (l.latestStatus === STATUS_ENUM.CLOSED) {
-      acc[mKey].closed++;
-    }
-    return acc;
-  }, {});
+    const _leadStatsByMonth = displayLeads.reduce((acc, l) => {
+      if (!l.latestContactDate) return acc;
+      const mKey = l.latestContactDate.slice(0, 7);
+      if (!_chartKeys.has(mKey)) return acc;
+      
+      acc[mKey] = acc[mKey] || { totalContact: 0, closed: 0 };
+      acc[mKey].totalContact++;
+      if (l.latestStatus === STATUS_ENUM.CLOSED) {
+        acc[mKey].closed++;
+      }
+      return acc;
+    }, {});
 
-  const followupStatsByMonth = Object.values(followups).flat().reduce((acc, f) => {
-    if (!f.date) return acc;
-    
-    const mKey = f.date.slice(0, 7);
-    if (chartKeys.has(mKey)) {
-      acc[mKey] = (acc[mKey] || 0) + 1;
-    }
-    return acc;
-  }, {});
+    const _followupStatsByMonth = Object.values(followups).flat().reduce((acc, f) => {
+      if (!f.date) return acc;
+      const mKey = f.date.slice(0, 7);
+      if (_chartKeys.has(mKey)) {
+        acc[mKey] = (acc[mKey] || 0) + 1;
+      }
+      return acc;
+    }, {});
 
-  const lineData = chartMonths.map(m => ({
-    name: m.label,
-    ติดตาม: followupStatsByMonth[m.key] || 0,
-    ปิดการขาย: leadStatsByMonth[m.key]?.closed || 0,
-  }));
+    const _lineData = _chartMonths.map(m => ({
+      name: m.label,
+      ติดตาม: _followupStatsByMonth[m.key] || 0,
+      ปิดการขาย: _leadStatsByMonth[m.key]?.closed || 0,
+    }));
 
-  const barData = chartMonths.map(m => ({
-    name: m.label,
-    โทร: leadStatsByMonth[m.key]?.totalContact || 0,
-    ปิด: leadStatsByMonth[m.key]?.closed || 0,
-  }));
+    const _barData = _chartMonths.map(m => ({
+      name: m.label,
+      โทร: _leadStatsByMonth[m.key]?.totalContact || 0,
+      ปิด: _leadStatsByMonth[m.key]?.closed || 0,
+    }));
 
-  // ตรวจสอบว่าเดือนที่เลือกมีข้อมูลแอนิเมชัน/กราฟหรือไม่
-  const hasChartData = lineData.some(d => d.ติดตาม > 0 || d.ปิดการขาย > 0) || barData.some(d => d.โทร > 0 || d.ปิด > 0);
+    const _hasChartData = _lineData.some(d => d.ติดตาม > 0 || d.ปิดการขาย > 0) || _barData.some(d => d.โทร > 0 || d.ปิด > 0);
+
+    return { 
+      filteredLeads: _filteredLeads, 
+      total: _total, 
+      closed: _closed, 
+      needFollow: _needFollow, 
+      notInterested: _notInterested, 
+      meetings: _meetings, 
+      pieData: _pieData, 
+      lineData: _lineData, 
+      barData: _barData, 
+      hasChartData: _hasChartData,
+      statusCounts: _statusCounts
+    };
+  }, [displayLeads, followups, dashboardDateRange]);
+
+  const { filteredLeads, total, closed, needFollow, notInterested, meetings, pieData, lineData, barData, hasChartData, statusCounts } = chartData;
 
   const statusIcons = {
     [STATUS_ENUM.MEETING]: "📅",
@@ -259,7 +280,7 @@ export default function Dashboard({ leads, followups, currentUser }) {
     const [mode, format] = val.split("_");
 
     let prevSeller = filterSellers;
-    if (mode === "all" && currentUser?.role === "admin") {
+    if (mode === "all" && canExportAll) {
       setFilterSellers([]);
       // รอให้ React render ข้อมูลใหม่ก่อน Export
       await new Promise(resolve => setTimeout(resolve, 800));
@@ -322,7 +343,7 @@ export default function Dashboard({ leads, followups, currentUser }) {
     } finally {
       setIsExporting(false);
       // คืนค่า Dashboard กลับเป็น Current View
-      if (mode === "all" && currentUser?.role === "admin") {
+      if (mode === "all" && currentUser?.permissions?.dashboard?.export === 'all') {
         setFilterSellers(prevSeller);
       }
     }
@@ -359,7 +380,7 @@ export default function Dashboard({ leads, followups, currentUser }) {
           </div>
         </div>
           <div style={{ display: "flex", flexDirection: "row", gap: 10, alignItems: "center" }}>
-            {currentUser?.role === "admin" && (
+            {(canViewAll || canViewSelect) && (
               <div style={{ position: "relative" }}>
                 <div 
                   onClick={() => setIsSellerDropdownOpen(!isSellerDropdownOpen)}
@@ -397,37 +418,39 @@ export default function Dashboard({ leads, followups, currentUser }) {
             )}
 
             {/* Dropdown Export (PNG/PDF) */}
-            <select 
-              onChange={handleExport}
-              disabled={isExporting}
-              value=""
-              style={{
-                padding: "0 14px",
-                borderRadius: "8px",
-                border: `1px solid ${RG.primary}`,
-                backgroundColor: "#ffffff",
-                color: RG.primary,
-                cursor: isExporting ? "not-allowed" : "pointer",
-                fontSize: "13px",
-                fontWeight: 600,
-                height: "36px",
-                outline: "none",
-                fontFamily: "'Sarabun', sans-serif",
-                boxSizing: "border-box"
-              }}
-            >
-              <option value="" disabled>{isExporting ? "กำลังเซฟ..." : "⬇ Export Dashboard"}</option>
-              <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)">
-                <option value="current_png">PNG Image</option>
-                <option value="current_pdf">PDF (Print)</option>
-              </optgroup>
-              {currentUser?.role === "admin" && (
-                <optgroup label="ทั้งหมด (All Report)">
-                  <option value="all_png">PNG Image</option>
-                  <option value="all_pdf">PDF (Print All)</option>
+            {canExport && (
+              <select 
+                onChange={handleExport}
+                disabled={isExporting}
+                value=""
+                style={{
+                  padding: "0 14px",
+                  borderRadius: "8px",
+                  border: `1px solid ${RG.primary}`,
+                  backgroundColor: "#ffffff",
+                  color: RG.primary,
+                  cursor: isExporting ? "not-allowed" : "pointer",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  height: "36px",
+                  outline: "none",
+                  fontFamily: "'Sarabun', sans-serif",
+                  boxSizing: "border-box"
+                }}
+              >
+                <option value="" disabled>{isExporting ? "กำลังเซฟ..." : "⬇ Export Dashboard"}</option>
+                <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)">
+                  <option value="current_png">PNG Image</option>
+                  <option value="current_pdf">PDF (Print)</option>
                 </optgroup>
-              )}
-            </select>
+                {canExportAll && (
+                  <optgroup label="ทั้งหมด (All Report)">
+                    <option value="all_png">PNG Image</option>
+                    <option value="all_pdf">PDF (Print All)</option>
+                  </optgroup>
+                )}
+              </select>
+            )}
           </div>
         </div>
       {/* พื้นที่ครอบคลุมสำหรับดักจับภาพเพื่อ Export */}

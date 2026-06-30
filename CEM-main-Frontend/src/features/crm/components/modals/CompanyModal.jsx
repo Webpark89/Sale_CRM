@@ -9,7 +9,7 @@ import Modal from "../common/Modal";
 import StatusBadge from "../common/StatusBadge";
 import { inputStyle, selectStyle } from "../common/styles";
 
-export default function CompanyModal({ lead, leads = [], followups, onClose, onSave, onSaveFollowup, readOnly = false }) {
+export default function CompanyModal({ lead, leads = [], followups, onClose, onSave, onSaveFollowup, readOnly = false, allSellers = [], fetchAllSellers, handleReassign, setReassignConfirm, currentUser }) {
   const [tab, setTab] = useState("info");
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ ...lead });
@@ -123,6 +123,26 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                   <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>อีเมล</td>
                   <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>{lead.contactEmail || "-"}</td>
                 </tr>
+                {(currentUser?.permissions?.leads?.view_owner || currentUser?.role === 'admin' || currentUser?.role === 'header_saler') && (
+                  <tr>
+                    <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>เซลผู้ดูแล</td>
+                    <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", color: RG.primaryMid, fontWeight: 600 }}>
+                      {currentUser?.role === 'admin' || currentUser?.role === 'header_saler' || currentUser?.permissions?.leads?.reassign ? (
+                        <span 
+                          onClick={() => { 
+                            if(fetchAllSellers) fetchAllSellers(); 
+                            if(setReassignConfirm) setReassignConfirm({ leadId: lead.id, oldOwner: lead.owner, companyName: lead.companyName }); 
+                          }} 
+                          style={{ cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}
+                        >
+                          {lead.owner || "-"}
+                        </span>
+                      ) : (
+                        lead.owner || "-"
+                      )}
+                    </td>
+                  </tr>
+                )}
                 <tr>
                   <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600 }}>รายละเอียด</td>
                   <td style={{ padding: "12px 16px" }}>{lead.description || "-"}</td>

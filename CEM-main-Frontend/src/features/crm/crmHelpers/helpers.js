@@ -5,7 +5,9 @@ export function uuid() {
 }
 
 export function today() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
 }
 
 export function fmtNum(n) {

@@ -72,3 +72,60 @@ export const deleteFollowupApi = async (fupId) => {
   const { data } = await api.delete(`/followups/${fupId}`);
   return data;
 };
+
+// ---------------- User Management ----------------
+export const fetchAllUsers = async () => {
+  const { data } = await api.get("/users");
+  return data;
+};
+
+export const createUserApi = async (userData) => {
+  const { data } = await api.post("/users", userData);
+  return data;
+};
+
+export const updateUserPasswordApi = async (id, username, password, display_name) => {
+  const res = await api.put(`/users/${id}/password`, { username, password, display_name });
+  return res.data;
+};
+
+export const updateUserRoleApi = async (id, role_id) => {
+  const { data } = await api.put(`/users/${id}/role`, { role_id });
+  return data;
+};
+
+export const toggleUserActiveApi = async (id, is_active, adminPassword) => {
+  const { data } = await api.patch(`/users/${id}/active`, { is_active, adminPassword });
+  return data;
+};
+
+export const deleteUserApi = async (id, adminPassword) => {
+  const { data } = await api.delete(`/users/${id}`, { data: { adminPassword } });
+  return data;
+};
+
+export const restoreUserApi = async (id, adminPassword) => {
+  const { data } = await api.post(`/users/${id}/restore`, { adminPassword });
+  return data;
+};
+
+export const updateUserPermissionsApi = async (id, permissions) => {
+  const { data } = await api.put(`/users/${id}/permissions`, { permissions });
+  return data;
+};
+
+// ---------------- Team Management ----------------
+export const fetchTeamStatsApi = async () => {
+  const { data } = await api.get("/leads/team/stats");
+  return data;
+};
+
+export const reassignLeadApi = async (leadId, newOwnerId) => {
+  const { data } = await api.put(`/leads/${leadId}/reassign`, { newOwnerId });
+  return data;
+};
+
+export const bulkReassignLeadsApi = async (fromOwnerId, toOwnerId) => {
+  const { data } = await api.put("/leads/team/bulk-reassign", { fromOwnerId, toOwnerId });
+  return data;
+};

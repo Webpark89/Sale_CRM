@@ -7,12 +7,19 @@ import Modal from "../common/Modal";
 import { inputStyle, selectStyle } from "../common/styles";
 
 // 1. เพิ่ม props `leads` เข้ามาเพื่อใช้ตรวจสอบข้อมูลที่มีอยู่แล้ว
-export default function AddLeadModal({ onClose, onSave, leads = [] }) {
+export default function AddLeadModal({ onClose, onSave, leads = [], currentUser, allSellers, fetchAllSellers }) {
   const [form, setForm] = useState({ 
     companyName: "", companyNumber: "", contactName: "", description: "", contactPhone: "", 
     contactEmail: "", revenue: "", registeredCapital: "", profit: "", 
-    latestStatus: STATUSES[0], latestContactDate: today(), nextFollowupDate: today() 
+    latestStatus: "ฝากโปรไฟล์", latestContactDate: today(), nextFollowupDate: "",
+    owner_id: "" // default to empty, backend will use creator if empty
   });
+
+  React.useEffect(() => {
+    if (currentUser?.role === 'admin' || currentUser?.role === 'header_saler' || currentUser?.permissions?.leads?.assign) {
+      if (fetchAllSellers) fetchAllSellers();
+    }
+  }, [currentUser, fetchAllSellers]);
   
   // 2. เพิ่ม State สำหรับเก็บข้อความแจ้งเตือน Error
   const [taxIdError, setTaxIdError] = useState("");
@@ -70,6 +77,16 @@ export default function AddLeadModal({ onClose, onSave, leads = [] }) {
         <Field label="รายละเอียด"><input value={form.description} onChange={e => up("description", e.target.value)} style={inputStyle} /></Field>
         <Field label="เบอร์โทร"><input value={formatPhoneNumber(form.contactPhone)} onChange={e => up("contactPhone", formatPhoneNumber(e.target.value))} style={inputStyle} /></Field>
         <Field label="อีเมล"><input value={form.contactEmail} onChange={e => up("contactEmail", e.target.value)} style={inputStyle} /></Field>
+        {(currentUser?.role === 'admin' || currentUser?.role === 'header_saler' || currentUser?.permissions?.leads?.assign) && (
+          <Field label="ผู้รับผิดชอบ (เซลส์)">
+            <select value={form.owner_id} onChange={e => up("owner_id", e.target.value)} style={selectStyle}>
+              <option value="">-- เลือกผู้รับผิดชอบ (ค่าเริ่มต้นคือตัวคุณเอง) --</option>
+              {allSellers?.map(s => (
+                <option key={s.id} value={s.id}>{s.username}</option>
+              ))}
+            </select>
+          </Field>
+        )}
         <Field label="สถานะ"><select value={form.latestStatus} onChange={e => up("latestStatus", e.target.value)} style={selectStyle}>{STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></Field>
         <Field label="รายได้รวม (บาท)">
           <input 

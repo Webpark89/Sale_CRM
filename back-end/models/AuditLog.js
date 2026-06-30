@@ -1,12 +1,13 @@
 const db = require('../config/db');
 
 const AuditLog = {
-  create: async (userId, action, tableName, recordId, changes = null) => {
+  create: async (userId, action, tableName, recordId, oldValue = null, newValue = null) => {
     try {
+      const changes = { old_value: oldValue, new_value: newValue };
       await db.execute(
         `INSERT INTO audit_logs (user_id, action, table_name, record_id, changes)
          VALUES (?, ?, ?, ?, ?)`,
-        [userId, action, tableName, recordId, changes ? JSON.stringify(changes) : null]
+        [userId, action, tableName, recordId, JSON.stringify(changes)]
       );
     } catch (err) {
       console.error('AuditLog Error:', err.message);

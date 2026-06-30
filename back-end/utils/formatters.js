@@ -4,6 +4,14 @@
 // แผนกนี้มีหน้าที่เอาข้อมูลดิบๆ จาก Database มาแต่งตัวให้สวยงาม ก่อนส่งให้ Frontend
 // ทำให้ไฟล์ Controller ของเราไม่ต้องมานั่งทำเรื่องจุกจิกพวกนี้
 
+const formatDateLocal = (dateStr) => {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return String(dateStr).slice(0, 10);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+};
+
 /**
  * แปลงข้อมูลลีดให้สวยงาม
  */
@@ -11,6 +19,12 @@ const formatLead = (row) => ({
   ...row,
   id:              row.id,
   owner:           row.owner_username,   
+  ownerId:         row.owner_id,
+  createdBy:       row.created_by,
+  creatorUsername: row.creator_username,
+  assignerUsername: row.assigner_username,
+  prevOwnerUsername: row.prev_owner_username,
+  isAcknowledged:  row.is_acknowledged,
   revenue:         Number(row.revenue) || 0,
   registeredCapital: Number(row.registered_capital) || 0,
   profit:          Number(row.profit) || 0,
@@ -18,10 +32,10 @@ const formatLead = (row) => ({
   everHadMeeting:  !!row.ever_had_meeting, 
   latestStatus:    row.latest_status || "ฝากโปรไฟล์", 
   latestContactDate: row.latest_contact_date 
-    ? (row.latest_contact_date.toISOString?.().slice(0, 10) ?? String(row.latest_contact_date).slice(0, 10))
-    : new Date().toISOString().slice(0, 10), 
+    ? formatDateLocal(row.latest_contact_date)
+    : formatDateLocal(new Date()), 
   nextFollowupDate: row.next_followup_date
-    ? (row.next_followup_date.toISOString?.().slice(0, 10) ?? String(row.next_followup_date).slice(0, 10))
+    ? formatDateLocal(row.next_followup_date)
     : null,
   companyName:     row.company_name,
   companyNumber:   row.company_number,

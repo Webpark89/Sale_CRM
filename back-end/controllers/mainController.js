@@ -25,6 +25,9 @@ const login = asyncHandler(async (req, res) => {
   const user = await User.findByUsername(username);
   if (!user) return res.status(401).json({ error: "Username หรือ Password ไม่ถูกต้อง" });
 
+  // ตรวจสอบสถานะบัญชีก่อน compare password (เพื่อไม่บอกว่ารหัสสถูก/ผิด เมื่อบัญชีถูกระงับ)
+  if (!user.is_active) return res.status(403).json({ error: "บัญชีผู้ใช้นี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ" });
+
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) return res.status(401).json({ error: "Username หรือ Password ไม่ถูกต้อง" });
 
@@ -53,7 +56,14 @@ const getLeads = asyncHandler(async (req, res) => {
 });
 
 const getAllLeadsMaster = asyncHandler(async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ error: 'ไม่มีสิทธิ์เข้าถึงข้อมูลนี้' });
+  const perms = req.user.permissions || {};
+  // อนุญาต: role_is_system, admin role, หรือมีสิทธิ์ view='all' / view_select ของเมนูใดเมนูหนึ่ง
+  const canViewAll = req.user.role_is_system
+    || req.user.role === 'admin'
+    || (perms.leads && (perms.leads.view === 'all' || perms.leads.view_select))
+    || (perms.dashboard && (perms.dashboard.view === 'all' || perms.dashboard.view_select))
+    || (perms.reports && (perms.reports.view === 'all' || perms.reports.view_select));
+  if (!canViewAll) return res.status(403).json({ error: 'ไม่มีสิทธิ์เข้าถึงข้อมูลนี้' });
   const rows = await Lead.findAllMaster();
   res.json(rows.map(formatLead));
 });
@@ -110,7 +120,10 @@ const updateLead = asyncHandler(async (req, res) => {
 
   const existing = await Lead.findByIdWithDetails(id);
   if (!existing) return res.status(404).json({ error: "ไม่พบข้อมูลลีด" });
-  if (role !== "admin" && existing.owner_id !== userId) return res.status(403).json({ error: "ไม่มีสิทธิ์แก้ไขลีดนี้" });
+  
+  const perms = req.user.permissions || {};
+  const canUpdate = req.user.role_is_system || (perms.leads && perms.leads.update === true) || existing.owner_id === userId;
+  if (!canUpdate) return res.status(403).json({ error: "ไม่มีสิทธิ์แก้ไขลีดนี้" });
 
   const company_number = req.body.company_number || req.body.companyNumber;
   const contact_email = req.body.contact_email || req.body.contactEmail;
@@ -182,7 +195,9 @@ const toggleStar = asyncHandler(async (req, res) => {
 
   const existing = await Lead.findById(id);
   if (!existing) return res.status(404).json({ error: "ไม่พบข้อมูลลีด" });
-  if (role !== "admin" && existing.owner_id !== userId) return res.status(403).json({ error: "ไม่มีสิทธิ์แก้ไขลีดนี้" });
+  const perms = req.user.permissions || {};
+  const canUpdate = req.user.role_is_system || (perms.leads && perms.leads.update === true) || existing.owner_id === userId;
+  if (!canUpdate) return res.status(403).json({ error: "ไม่มีสิทธิ์แก้ไขลีดนี้" });
 
   const isStarredNow = await Lead.toggleStar(id, existing.is_starred);
   
@@ -198,7 +213,9 @@ const deleteLead = asyncHandler(async (req, res) => {
 
   const existing = await Lead.findById(id);
   if (!existing) return res.status(404).json({ error: "ไม่พบข้อมูลลีด" });
-  if (role !== "admin" && existing.owner_id !== userId) return res.status(403).json({ error: "ไม่มีสิทธิ์ลบลีดนี้" });
+  const perms = req.user.permissions || {};
+  const canDelete = req.user.role_is_system || (perms.leads && perms.leads.delete === true) || existing.owner_id === userId;
+  if (!canDelete) return res.status(403).json({ error: "ไม่มีสิทธิ์ลบลีดนี้" });
 
   await Lead.delete(id);
   await AuditLog.create(req.user.id, 'delete', 'leads', id, null);
@@ -210,7 +227,9 @@ const deleteLeads = asyncHandler(async (req, res) => {
   const { ids } = req.body;
   if (!ids || !Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: "กรุณาระบุรายการที่ต้องการลบ" });
 
-  const ownerIdParam = req.user.role !== "admin" ? req.user.id : null;
+  const permsForDelete = req.user.permissions || {};
+  const canViewAll = req.user.role_is_system || (permsForDelete.leads && permsForDelete.leads.delete === true);
+  const ownerIdParam = canViewAll ? null : req.user.id;
   await Lead.deleteMany(ids, ownerIdParam);
   await AuditLog.createMany(req.user.id, 'delete', 'leads', ids);
   
@@ -230,7 +249,9 @@ const hardDeleteLead = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { id: userId, role } = req.user;
 
-  if (role !== "admin") return res.status(403).json({ error: "เฉพาะ Admin เท่านั้นที่สามารถลบข้อมูลถาวรได้" });
+  const perms = req.user.permissions || {};
+  const canDeleteAll = req.user.role_is_system || (perms.leads && perms.leads.delete === true);
+  if (!canDeleteAll) return res.status(403).json({ error: "เฉพาะผู้ที่มีสิทธิ์ลบข้อมูลเท่านั้นที่สามารถลบข้อมูลถาวรได้" });
 
   await Lead.hardDelete(id);
   await AuditLog.create(req.user.id, 'delete', 'leads', id, { type: 'hard_delete' });
@@ -267,8 +288,8 @@ const createFollowup = asyncHandler(async (req, res) => {
 
   const lead = await Lead.findById(leadId);
   if (!lead) return res.status(404).json({ error: "ไม่พบข้อมูลลีด" });
-  if (req.user.role !== "admin" && lead.owner_id !== req.user.id) {
-    return res.status(403).json({ error: "ไม่มีสิทธิ์สร้างการติดตามสำหรับลีดนี้" });
+  if (!req.user.role_is_system && lead.owner_id !== req.user.id) {
+    return res.status(403).json({ error: "ไม่มีสิทธิ์ดูการติดตามลีดนี้" });
   }
 
   const newFup = await Followup.create({
@@ -286,7 +307,7 @@ const createFollowup = asyncHandler(async (req, res) => {
 const markDone = asyncHandler(async (req, res) => {
   const fup = await Followup.findByIdWithLead(req.params.id);
   if (!fup) return res.status(404).json({ error: "ไม่พบการติดตามนี้" });
-  if (req.user.role !== "admin" && fup.owner_id !== req.user.id) {
+  if (!req.user.role_is_system && fup.owner_id !== req.user.id) {
     return res.status(403).json({ error: "ไม่มีสิทธิ์แก้ไขการติดตามนี้" });
   }
 
@@ -299,7 +320,7 @@ const markDone = asyncHandler(async (req, res) => {
 const deleteFollowup = asyncHandler(async (req, res) => {
   const fup = await Followup.findByIdWithLead(req.params.id);
   if (!fup) return res.status(404).json({ error: "ไม่พบการติดตามนี้" });
-  if (req.user.role !== "admin" && fup.owner_id !== req.user.id) {
+  if (!req.user.role_is_system && fup.owner_id !== req.user.id) {
     return res.status(403).json({ error: "ไม่มีสิทธิ์ลบการติดตามนี้" });
   }
 
@@ -307,11 +328,172 @@ const deleteFollowup = asyncHandler(async (req, res) => {
   res.json({ message: "ลบการติดตามสำเร็จ" });
 });
 
-// ส่งออกฟังก์ชันทั้งหมดให้ Routes เอาไปใช้งาน
+// ==========================================
+// ส่วนจัดการผู้ใช้งานระบบ (User Management - Admin Only)
+// ==========================================
+
+const getUsers = asyncHandler(async (req, res) => {
+  const users = await User.findAll();
+  res.json(users);
+});
+
+const createUser = asyncHandler(async (req, res) => {
+  const { username, password, role_id, display_name } = req.body;
+  if (!username || !password || !role_id) {
+    return res.status(400).json({ error: "กรุณากรอก Username, Password และเลือก Role" });
+  }
+
+  const existing = await User.findByUsername(username);
+  if (existing) return res.status(409).json({ error: "Username นี้มีอยู่ในระบบแล้ว" });
+
+  const Role = require('../models/Role');
+  const roleData = await Role.findById(role_id);
+  if (!roleData) return res.status(400).json({ error: 'Role ที่เลือกไม่พบในระบบ' });
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const insertId = await User.create({ username, password: hashedPassword, role_id, display_name });
+  
+  const newUser = await User.findById(insertId);
+  res.status(201).json(newUser);
+});
+
+const updateUserPassword = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { username, password, display_name } = req.body;
+  
+  const user = await User.findById(id);
+  if (!user) return res.status(404).json({ error: "ไม่พบผู้ใช้งาน" });
+
+  let hashedPassword = null;
+  if (password) {
+    hashedPassword = await bcrypt.hash(password, 10);
+  }
+  
+  const finalUsername = username || user.username;
+  if (username && username !== user.username) {
+    const existing = await User.findByUsername(username);
+    if (existing && existing.id !== parseInt(id)) {
+      return res.status(400).json({ error: "Username นี้มีผู้ใช้งานแล้ว" });
+    }
+  }
+
+  const finalDisplayName = display_name !== undefined ? display_name : user.display_name;
+
+  await User.updateCredentials(id, finalUsername, hashedPassword, finalDisplayName);
+  res.json({ message: "อัปเดตข้อมูลสำเร็จ", username: finalUsername });
+});
+
+const updateUserRole = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { role_id } = req.body;
+  if (!role_id) return res.status(400).json({ error: 'กรุณาระบุ Role' });
+
+  const Role = require('../models/Role');
+  const roleData = await Role.findById(role_id);
+  if (!roleData) return res.status(400).json({ error: 'Role ที่เลือกไม่พบในระบบ' });
+
+  await User.updateRole(id, role_id);
+  const AuditLog = require('../models/AuditLog');
+  await AuditLog.create(req.user.id, 'update_role', 'users', id, null, { role_id });
+  res.json({ message: 'เปลี่ยน Role สำเร็จ', role_id });
+});
+
+const toggleUserActive = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { is_active, adminPassword } = req.body;
+  
+  if (!adminPassword) return res.status(400).json({ error: "ต้องยืนยันรหัสผ่านแอดมิน" });
+  const admin = await User.findById(req.user.id);
+  const adminWithPassword = await User.findByUsername(admin.username);
+  const valid = await bcrypt.compare(adminPassword, adminWithPassword.password);
+  if (!valid) return res.status(403).json({ error: "รหัสผ่านแอดมินไม่ถูกต้อง" });
+
+  await User.setActive(id, is_active);
+  res.json({ message: is_active ? "เปิดใช้งาน Account สำเร็จ" : "ระงับ Account สำเร็จ", is_active });
+});
+
+const deleteUser = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { adminPassword } = req.body; 
+  
+  if (!adminPassword) return res.status(400).json({ error: "ต้องยืนยันรหัสผ่านแอดมิน" });
+  const admin = await User.findById(req.user.id);
+  const adminWithPassword = await User.findByUsername(admin.username);
+  const valid = await bcrypt.compare(adminPassword, adminWithPassword.password);
+  if (!valid) return res.status(403).json({ error: "รหัสผ่านแอดมินไม่ถูกต้อง" });
+
+  await User.delete(id);
+  const AuditLog = require("../models/AuditLog");
+  await AuditLog.create(req.user.id, "delete", "users", id, { username: adminWithPassword.username }, null);
+  res.json({ message: "ลบผู้ใช้สำเร็จ" });
+});
+
+const restoreUser = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { adminPassword } = req.body;
+  if (!adminPassword) return res.status(400).json({ error: "ต้องยืนยันรหัสผ่านแอดมิน" });
+  const admin = await User.findById(req.user.id);
+  const adminWithPassword = await User.findByUsername(admin.username);
+  const valid = await require('bcryptjs').compare(adminPassword, adminWithPassword.password);
+  if (!valid) return res.status(403).json({ error: "รหัสผ่านแอดมินไม่ถูกต้อง" });
+
+  await User.restore(id);
+  const AuditLog = require("../models/AuditLog");
+  await AuditLog.create(req.user.id, "restore", "users", id, null, { restored: true });
+  res.json({ message: "กู้คืนบัญชีผู้ใช้สำเร็จ" });
+});
+
+const updateUserPermissions = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { permissions } = req.body;
+  
+  if (!permissions) return res.status(400).json({ error: "ไม่มีข้อมูลสิทธิ์" });
+  
+  await User.updatePermissions(id, permissions);
+  const AuditLog = require("../models/AuditLog");
+  await AuditLog.create(req.user.id, "update_permissions", "users", id, null, { permissions });
+  res.json({ message: "อัปเดตสิทธิ์ผู้ใช้สำเร็จ", permissions });
+});
+
+// ==========================================
+// ส่วนจัดการทีม (Team Management - Admin & Header Saler)
+// ==========================================
+
+const getTeamStats = asyncHandler(async (req, res) => {
+  const stats = await Lead.getStatsByOwner();
+  res.json(stats);
+});
+
+const reassignLead = asyncHandler(async (req, res) => {
+  const perms = req.user.permissions || {};
+  const canReassign = req.user.role_is_system || (perms.leads && perms.leads.reassign === true);
+  if (!canReassign) return res.status(403).json({ error: 'ไม่มีสิทธิ์โอนย้ายผู้ดูแล' });
+
+  const { id } = req.params;
+  const { owner_id } = req.body;
+  if (!owner_id) return res.status(400).json({ error: "กรุณาระบุเจ้าของใหม่" });
+
+  await Lead.reassign(id, owner_id, req.user.id);
+  res.json({ message: "โอนย้ายลีดสำเร็จ" });
+});
+
+const bulkReassignLeads = asyncHandler(async (req, res) => {
+  const perms = req.user.permissions || {};
+  const canReassign = req.user.role_is_system || (perms.leads && perms.leads.reassign === true);
+  if (!canReassign) return res.status(403).json({ error: 'ไม่มีสิทธิ์โอนย้ายผู้ดูแล' });
+
+  const { from_owner_id, to_owner_id } = req.body;
+  if (!from_owner_id || !to_owner_id) return res.status(400).json({ error: "ข้อมูลไม่ครบถ้วน" });
+
+  await Lead.bulkReassign(from_owner_id, to_owner_id, req.user.id);
+  res.json({ message: "โอนย้ายลีดทั้งหมดสำเร็จ" });
+});
+
 module.exports = {
   login, getMe,
   getLeads, getAllLeadsMaster, createLead, updateLead, toggleStar, deleteLead, deleteLeads,
-  restoreLeads,
-  hardDeleteLead,
-  getFollowups, createFollowup, markDone, deleteFollowup
+  restoreLeads, hardDeleteLead,
+  getFollowups, createFollowup, markDone, deleteFollowup,
+  getUsers, createUser, updateUserPassword, updateUserRole, toggleUserActive, deleteUser, restoreUser, updateUserPermissions,
+  getTeamStats, reassignLead, bulkReassignLeads
 };

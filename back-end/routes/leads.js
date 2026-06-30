@@ -3,9 +3,9 @@
 // ==========================================
 const express = require("express");
 // ดึงตัวพ่อครัว (ฟังก์ชันทำงานจริง) มาจาก mainController แทน
-const { getLeads, getAllLeadsMaster, createLead, updateLead, toggleStar, deleteLead, deleteLeads, restoreLeads, hardDeleteLead } = require("../controllers/mainController");
+const { getLeads, getAllLeadsMaster, createLead, updateLead, toggleStar, deleteLead, deleteLeads, restoreLeads, hardDeleteLead, reassignLead, bulkReassignLeads, getTeamStats } = require("../controllers/mainController");
 // ดึง รปภ. (Middleware) มาตรวจบัตรคิวล็อกอิน
-const { authenticate } = require("../middleware/authMiddleware");
+const { authenticate, requireManagerAccess } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -23,5 +23,10 @@ router.put("/:id", updateLead);      // ขอแก้ไขข้อมูล�
 router.patch("/:id/star", toggleStar); // ขอเปิด/ปิดดาวรายการโปรด (Patch คือการอัปเดตแค่จุดเล็กๆ)
 router.delete("/:id/hard", hardDeleteLead); // ลบออกจากฐานข้อมูลถาวร (Hard Delete)
 router.delete("/:id", deleteLead);   // ย้ายลงถังขยะ (Soft Delete - แค่ซ่อนไว้)
+
+// --- 📌 เส้นทางสำหรับจัดการทีม (Admin & Header Saler) ---
+router.get("/team/stats", requireManagerAccess, getTeamStats);
+router.put("/team/bulk-reassign", bulkReassignLeads);
+router.put("/:id/reassign", reassignLead);
 
 module.exports = router;

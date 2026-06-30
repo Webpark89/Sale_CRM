@@ -124,9 +124,24 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
 
   const sellerList = [...new Set(leads.map(l => l.owner).filter(Boolean))];
 
-  const displayLeads = (filterSellers.length === 0 || currentUser?.role !== "admin")
+  // สิทธิ์ในการดูข้อมูล — ใช้ Logic เดียวกับ Dashboard
+  const canViewAll = currentUser?.role === 'admin' || currentUser?.role_is_system || currentUser?.permissions?.reports?.view === 'all';
+  const canViewSelect = currentUser?.role === 'admin' || currentUser?.role_is_system || currentUser?.permissions?.reports?.view_select;
+
+  // สิทธิ์ Export
+  const canExportAll = currentUser?.role === 'admin' || currentUser?.role_is_system || currentUser?.permissions?.reports?.export === 'all';
+  const canExport = canExportAll || currentUser?.permissions?.reports?.export === 'own';
+
+  // roleFilteredLeads: ถ้ามีสิทธิ์ดูทั้งหมด (canViewAll) หรือกำลังเลือก seller (canViewSelect) → เห็นทุกลีด
+  // ถ้าไม่มีสิทธิ์ → เห็นแค่ลีดของตัวเอง
+  const roleFilteredLeads = (canViewAll || (canViewSelect && filterSellers.length > 0))
     ? leads
-    : leads.filter(l => filterSellers.includes(l.owner));
+    : leads.filter(l => l.owner === currentUser?.username);
+
+  // displayLeads: กรองตาม seller ที่เลือก (ถ้าไม่ได้เลือก = แสดงทั้งหมดจาก roleFilteredLeads)
+  const displayLeads = filterSellers.length === 0
+    ? roleFilteredLeads
+    : roleFilteredLeads.filter(l => filterSellers.includes(l.owner));
   const pdfContainerRef = useRef(null);
   
   const headerRef = useRef(null);
@@ -201,7 +216,8 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
   const doExportCSV = (targetLeads) => {
     const csvRows = [];
     STATUSES.forEach(status => {
-      if (filterStatus !== "all" && filterStatus !== status) return;
+      // กรองตาม filterStatuses array (ถ้าว่าง = แสดงทุกสถานะ)
+      if (filterStatuses.length > 0 && !filterStatuses.includes(status)) return;
       const items = targetLeads.filter(l => l.latestStatus === status);
       if (items.length === 0) return;
       
@@ -272,7 +288,8 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
     const [modeStr, format] = val.split("_");
 
     let prevSeller = filterSellers;
-    if (modeStr === "all" && currentUser?.role === "admin") {
+    // Export all: อนุญาตถ้าเป็น admin หรือมีสิทธิ์ export=all
+    if (modeStr === "all" && canExportAll) {
       setFilterSellers([]);
       // รอให้ React render ข้อมูลใหม่ก่อน Export
       await new Promise(resolve => setTimeout(resolve, 800));
@@ -371,7 +388,8 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
         </div>
 
         <div style={{ display: "flex", flexDirection: "row", gap: 10, alignItems: "center" }}>
-          {currentUser?.role === "admin" && (
+          {/* Seller Dropdown: แสดงเฉพาะผู้ที่มีสิทธิ์ดูข้อมูลของคนอื่น */}
+          {(canViewAll || canViewSelect) && (
             <div style={{ position: "relative" }}>
               <div 
                 onClick={() => setIsSellerDropdownOpen(!isSellerDropdownOpen)}
@@ -408,36 +426,39 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
             </div>
           )}
 
-          <select 
-            onChange={handleExport} 
-            value="" 
-            style={{ 
-              padding: "0 14px",
-              borderRadius: "8px",
-              border: `1px solid ${RG.primary}`,
-              backgroundColor: "#ffffff",
-              color: RG.primary,
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: 600,
-              height: "36px",
-              outline: "none",
-              fontFamily: "'Sarabun', sans-serif",
-              boxSizing: "border-box"
-            }}
-          >
-            <option value="" disabled>⬇ Export Reports</option>
-            <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)">
-              <option value="current_csv">.CSV (Excel)</option>
-              <option value="current_pdf">.PDF (Print)</option>
-            </optgroup>
-            {currentUser?.role === "admin" && (
-              <optgroup label="ทั้งหมด (All Report)">
-                <option value="all_csv">.CSV (Excel)</option>
-                <option value="all_pdf">.PDF (Print All)</option>
+          {/* Export Dropdown: แสดงเสมอ แต่ optgroup "All" จะแสดงเฉพาะผู้มีสิทธิ์ */}
+          {canExport && (
+            <select 
+              onChange={handleExport} 
+              value="" 
+              style={{ 
+                padding: "0 14px",
+                borderRadius: "8px",
+                border: `1px solid ${RG.primary}`,
+                backgroundColor: "#ffffff",
+                color: RG.primary,
+                cursor: "pointer",
+                fontSize: "13px",
+                fontWeight: 600,
+                height: "36px",
+                outline: "none",
+                fontFamily: "'Sarabun', sans-serif",
+                boxSizing: "border-box"
+              }}
+            >
+              <option value="" disabled>⬇ Export Reports</option>
+              <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)">
+                <option value="current_csv">.CSV (Excel)</option>
+                <option value="current_pdf">.PDF (Print)</option>
               </optgroup>
-            )}
-          </select>
+              {canExportAll && (
+                <optgroup label="ทั้งหมด (All Report)">
+                  <option value="all_csv">.CSV (Excel)</option>
+                  <option value="all_pdf">.PDF (Print All)</option>
+                </optgroup>
+              )}
+            </select>
+          )}
         </div>
       </div>
 

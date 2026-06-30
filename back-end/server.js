@@ -14,6 +14,8 @@ const authRoutes = require("./routes/auth");
 app.use(express.json());
 app.use(cors());
 app.use("/api/auth", require("./routes/auth"));
+app.use("/api/users", require("./routes/users"));
+app.use("/api/roles", require("./routes/roles"));
 app.use("/api/leads", require("./routes/leads"));
 app.use("/api/leads/:leadId/followups", require("./routes/followups"));
 app.use("/api/followups", require("./routes/followups"));
