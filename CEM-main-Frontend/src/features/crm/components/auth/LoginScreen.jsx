@@ -93,7 +93,7 @@ export default function LoginScreen({ onLogin }) {
           <div style={{ width: 72, height: 72, background: RG.gradient || "linear-gradient(135deg, #d6406e 0%, #a42c54 100%)", borderRadius: 20, margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 16px rgba(160, 160, 160, 0.3)" }}>
             <span style={{ fontSize: 32, color: "#fff", fontWeight: 700 }}>Q</span>
           </div>
-          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: RG.text || "#333", letterSpacing: "-0.5px" }}>QoraQot CRM</h1>
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: RG.text || "#333", letterSpacing: "-0.5px" }}>Sales_CRM</h1>
           <p style={{ margin: "6px 0 0", color: RG.textMuted || "#777", fontSize: 14 }}>ระบบจัดการลีดและการขายครบวงจร</p>
         </div>
 

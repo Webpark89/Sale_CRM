@@ -1,8 +1,9 @@
 import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
+import toast from 'react-hot-toast';
 
 // แปลงเป็น JSON
-export const exportJSON = (data, filename = "qoraqot_crm_export.json") => {
+export const exportJSON = (data, filename = "sales_crm_export.json") => {
   const jsonStr = JSON.stringify(data, null, 2);
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([jsonStr], { type: "application/json" }));
@@ -11,7 +12,7 @@ export const exportJSON = (data, filename = "qoraqot_crm_export.json") => {
 };
 
 // แปลงเป็น CSV
-export const exportCSV = (leads, filename = "qoraqot_crm_leads.csv") => {
+export const exportCSV = (leads, filename = "sales_crm_leads.csv") => {
   const csvRows = [];
   csvRows.push("บริษัท,เลขนิติบุคคล,ผู้ติดต่อ,เบอร์โทร,อีเมล,รายละเอียด,รายได้รวม,ทุนจดทะเบียน,กำไร,สถานะ,ติดต่อล่าสุด,นัดถัดไป");
   
@@ -45,7 +46,7 @@ export const exportCSV = (leads, filename = "qoraqot_crm_leads.csv") => {
 };
 
 // แคปจอเป็นภาพ JPG
-export const exportJPG = async (domElement, filename = "qoraqot_crm_report.jpg") => {
+export const exportJPG = async (domElement, filename = "sales_crm_report.jpg") => {
   try {
     const dataUrl = await toPng(domElement, { backgroundColor: '#ffffff' });
     const link = document.createElement('a');
@@ -54,12 +55,12 @@ export const exportJPG = async (domElement, filename = "qoraqot_crm_report.jpg")
     link.click();
   } catch (err) {
     console.error("Export JPG Error:", err);
-    alert("ไม่สามารถสร้างรูปภาพได้");
+    toast.error("ไม่สามารถสร้างรูปภาพได้");
   }
 };
 
 // แคปจอแล้วยัดลง PDF
-export const exportPDF_fromDOM = async (domElement, filename = "qoraqot_crm_report.pdf") => {
+export const exportPDF_fromDOM = async (domElement, filename = "sales_crm_report.pdf") => {
   try {
     const dataUrl = await toPng(domElement, { backgroundColor: '#ffffff' });
     // คำนวณอัตราส่วนภาพให้อยู่ในหน้า A4 แนวนอน (Landscape)
@@ -85,7 +86,7 @@ export const exportPDF_fromDOM = async (domElement, filename = "qoraqot_crm_repo
     pdf.save(filename);
   } catch (err) {
     console.error("Export PDF Error:", err);
-    alert("ไม่สามารถสร้าง PDF ได้");
+    toast.error("ไม่สามารถสร้าง PDF ได้");
   }
 };
 
@@ -291,6 +292,6 @@ export const printHTMLTable = (leads, title = "รายงานสรุปข
     printWindow.document.write(htmlContent);
     printWindow.document.close();
   } else {
-    alert("Popup blocker อาจจะบล็อกการเปิดรายงาน กรุณาอนุญาตให้เปิด popup ได้");
+    toast.error("Popup blocker อาจจะบล็อกการเปิดรายงาน กรุณาอนุญาตให้เปิด popup ได้");
   }
 };

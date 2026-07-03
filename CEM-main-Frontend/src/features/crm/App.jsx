@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
+import { Toaster, toast } from 'react-hot-toast';
 import { STATUSES, STATUS_COLORS, STATUS_ENUM } from "./constants/status";
 import { RG } from "./constants/theme";
 import { createNewLead, parseDateTH, today, uuid } from "./crmHelpers/helpers";
@@ -157,11 +158,11 @@ export default function App() {
 
   const syncStatus = "Cloud Synced";
   const currentDateStr = today();
-  const myLeads = leads.filter(l => l.ownerId === currentUser?.id);
+  const myLeads = leads.filter(l => l.ownerId === currentUser?.id || l.createdBy === currentUser?.id);
   const generalCount = myLeads.filter(l => {
     if (l.latestStatus === "ปิดการขาย") return false;
     
-    const isNewlyAssigned = l.isAcknowledged === 0;
+    const isNewlyAssigned = l.isAcknowledged === 0 && l.ownerId === currentUser?.id;
     if (isNewlyAssigned) return true;
 
     const isNewlyCreatedByMe = l.latestStatus === "ฝากโปรไฟล์" && (l.createdBy === currentUser?.id || l.createdBy === null);
@@ -169,7 +170,7 @@ export default function App() {
     return isNewlyCreatedByMe;
   }).length;
   
-  const dueTodayCount = myLeads.filter(l => (l.nextFollowupDate && l.nextFollowupDate <= currentDateStr && l.latestStatus !== "ปิดการขาย")).length + generalCount;
+  const dueTodayCount = myLeads.filter(l => (l.ownerId === currentUser?.id && l.nextFollowupDate && l.nextFollowupDate <= currentDateStr && l.latestStatus !== "ปิดการขาย")).length + generalCount;
 
   // Undo/Redo Stack
   const [history, setHistory] = useState([]);
@@ -239,7 +240,7 @@ export default function App() {
       await loadData();
     } catch (e) {
       console.error(e);
-      alert("Undo failed");
+      toast.error("Undo failed");
     }
   };
 
@@ -261,7 +262,7 @@ export default function App() {
       await loadData();
     } catch (e) {
       console.error(e);
-      alert("Redo failed");
+      toast.error("Redo failed");
     }
   };
 
@@ -272,7 +273,7 @@ export default function App() {
       setShowAddLead(false);
       pushAction({ type: "ADD_LEAD", payload: { id: newLead.id, data: newLead } });
     } catch (e) {
-      alert(e.response?.data?.error || "บันทึกไม่สำเร็จ");
+      toast.error(e.response?.data?.error || "บันทึกไม่สำเร็จ");
     }
   };
 
@@ -299,7 +300,7 @@ export default function App() {
 
       pushAction({ type: "EDIT_LEAD", payload: { id: updated.id, oldData: oldLead, newData: savedLead } });
     } catch (e) {
-      alert(e.response?.data?.error || "บันทึกไม่สำเร็จ");
+      toast.error(e.response?.data?.error || "บันทึกไม่สำเร็จ");
     }
   };
   
@@ -329,7 +330,7 @@ export default function App() {
       setFollowups(newFollowups);
       setSelectedLead(finalLead);
     } catch(e) {
-      alert(e.response?.data?.error || "บันทึกไม่สำเร็จ");
+      toast.error(e.response?.data?.error || "บันทึกไม่สำเร็จ");
     }
   };
 
@@ -378,7 +379,7 @@ export default function App() {
 
       pushAction({ type: "EDIT_LEAD", payload: { id: leadId, oldData: lead, newData: savedLead } });
     } catch (e) {
-      alert(e.response?.data?.error || "แก้ไขไม่สำเร็จ");
+      toast.error(e.response?.data?.error || "แก้ไขไม่สำเร็จ");
     }
   };
 
@@ -406,7 +407,7 @@ export default function App() {
       setShowDeleteConfirm(false);
       pushAction({ type: "DELETE_LEADS", payload: { ids: idsToDel } });
     } catch(e) {
-      alert("ลบไม่สำเร็จ");
+      toast.error("ลบไม่สำเร็จ");
     }
   };
 
@@ -416,7 +417,7 @@ export default function App() {
       await deleteLeadApi(id);
       loadData();
     } catch (e) {
-      alert("ลบข้อมูลไม่สำเร็จ");
+      toast.error("ลบข้อมูลไม่สำเร็จ");
     }
   };
 
@@ -569,7 +570,7 @@ export default function App() {
     const data = JSON.stringify(dataToExport || { leads, followups }, null, 2);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
-    a.download = filename || "qoraqot_crm_export.json";
+    a.download = filename || "sales_crm_export.json";
     a.click();
   };
 
@@ -602,7 +603,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = filename || `qoraqot_crm_leads.csv`;
+    link.download = filename || `sales_crm_leads.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -631,18 +632,18 @@ export default function App() {
     if (mode === "all") {
       if (!canExportAll) {
         if (printWindow) printWindow.close();
-        return alert("ไม่มีสิทธิ์ Export ข้อมูลทั้งหมด");
+        return toast.error("ไม่มีสิทธิ์ Export ข้อมูลทั้งหมด");
       }
       try {
         targetLeads = await fetchAllLeadsMaster();
         if (!targetLeads || targetLeads.length === 0) {
           if (printWindow) printWindow.close();
-          alert("ไม่พบข้อมูล");
+          toast.error("ไม่พบข้อมูล");
           return;
         }
       } catch (err) {
         if (printWindow) printWindow.close();
-        alert("API Error: " + (err.response?.data?.error || err.message));
+        toast.error("API Error: " + (err.response?.data?.error || err.message));
         return;
       }
     }
@@ -674,6 +675,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: RG.background, fontFamily: "'Sarabun', sans-serif", color: RG.text, display: "flex", flexDirection: "row" }}>
+      <Toaster position="top-right" />
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #E8FFFD; } ::-webkit-scrollbar-thumb { background: #03B5AA; border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; }`}</style>
 
       {/* Left Sidebar (Hoverable) */}
@@ -1108,7 +1110,18 @@ export default function App() {
         )}
 
         {page === "role_management" && (currentUser?.role_is_system || currentUser?.permissions?.roles?.menu) && (
-          <RoleManagementPage currentUser={currentUser} />
+          <div>
+            <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #0f766e, #14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", boxShadow: "0 4px 6px rgba(15, 118, 110, 0.2)" }}>
+                🔐
+              </div>
+              <div>
+                <h2 style={{ margin: 0, color: "#0f766e", fontSize: 24, fontWeight: 800 }}>จัดการ Role & สิทธิ์การใช้งาน (Role Management)</h2>
+                <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: 14 }}>สร้างและกำหนด Permission ของแต่ละ Role ภายในระบบ</p>
+              </div>
+            </div>
+            <RoleManagementPage currentUser={currentUser} />
+          </div>
         )}
 
         {page === "user_management" && (currentUser?.role_is_system || currentUser?.permissions?.users?.menu) && (

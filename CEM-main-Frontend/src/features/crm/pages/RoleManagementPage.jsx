@@ -5,29 +5,27 @@
 import React, { useState, useEffect } from 'react';
 import RolePermissionForm from '../components/RolePermissionForm.jsx';
 import { fetchRoles, createRoleApi, updateRoleApi, deleteRoleApi } from '../services/roleService.js';
+import Btn from '../components/common/Btn';
+import { RG } from '../constants/theme.js';
 
 const styles = {
-  container: { padding: 28 },
-  headerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  title: { margin: 0, fontSize: 22, fontWeight: 700, color: '#1e293b' },
-  subtitle: { margin: '4px 0 0', fontSize: 13, color: '#64748b' },
+  container: { background: RG.surface, padding: 24, borderRadius: 12, boxShadow: RG.shadowSoft },
+  headerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  title: { margin: 0 },
+  subtitle: { margin: '4px 0 0', fontSize: 13, color: RG.textMuted },
   btnCreate: {
     padding: '10px 20px', background: '#6366f1', color: '#fff',
     border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer',
     fontSize: 14, display: 'flex', alignItems: 'center', gap: 6
   },
-  card: {
-    background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0',
-    overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)'
-  },
+  card: {},
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 14 },
   th: {
-    padding: '12px 16px', background: '#f8fafc', borderBottom: '2px solid #e2e8f0',
-    textAlign: 'left', fontWeight: 600, color: '#475569', fontSize: 12
+    padding: 12, background: RG.navbarBg, borderBottom: `2px solid ${RG.border}`,
+    textAlign: 'left', fontWeight: 'bold'
   },
   td: {
-    padding: '14px 16px', borderBottom: '1px solid #f1f5f9',
-    color: '#374151', verticalAlign: 'middle'
+    padding: 12, borderBottom: `1px solid ${RG.border}`
   },
   systemBadge: {
     display: 'inline-block', padding: '2px 8px',
@@ -122,13 +120,13 @@ const RoleManagementPage = ({ currentUser }) => {
       {/* Header */}
       <div style={styles.headerRow}>
         <div>
-          <h1 style={styles.title}>🔐 จัดการ Role & สิทธิ์การใช้งาน</h1>
+          <h3 style={styles.title}>จัดการ Role & สิทธิ์การใช้งาน</h3>
           <p style={styles.subtitle}>สร้างและกำหนด Permission ของแต่ละ Role</p>
         </div>
         {canCreate && (
-          <button style={styles.btnCreate} onClick={openCreate}>
-            ➕ สร้าง Role ใหม่
-          </button>
+          <Btn onClick={openCreate}>
+            + สร้าง Role ใหม่
+          </Btn>
         )}
       </div>
 
@@ -155,7 +153,7 @@ const RoleManagementPage = ({ currentUser }) => {
               <tr><td colSpan={5} style={styles.empty}>ยังไม่มี Role ในระบบ</td></tr>
             )}
             {!loading && roles.map((role, idx) => (
-              <tr key={role.id} style={idx % 2 === 1 ? { background: '#f8fafc' } : {}}>
+              <tr key={role.id}>
                 <td style={styles.td}>
                   <div style={styles.roleName}>{role.display_name}</div>
                   <div style={styles.roleKey}>{role.name}</div>

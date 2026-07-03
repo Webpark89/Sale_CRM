@@ -69,11 +69,41 @@ const getAllLeadsMaster = asyncHandler(async (req, res) => {
 });
 
 const createLead = asyncHandler(async (req, res) => {
-  const owner_id = req.user.id;
-  const data = { owner_id, ...req.body };
+  let finalOwnerId = req.body.owner_id || req.user.id;
+  let assigned_by = null;
+  if (finalOwnerId !== req.user.id) {
+    assigned_by = req.user.id;
+  }
+  
+  const data = { 
+    ...req.body,
+    owner_id: finalOwnerId,
+    created_by: req.user.id,
+    assigned_by: assigned_by 
+  };
   const company_name = req.body.company_name || req.body.companyName;
   const company_number = req.body.company_number || req.body.companyNumber;
   const contact_email = req.body.contact_email || req.body.contactEmail;
+  const contact_phone = req.body.contact_phone || req.body.contactPhone;
+
+  if (contact_phone && !/^\d+$/.test(contact_phone)) {
+    return res.status(400).json({ error: "เบอร์โทรศัพท์ต้องเป็นตัวเลขเท่านั้น" });
+  }
+
+  const rev = Number(req.body.revenue);
+  const prof = Number(req.body.profit);
+  const cap = Number(req.body.registered_capital || req.body.registeredCapital);
+  if (rev < 0 || prof < 0) return res.status(400).json({ error: "รายได้และกำไรไม่สามารถติดลบได้" });
+  if (cap <= 0 && cap !== undefined && !isNaN(cap)) return res.status(400).json({ error: "ทุนจดทะเบียนต้องมากกว่า 0 บาท" });
+
+  const cDate = req.body.latestContactDate || req.body.latest_contact_date;
+  const nDate = req.body.nextFollowupDate || req.body.next_followup_date;
+  if (cDate && nDate) {
+    if (new Date(cDate) > new Date(nDate)) {
+      return res.status(400).json({ error: "วันที่ติดต่อต้องไม่ช้ากว่าวันที่นัดหมายถัดไป" });
+    }
+  }
+
   if (contact_email) {
     if (/[ก-๙]/.test(contact_email)) {
       const err = new Error("ห้ามใส่อีเมลเป็นภาษาไทย");
@@ -127,6 +157,26 @@ const updateLead = asyncHandler(async (req, res) => {
 
   const company_number = req.body.company_number || req.body.companyNumber;
   const contact_email = req.body.contact_email || req.body.contactEmail;
+  const contact_phone = req.body.contact_phone || req.body.contactPhone;
+
+  if (contact_phone && !/^\d+$/.test(contact_phone)) {
+    return res.status(400).json({ error: "เบอร์โทรศัพท์ต้องเป็นตัวเลขเท่านั้น" });
+  }
+
+  const rev = req.body.revenue !== undefined ? Number(req.body.revenue) : undefined;
+  const prof = req.body.profit !== undefined ? Number(req.body.profit) : undefined;
+  const cap = req.body.registered_capital !== undefined ? Number(req.body.registered_capital) : (req.body.registeredCapital !== undefined ? Number(req.body.registeredCapital) : undefined);
+  if ((rev !== undefined && rev < 0) || (prof !== undefined && prof < 0)) return res.status(400).json({ error: "รายได้และกำไรไม่สามารถติดลบได้" });
+  if (cap !== undefined && cap <= 0) return res.status(400).json({ error: "ทุนจดทะเบียนต้องมากกว่า 0 บาท" });
+
+  const cDate = req.body.latestContactDate || req.body.latest_contact_date;
+  const nDate = req.body.nextFollowupDate || req.body.next_followup_date;
+  if (cDate && nDate) {
+    if (new Date(cDate) > new Date(nDate)) {
+      return res.status(400).json({ error: "วันที่ติดต่อต้องไม่ช้ากว่าวันที่นัดหมายถัดไป" });
+    }
+  }
+
   if (contact_email) {
     if (/[ก-๙]/.test(contact_email)) {
       const err = new Error("ห้ามใส่อีเมลเป็นภาษาไทย");
@@ -342,6 +392,12 @@ const createUser = asyncHandler(async (req, res) => {
   if (!username || !password || !role_id) {
     return res.status(400).json({ error: "กรุณากรอก Username, Password และเลือก Role" });
   }
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    return res.status(400).json({ error: "Username ห้ามมีเว้นวรรคและอักขระพิเศษ (ใช้ได้แค่ a-z, A-Z, 0-9, _)" });
+  }
+  if (!password.trim()) {
+    return res.status(400).json({ error: "Password ห้ามเป็นช่องว่าง" });
+  }
 
   const existing = await User.findByUsername(username);
   if (existing) return res.status(409).json({ error: "Username นี้มีอยู่ในระบบแล้ว" });
@@ -365,12 +421,16 @@ const updateUserPassword = asyncHandler(async (req, res) => {
   if (!user) return res.status(404).json({ error: "ไม่พบผู้ใช้งาน" });
 
   let hashedPassword = null;
-  if (password) {
+  if (password !== undefined) {
+    if (!password.trim()) return res.status(400).json({ error: "Password ห้ามเป็นช่องว่าง" });
     hashedPassword = await bcrypt.hash(password, 10);
   }
   
   const finalUsername = username || user.username;
   if (username && username !== user.username) {
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      return res.status(400).json({ error: "Username ห้ามมีเว้นวรรคและอักขระพิเศษ (ใช้ได้แค่ a-z, A-Z, 0-9, _)" });
+    }
     const existing = await User.findByUsername(username);
     if (existing && existing.id !== parseInt(id)) {
       return res.status(400).json({ error: "Username นี้มีผู้ใช้งานแล้ว" });
@@ -473,6 +533,10 @@ const reassignLead = asyncHandler(async (req, res) => {
   const { owner_id } = req.body;
   if (!owner_id) return res.status(400).json({ error: "กรุณาระบุเจ้าของใหม่" });
 
+  const existing = await Lead.findById(id);
+  if (!existing) return res.status(404).json({ error: "ไม่พบข้อมูลลีด" });
+  if (existing.owner_id == owner_id) return res.status(400).json({ error: "ไม่สามารถโอนย้ายให้เซลส์คนเดิมได้" });
+
   await Lead.reassign(id, owner_id, req.user.id);
   res.json({ message: "โอนย้ายลีดสำเร็จ" });
 });
@@ -484,6 +548,7 @@ const bulkReassignLeads = asyncHandler(async (req, res) => {
 
   const { from_owner_id, to_owner_id } = req.body;
   if (!from_owner_id || !to_owner_id) return res.status(400).json({ error: "ข้อมูลไม่ครบถ้วน" });
+  if (from_owner_id == to_owner_id) return res.status(400).json({ error: "ไม่สามารถโอนย้ายให้เซลส์คนเดิมได้" });
 
   await Lead.bulkReassign(from_owner_id, to_owner_id, req.user.id);
   res.json({ message: "โอนย้ายลีดทั้งหมดสำเร็จ" });

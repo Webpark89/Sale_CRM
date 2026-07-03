@@ -26,7 +26,10 @@ const createRole = asyncHandler(async (req, res) => {
   }
 
   const existing = await Role.findByName(name);
-  if (existing) return res.status(409).json({ error: 'ชื่อ Role นี้มีอยู่ในระบบแล้ว' });
+  if (existing) return res.status(409).json({ error: 'ชื่อรหัส Role นี้มีอยู่ในระบบแล้ว' });
+
+  const existingDisplay = await Role.findByDisplayName(display_name);
+  if (existingDisplay) return res.status(409).json({ error: 'ชื่อ Role นี้มีอยู่ในระบบแล้ว' });
 
   const insertId = await Role.create({ name, display_name, permissions: permissions || {} });
   const newRole = await Role.findById(insertId);
@@ -45,6 +48,13 @@ const updateRole = asyncHandler(async (req, res) => {
   if (name && name !== role.name) {
     const existing = await Role.findByName(name);
     if (existing && existing.id !== parseInt(id)) {
+      return res.status(409).json({ error: 'ชื่อรหัส Role นี้มีอยู่ในระบบแล้ว' });
+    }
+  }
+
+  if (display_name && display_name !== role.display_name) {
+    const existingDisplay = await Role.findByDisplayName(display_name);
+    if (existingDisplay && existingDisplay.id !== parseInt(id)) {
       return res.status(409).json({ error: 'ชื่อ Role นี้มีอยู่ในระบบแล้ว' });
     }
   }

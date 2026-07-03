@@ -32,8 +32,8 @@ const baseLeadQuery = `
 
 const Lead = {
   findAllByOwner: async (ownerId) => {
-    let query = baseLeadQuery + " WHERE l.owner_id = ? AND l.is_deleted = 0 ORDER BY l.created_at DESC";
-    const [rows] = await db.execute(query, [ownerId]);
+    let query = baseLeadQuery + " WHERE (l.owner_id = ? OR l.created_by = ?) AND l.is_deleted = 0 ORDER BY l.created_at DESC";
+    const [rows] = await db.execute(query, [ownerId, ownerId]);
     return rows;
   },
 

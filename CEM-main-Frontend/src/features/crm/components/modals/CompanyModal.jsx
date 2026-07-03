@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import toast from 'react-hot-toast';
 import html2canvas from "html2canvas"; // ⚠️ อย่าลืม import html2canvas
 import { RG } from "../../constants/theme";
 import { STATUSES } from "../../constants/status";
@@ -39,7 +40,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
 
   const handleSaveInfo = () => {
     if (taxIdError) {
-      alert("ไม่สามารถบันทึกได้ เนื่องจากเลขนิติบุคคลซ้ำในระบบ");
+      toast.error("ไม่สามารถบันทึกได้ เนื่องจากเลขนิติบุคคลซ้ำในระบบ");
       return;
     }
     onSave(form);
@@ -64,7 +65,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
       document.body.removeChild(link);
     } catch (error) {
       console.error("Export failed:", error);
-      alert("ไม่สามารถสร้างรูปภาพได้ กรุณาลองใหม่อีกครั้ง");
+      toast.error("ไม่สามารถสร้างรูปภาพได้ กรุณาลองใหม่อีกครั้ง");
     }
   };
 
@@ -88,7 +89,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
             <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
               <div style={{ width: 50, height: 50, background: RG.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 24 }}>Q</div>
               <div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: RG.primary, lineHeight: 1.2 }}>QoraQot CRM</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: RG.primary, lineHeight: 1.2 }}>Sales_CRM</div>
                 <div style={{ fontSize: 13, color: RG.textMuted }}>Customer Profile Report</div>
               </div>
             </div>
@@ -203,7 +204,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
 
           {/* Footer */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "60px", paddingTop: "20px", borderTop: "1px solid #e2e8f0", fontSize: 11, color: RG.textMuted }}>
-            <div>ระบบบริหารจัดการการขาย QoraQot CRM</div>
+            <div>ระบบบริหารจัดการการขาย Sales_CRM</div>
             <div style={{ fontWeight: 600, letterSpacing: "0.5px" }}>CONFIDENTIAL</div>
           </div>
         </div>
@@ -240,7 +241,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
               <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                 <div style={{ width: 50, height: 50, background: RG.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 24 }}>Q</div>
                 <div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: RG.primary, lineHeight: 1.2 }}>QoraQot CRM</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: RG.primary, lineHeight: 1.2 }}>Sales_CRM</div>
                   <div style={{ fontSize: 13, color: RG.textMuted }}>Customer Profile Report</div>
                 </div>
               </div>

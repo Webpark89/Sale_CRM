@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { authenticate, requireManagerAccess } = require("../middleware/authMiddleware");
+const { authenticate, requirePermission, requireManagerAccess } = require("../middleware/authMiddleware");
 
 const {
   getUsers,
@@ -13,16 +13,27 @@ const {
   updateUserPermissions
 } = require("../controllers/mainController");
 
-// ทุก Route ในนี้ต้องล็อกอิน และเป็น Manager ขึ้นไป
-router.use(authenticate, requireManagerAccess);
+// ใช้ authenticate เป็นพื้นฐานสำหรับทุกเส้นทาง
+router.use(authenticate);
 
-router.get("/", getUsers);
-router.post("/", createUser);
-router.put("/:id/password", updateUserPassword);
-router.put("/:id/role", updateUserRole);
-router.patch("/:id/active", toggleUserActive);
-router.delete("/:id", deleteUser);
-router.post("/:id/restore", restoreUser);
-router.put("/:id/permissions", updateUserPermissions);
+// สำหรับ GET / อนุญาตให้เข้าถึงได้ถ้ามีสิทธิ์ users.view หรือ leads.assign
+router.get("/", (req, res, next) => {
+  const user = req.user;
+  if (user.role_is_system) return next();
+  const perms = user.permissions || {};
+  if (perms.users?.view || perms.leads?.assign) {
+    return next();
+  }
+  return res.status(403).json({ error: 'ไม่มีสิทธิ์เข้าถึงรายชื่อผู้ใช้' });
+}, getUsers);
+
+// Route อื่นๆ สำหรับจัดการ User ใช้ requirePermission แบบละเอียด
+router.post("/", requirePermission('users', 'create'), createUser);
+router.put("/:id/password", requirePermission('users', 'update'), updateUserPassword);
+router.put("/:id/role", requirePermission('users', 'update'), updateUserRole);
+router.patch("/:id/active", requirePermission('users', 'update'), toggleUserActive);
+router.delete("/:id", requirePermission('users', 'delete'), deleteUser);
+router.post("/:id/restore", requirePermission('users', 'delete'), restoreUser);
+router.put("/:id/permissions", requirePermission('users', 'update'), updateUserPermissions);
 
 module.exports = router;

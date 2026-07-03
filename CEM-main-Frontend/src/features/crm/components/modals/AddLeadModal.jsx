@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import toast from 'react-hot-toast';
 import { STATUSES } from "../../constants/status";
 import { today, formatNumberWithCommas, parseNumberFromCommas, formatPhoneNumber } from "../../crmHelpers/helpers";
 import Btn from "../common/Btn";
@@ -15,8 +16,10 @@ export default function AddLeadModal({ onClose, onSave, leads = [], currentUser,
     owner_id: "" // default to empty, backend will use creator if empty
   });
 
+  const canAssign = currentUser?.permissions?.leads?.assign;
+
   React.useEffect(() => {
-    if (currentUser?.role === 'admin' || currentUser?.role === 'header_saler' || currentUser?.permissions?.leads?.assign) {
+    if (canAssign) {
       if (fetchAllSellers) fetchAllSellers();
     }
   }, [currentUser, fetchAllSellers]);
@@ -42,16 +45,20 @@ export default function AddLeadModal({ onClose, onSave, leads = [], currentUser,
   // 4. สร้างฟังก์ชันกดบันทึก เพื่อดักจับ Error ก่อนส่งข้อมูล
   const handleSave = () => {
     if (taxIdError) {
-      alert("ไม่สามารถบันทึกได้ เนื่องจากเลขนิติบุคคลซ้ำในระบบ");
+      toast.error("ไม่สามารถบันทึกได้ เนื่องจากเลขนิติบุคคลซ้ำในระบบ");
       return;
     }
     // ดักข้อมูลบังคับกรอก (มีเครื่องหมาย *)
     if (!form.companyNumber.trim() || !form.companyName.trim()) {
-      alert("กรุณากรอกเลขนิติบุคคลและชื่อบริษัทให้ครบถ้วน");
+      toast.error("กรุณากรอกเลขนิติบุคคลและชื่อบริษัทให้ครบถ้วน");
       return;
     }
+    const payload = { ...form };
+    if (!canAssign || !payload.owner_id) {
+      delete payload.owner_id;
+    }
     
-    onSave(form);
+    onSave(payload);
   };
 
   return (
@@ -77,7 +84,7 @@ export default function AddLeadModal({ onClose, onSave, leads = [], currentUser,
         <Field label="รายละเอียด"><input value={form.description} onChange={e => up("description", e.target.value)} style={inputStyle} /></Field>
         <Field label="เบอร์โทร"><input value={formatPhoneNumber(form.contactPhone)} onChange={e => up("contactPhone", formatPhoneNumber(e.target.value))} style={inputStyle} /></Field>
         <Field label="อีเมล"><input value={form.contactEmail} onChange={e => up("contactEmail", e.target.value)} style={inputStyle} /></Field>
-        {(currentUser?.role === 'admin' || currentUser?.role === 'header_saler' || currentUser?.permissions?.leads?.assign) && (
+        {canAssign && (
           <Field label="ผู้รับผิดชอบ (เซลส์)">
             <select value={form.owner_id} onChange={e => up("owner_id", e.target.value)} style={selectStyle}>
               <option value="">-- เลือกผู้รับผิดชอบ (ค่าเริ่มต้นคือตัวคุณเอง) --</option>

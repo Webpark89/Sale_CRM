@@ -35,6 +35,11 @@ const Role = {
     return parseRole(rows[0]);
   },
 
+  findByDisplayName: async (displayName) => {
+    const [rows] = await db.execute('SELECT * FROM roles WHERE display_name = ?', [displayName]);
+    return parseRole(rows[0]);
+  },
+
   create: async ({ name, display_name, permissions }) => {
     const [result] = await db.execute(
       'INSERT INTO roles (name, display_name, permissions) VALUES (?, ?, ?)',

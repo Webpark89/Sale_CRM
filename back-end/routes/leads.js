@@ -4,8 +4,7 @@
 const express = require("express");
 // ดึงตัวพ่อครัว (ฟังก์ชันทำงานจริง) มาจาก mainController แทน
 const { getLeads, getAllLeadsMaster, createLead, updateLead, toggleStar, deleteLead, deleteLeads, restoreLeads, hardDeleteLead, reassignLead, bulkReassignLeads, getTeamStats } = require("../controllers/mainController");
-// ดึง รปภ. (Middleware) มาตรวจบัตรคิวล็อกอิน
-const { authenticate, requireManagerAccess } = require("../middleware/authMiddleware");
+const { authenticate, requireManagerAccess, requirePermission } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -16,7 +15,7 @@ router.use(authenticate);
 // --- 📌 เส้นทาง API ต่างๆ ---
 router.get("/", getLeads);           // ขอดูข้อมูลลีดทั้งหมด
 router.post("/all", getAllLeadsMaster); // ขอดูข้อมูลลีดทั้งหมดด้วยรหัสผ่าน
-router.post("/", createLead);        // ขอสร้างลีดใหม่ (ส่งเป็น JSON แนบมา)
+router.post("/", requirePermission('leads', 'create'), createLead);        // ขอสร้างลีดใหม่ (ส่งเป็น JSON แนบมา)
 router.post("/restore", restoreLeads); // ขอคืนค่าข้อมูลที่โดนลบ (Undo)
 router.delete("/bulk", deleteLeads); // ขอส่ง array id มาลบพร้อมกันหลายๆ ตัว
 router.put("/:id", updateLead);      // ขอแก้ไขข้อมูลลีดทั้งหมดของ ID นีั

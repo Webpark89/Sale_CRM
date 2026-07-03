@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import toast from 'react-hot-toast';
 import { toJpeg } from "html-to-image";
 import { jsPDF } from "jspdf";
 import { STATUSES, STATUS_COLORS, STATUS_ENUM } from "../constants/status";
@@ -97,7 +98,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
       const maxD = new Date(maxStr);
       const diffDays = Math.ceil(Math.abs(maxD - minD) / (1000 * 60 * 60 * 24));
       if (diffDays > 365) {
-        alert("ระยะเวลาที่เลือกเกิน 1 ปี กรุณาเลือกช่วงเวลาไม่เกิน 365 วันเพื่อป้องกันปัญหาข้อมูลมหาศาล");
+        toast.error("ระยะเวลาที่เลือกเกิน 1 ปี กรุณาเลือกช่วงเวลาไม่เกิน 365 วันเพื่อป้องกันปัญหาข้อมูลมหาศาล");
         return false;
       }
     }
@@ -274,7 +275,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
       pdf.save(`รายงานสรุป_${reportDateRange.min || "all"}_to_${reportDateRange.max || "all"}.pdf`);
     } catch (error) {
       console.error(error);
-      alert("ไม่สามารถสร้างรูปภาพได้ กรุณาลองใหม่อีกครั้ง");
+      toast.error("ไม่สามารถสร้างรูปภาพได้ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setIsExporting(false);
     }
@@ -303,7 +304,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
           await doExportPDF();
         }
       } catch (err) {
-        alert(err.response?.data?.error || "เกิดข้อผิดพลาด");
+        toast.error(err.response?.data?.error || "เกิดข้อผิดพลาด");
       } finally {
         setFilterSellers(prevSeller);
       }
@@ -570,7 +571,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
                   <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                     <div style={{ width: 50, height: 50, background: RG.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 24 }}>Q</div>
                     <div>
-                      <div style={{ fontSize: 22, fontWeight: 700, color: RG.primary, lineHeight: 1.2 }}>QoraQot CRM</div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: RG.primary, lineHeight: 1.2 }}>Sales_CRM</div>
                       <div style={{ fontSize: 13, color: RG.textMuted }}>Sales & Lead Management System</div>
                     </div>
                   </div>
@@ -653,7 +654,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
               {/* FOOTER (ผลักลงมาด้านล่างสุดเสมอเพราะ justifyContent: space-between) */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px", paddingTop: "20px", borderTop: "1px solid #e2e8f0", fontSize: 11, color: RG.textMuted }}>
                 <div>พิมพ์เมื่อ: {new Date().toLocaleString("th-TH")}</div>
-                <div style={{ fontWeight: 600, letterSpacing: "0.5px" }}>CONFIDENTIAL - QORAQOT CRM</div>
+                <div style={{ fontWeight: 600, letterSpacing: "0.5px" }}>CONFIDENTIAL - SALES_CRM</div>
               </div>
 
             </div>

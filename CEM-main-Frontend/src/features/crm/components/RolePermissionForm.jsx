@@ -3,6 +3,7 @@
 // Form สร้าง/แก้ไข Role พร้อม Permission UI ตามแบบ
 // ==========================================
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 
 // ─── สร้าง permissions object เริ่มต้น ──────────────────────────────────────
 const buildDefaultPermissions = (existing = {}) => {
@@ -129,8 +130,8 @@ const RolePermissionForm = ({ role = null, onSave, onClose, isSaving = false }) 
   };
 
   const handleSave = () => {
-    if (!name.trim()) return alert('กรุณากรอกชื่อ Role');
-    if (!displayName.trim()) return alert('กรุณากรอกชื่อที่แสดง');
+    if (!name.trim()) return toast.error('กรุณากรอกชื่อ Role');
+    if (!displayName.trim()) return toast.error('กรุณากรอกชื่อที่แสดง');
     onSave({ name: name.trim(), display_name: displayName.trim(), permissions });
   };
 

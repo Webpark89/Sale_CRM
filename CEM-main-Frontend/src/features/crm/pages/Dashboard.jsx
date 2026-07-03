@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
+import toast from 'react-hot-toast';
 import { PieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { STATUSES, STATUS_COLORS, STATUS_ENUM } from "../constants/status";
 import { RG } from "../constants/theme";
@@ -95,7 +96,7 @@ export default function Dashboard({ leads, followups, currentUser }) {
       const maxD = new Date(maxStr);
       const diffDays = Math.ceil(Math.abs(maxD - minD) / (1000 * 60 * 60 * 24));
       if (diffDays > 365) {
-        alert("ระยะเวลาที่เลือกเกิน 1 ปี กรุณาเลือกช่วงเวลาไม่เกิน 365 วันเพื่อป้องกันปัญหาข้อมูลมหาศาล");
+        toast.error("ระยะเวลาที่เลือกเกิน 1 ปี กรุณาเลือกช่วงเวลาไม่เกิน 365 วันเพื่อป้องกันปัญหาข้อมูลมหาศาล");
         return false;
       }
     }
@@ -339,7 +340,7 @@ export default function Dashboard({ leads, followups, currentUser }) {
       }
     } catch (error) {
       console.error("Export failed", error);
-      alert("ไม่สามารถส่งออกภาพได้ กรุณาลองใหม่อีกครั้ง");
+      toast.error("ไม่สามารถส่งออกภาพได้ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setIsExporting(false);
       // คืนค่า Dashboard กลับเป็น Current View
@@ -481,7 +482,7 @@ export default function Dashboard({ leads, followups, currentUser }) {
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: 20, fontWeight: 700, color: RG.primaryMid, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
                 <div style={{ width: 24, height: 24, background: RG.primary, borderRadius: "50%", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>Q</div>
-                QoraQot CRM
+                Sales_CRM
               </div>
               <div style={{ fontSize: 12, color: RG.textMuted, marginTop: 8 }}>
                 ข้อมูล ณ วันที่พิมพ์: {new Date().toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "numeric" })} เวลา {new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}
@@ -634,7 +635,7 @@ export default function Dashboard({ leads, followups, currentUser }) {
         {/* Formal Footer */}
         {isExporting && (
           <div style={{ marginTop: 50, borderTop: "2px solid #e2e8f0", paddingTop: 20, display: "flex", justifyContent: "space-between", color: "#64748b", fontSize: 13 }}>
-            <div>© 2026 QoraQot CRM System. All rights reserved.</div>
+            <div>© 2026 Sales_CRM System. All rights reserved.</div>
             <div>รายงานสำหรับใช้ภายในองค์กรเท่านั้น (Internal Use Only)</div>
           </div>
         )}

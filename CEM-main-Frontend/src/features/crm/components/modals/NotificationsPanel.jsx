@@ -22,19 +22,25 @@ export default function NotificationsPanel({ currentUser, leads, onMarkDone, onV
   const isDefaultDate = filterDate === today();
 
   const sortLeads = (arr) => arr.sort((a, b) => {
+    const dateA = a.nextFollowupDate || a.latestContactDate || "";
+    const dateB = b.nextFollowupDate || b.latestContactDate || "";
+    if (dateA !== dateB) {
+      return dateB.localeCompare(dateA); // Descending (nearest to today at the top)
+    }
+    
     const weightA = PRIORITY_WEIGHT[a.latestStatus] || 0;
     const weightB = PRIORITY_WEIGHT[b.latestStatus] || 0;
     return weightB - weightA;
   });
 
-  const dueToday = sortLeads(leads.filter(l => l.nextFollowupDate === filterDate && l.latestStatus !== "ปิดการขาย"));
-  const overdue = isDefaultDate ? sortLeads(leads.filter(l => l.nextFollowupDate && l.nextFollowupDate < filterDate && l.latestStatus !== "ปิดการขาย")) : [];
+  const dueToday = sortLeads(leads.filter(l => l.ownerId === currentUser?.id && l.nextFollowupDate === filterDate && l.latestStatus !== "ปิดการขาย"));
+  const overdue = isDefaultDate ? sortLeads(leads.filter(l => l.ownerId === currentUser?.id && l.nextFollowupDate && l.nextFollowupDate < filterDate && l.latestStatus !== "ปิดการขาย")) : [];
   
   // General: 1. สร้างเอง (ฝากโปรไฟล์) 2. ได้รับมอบหมายใหม่ (isAcknowledged === 0)
   const general = sortLeads(leads.filter(l => {
     if (l.latestStatus === "ปิดการขาย") return false;
     
-    const isNewlyAssigned = l.isAcknowledged === 0;
+    const isNewlyAssigned = l.isAcknowledged === 0 && l.ownerId === currentUser?.id;
     if (isNewlyAssigned) return true;
 
     const isNewlyCreatedByMe = l.latestStatus === "ฝากโปรไฟล์" && (l.createdBy === currentUser?.id || l.createdBy === null);
@@ -43,7 +49,7 @@ export default function NotificationsPanel({ currentUser, leads, onMarkDone, onV
   }));
 
   const getNoteText = (l) => {
-    if (l.isAcknowledged === 0) {
+    if (l.isAcknowledged === 0 && l.ownerId === currentUser?.id) {
       return `🔄 โอนย้ายมาจาก: ${l.prevOwnerUsername || 'ไม่มี'} | 🔄 โอนย้ายมาโดย: ${l.assignerUsername || l.creatorUsername || 'ระบบ'}`;
     }
     return "✨ ลีดใหม่ที่สร้างสำเร็จ";
