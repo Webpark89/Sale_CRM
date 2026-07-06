@@ -31,8 +31,9 @@ export default function EditableCell({ value, onSave, type = "text", options }) 
           textOverflow: "ellipsis",
           padding: "2px 4px", 
           borderRadius: 4, 
-          color: STATUS_COLORS[val] ? STATUS_COLORS[val] : RG.text, 
-          fontSize: 13 
+          color: STATUS_COLORS[val] ? STATUS_COLORS[val] : "#1f2937", 
+          fontSize: 13,
+          fontWeight: 500
         }} 
         title={val ? String(val) : "คลิกเพื่อแก้ไข"}
       >

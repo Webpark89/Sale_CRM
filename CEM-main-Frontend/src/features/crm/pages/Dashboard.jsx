@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import toast from 'react-hot-toast';
-import { PieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { PieChart, Pie, Cell, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { STATUSES, STATUS_COLORS, STATUS_ENUM } from "../constants/status";
 import { RG } from "../constants/theme";
 import { today } from "../crmHelpers/helpers";
@@ -11,634 +11,313 @@ import Modal from "../components/common/Modal";
 
 const getPresetRange = (preset) => {
   const d = new Date();
-  const format = (date) => {
-    const offset = date.getTimezoneOffset() * 60000;
-    return new Date(date.getTime() - offset).toISOString().split('T')[0];
-  };
-  const todayStr = format(d);
-  
-  if (preset === "today") return { min: todayStr, max: todayStr };
-  if (preset === "last6months") {
-    const past = new Date(d.getFullYear(), d.getMonth() - 5, 1);
-    return { min: format(past), max: todayStr };
-  }
-  if (preset === "thismonth") {
-    const firstDay = new Date(d.getFullYear(), d.getMonth(), 1);
-    return { min: format(firstDay), max: todayStr };
-  }
-  if (preset === "lastmonth") {
-    const firstDay = new Date(d.getFullYear(), d.getMonth() - 1, 1);
-    const lastDay = new Date(d.getFullYear(), d.getMonth(), 0);
-    return { min: format(firstDay), max: format(lastDay) };
-  }
-  if (preset === "thisquarter") {
-    const currentQuarter = Math.floor(d.getMonth() / 3);
-    const firstDay = new Date(d.getFullYear(), currentQuarter * 3, 1);
-    return { min: format(firstDay), max: todayStr };
-  }
-  if (preset === "lastquarter") {
-    const currentQuarter = Math.floor(d.getMonth() / 3);
-    const firstDay = new Date(d.getFullYear(), currentQuarter * 3 - 3, 1);
-    const lastDay = new Date(d.getFullYear(), currentQuarter * 3, 0);
-    return { min: format(firstDay), max: format(lastDay) };
-  }
-  if (preset === "thisyear") {
-    const firstDay = new Date(d.getFullYear(), 0, 1);
-    return { min: format(firstDay), max: todayStr };
-  }
-  return { min: "", max: "" };
+  const fmt = (date) => { const off = date.getTimezoneOffset()*60000; return new Date(date.getTime()-off).toISOString().split('T')[0]; };
+  const t = fmt(d);
+  if (preset==='today') return {min:t,max:t};
+  if (preset==='last6months') { const p=new Date(d.getFullYear(),d.getMonth()-5,1); return {min:fmt(p),max:t}; }
+  if (preset==='thismonth') { return {min:fmt(new Date(d.getFullYear(),d.getMonth(),1)),max:t}; }
+  if (preset==='lastmonth') { return {min:fmt(new Date(d.getFullYear(),d.getMonth()-1,1)),max:fmt(new Date(d.getFullYear(),d.getMonth(),0))}; }
+  if (preset==='thisquarter') { const q=Math.floor(d.getMonth()/3); return {min:fmt(new Date(d.getFullYear(),q*3,1)),max:t}; }
+  if (preset==='lastquarter') { const q=Math.floor(d.getMonth()/3); return {min:fmt(new Date(d.getFullYear(),q*3-3,1)),max:fmt(new Date(d.getFullYear(),q*3,0))}; }
+  if (preset==='thisyear') { return {min:fmt(new Date(d.getFullYear(),0,1)),max:t}; }
+  return {min:'',max:''};
 };
 
-const formatThaiShortDate = (dateStr) => {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  if (isNaN(d)) return dateStr;
-  const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-  const day = d.getDate();
-  const month = thaiMonths[d.getMonth()];
-  const year = (d.getFullYear() + 543).toString().slice(-2);
-  return `${day} ${month} ${year}`;
+const fmtThai = (s) => {
+  if (!s) return '';
+  const d=new Date(s); if(isNaN(d)) return s;
+  const m=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return d.getDate()+' '+m[d.getMonth()]+' '+(d.getFullYear()+543).toString().slice(-2);
 };
 
-const getDateRangeLabel = (range) => {
-  if (range.type === "last6months") return "6 เดือนล่าสุด";
-  if (range.type === "thismonth") return "เดือนนี้";
-  if (range.type === "lastmonth") return "เดือนที่แล้ว";
-  if (range.type === "thisquarter") return "ไตรมาสนี้";
-  if (range.type === "lastquarter") return "ไตรมาสที่แล้ว";
-  if (range.type === "thisyear") return "ปีนี้";
-  if (range.type === "today") return "วันนี้";
-  if (range.type === "all") return "ทั้งหมด (ไม่กรอง)";
-  if (range.type === "custom") {
-    if (range.min && range.max) return `${formatThaiShortDate(range.min)} - ${formatThaiShortDate(range.max)}`;
-    if (range.min) return `ตั้งแต่ ${formatThaiShortDate(range.min)}`;
-    if (range.max) return `ถึง ${formatThaiShortDate(range.max)}`;
-    return "กำหนดเอง";
-  }
-  return "เลือกช่วงเวลา";
+const getLabel = (r) => {
+  if(r.type==='last6months') return '6 เดือนล่าสุด';
+  if(r.type==='thismonth') return 'เดือนนี้';
+  if(r.type==='lastmonth') return 'เดือนที่แล้ว';
+  if(r.type==='thisquarter') return 'ไตรมาสนี้';
+  if(r.type==='lastquarter') return 'ไตรมาสที่แล้ว';
+  if(r.type==='thisyear') return 'ปีนี้';
+  if(r.type==='today') return 'วันนี้';
+  if(r.type==='all') return 'ทั้งหมด (ไม่กรอง)';
+  if(r.type==='custom') { if(r.min&&r.max) return fmtThai(r.min)+' - '+fmtThai(r.max); if(r.min) return 'ตั้งแต่ '+fmtThai(r.min); if(r.max) return 'ถึง '+fmtThai(r.max); return 'กำหนดเอง'; }
+  return 'เลือกช่วงเวลา';
+};
+
+const Tip = ({ active, payload, label }) => {
+  if (!active||!payload?.length) return null;
+  return React.createElement('div',{style:{background:'rgba(2,52,54,0.95)',borderRadius:12,padding:'10px 16px',boxShadow:'0 8px 24px rgba(0,0,0,0.25)'}},
+    React.createElement('p',{style:{color:'#9CEAEF',fontSize:12,margin:'0 0 6px',fontFamily:RG.fontHeading}},label),
+    payload.map((p,i)=>React.createElement('p',{key:i,style:{color:'#fff',fontSize:13,margin:'2px 0'}},
+      React.createElement('span',{style:{display:'inline-block',width:10,height:10,borderRadius:'50%',background:p.color,marginRight:6}}),
+      p.name+': ',React.createElement('strong',null,p.value)
+    ))
+  );
 };
 
 export default function Dashboard({ leads, followups, currentUser }) {
-  const [dashboardDateRange, setDashboardDateRange] = useState({ 
-    ...getPresetRange("last6months"), 
-    type: "last6months" 
-  });
-  const [showDateModal, setShowDateModal] = useState(false);
-
-  const handleDatePreset = (preset) => {
-    const range = getPresetRange(preset);
-    setDashboardDateRange({ ...range, type: preset });
-  };
-
-  const checkOneYearLimit = (minStr, maxStr) => {
-    if (minStr && maxStr) {
-      const minD = new Date(minStr);
-      const maxD = new Date(maxStr);
-      const diffDays = Math.ceil(Math.abs(maxD - minD) / (1000 * 60 * 60 * 24));
-      if (diffDays > 365) {
-        toast.error("ระยะเวลาที่เลือกเกิน 1 ปี กรุณาเลือกช่วงเวลาไม่เกิน 365 วันเพื่อป้องกันปัญหาข้อมูลมหาศาล");
-        return false;
-      }
-    }
-    return true;
-  };
-
-  const handleCustomDateChange = (field, val) => {
-    setDashboardDateRange(prev => {
-      const next = { ...prev, [field]: val, type: "custom" };
-      if (!checkOneYearLimit(next.min, next.max)) {
-        return prev;
-      }
-      return next;
-    });
-  };
-
-  const [isExporting, setIsExporting] = useState(false); 
-  const exportRef = useRef(null); 
-
+  const [dr, setDr] = useState({...getPresetRange('last6months'),type:'last6months'});
+  const [showModal, setShowModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const exportRef = useRef(null);
   const [filterSellers, setFilterSellers] = useState([]);
-  const [isSellerDropdownOpen, setIsSellerDropdownOpen] = useState(false);
-  const sellerList = [...new Set(leads.map(l => l.owner).filter(Boolean))];
+  const [sellerOpen, setSellerOpen] = useState(false);
+  const sellerList = [...new Set(leads.map(l=>l.owner).filter(Boolean))];
 
-  const canViewAll = currentUser?.role === 'admin' || currentUser?.role_is_system || currentUser?.permissions?.dashboard?.view === 'all';
-  const canViewSelect = currentUser?.role === 'admin' || currentUser?.role_is_system || currentUser?.permissions?.dashboard?.view_select;
+  const isAdmin = currentUser?.role==='admin'||currentUser?.role_is_system;
+  const canViewAll = isAdmin||currentUser?.permissions?.dashboard?.view==='all';
+  const canViewSelect = isAdmin||currentUser?.permissions?.dashboard?.view_select;
+  const canExportAll = isAdmin||currentUser?.permissions?.dashboard?.export==='all';
+  const canExport = canExportAll||currentUser?.permissions?.dashboard?.export==='own';
 
-  // สิทธิ์ Export Dashboard
-  const canExportAll = currentUser?.role === 'admin' || currentUser?.role_is_system || currentUser?.permissions?.dashboard?.export === 'all';
-  const canExport = canExportAll || currentUser?.permissions?.dashboard?.export === 'own';
-  const roleFilteredLeads = (canViewAll || (canViewSelect && filterSellers.length > 0))
-    ? leads 
-    : leads.filter(l => l.owner === currentUser?.username);
-    
-  const displayLeads = filterSellers.length === 0
-    ? roleFilteredLeads
-    : roleFilteredLeads.filter(l => filterSellers.includes(l.owner));
+  const roleLeads = (canViewAll||(canViewSelect&&filterSellers.length>0))?leads:leads.filter(l=>l.owner===currentUser?.username);
+  const displayLeads = filterSellers.length===0?roleLeads:roleLeads.filter(l=>filterSellers.includes(l.owner));
 
-  const chartData = useMemo(() => {
-    // 1. กรอง Leads สำหรับแสดงผล KPI และ Pie Chart
-    const _filteredLeads = displayLeads.filter(l => {
-      if (dashboardDateRange.type === "all" || (!dashboardDateRange.min && !dashboardDateRange.max)) return true;
-      if (dashboardDateRange.min && (!l.latestContactDate || l.latestContactDate < dashboardDateRange.min)) return false;
-      if (dashboardDateRange.max && (!l.latestContactDate || l.latestContactDate > dashboardDateRange.max)) return false;
+  const chkYear = (a,b)=>{
+    if(a&&b){ const diff=Math.ceil(Math.abs(new Date(b)-new Date(a))/(864e5)); if(diff>365){toast.error('ระยะเวลาเกิน 1 ปี');return false;} } return true;
+  };
+
+  const data = useMemo(()=>{
+    const fl = displayLeads.filter(l=>{
+      if(dr.type==='all'||(!dr.min&&!dr.max)) return true;
+      if(dr.min&&(!l.latestContactDate||l.latestContactDate<dr.min)) return false;
+      if(dr.max&&(!l.latestContactDate||l.latestContactDate>dr.max)) return false;
       return true;
     });
+    const td=today();
+    const s=fl.reduce((a,l)=>{
+      if(l.latestStatus===STATUS_ENUM.CLOSED) a.closed++;
+      if(l.nextFollowupDate&&l.nextFollowupDate<=td) a.need++;
+      if(l.latestStatus) a.sc[l.latestStatus]=(a.sc[l.latestStatus]||0)+1;
+      return a;
+    },{closed:0,need:0,sc:{}});
 
-    const currentDateStr = today();
-    const _kpiStats = _filteredLeads.reduce((acc, l) => {
-      if (l.latestStatus === STATUS_ENUM.CLOSED) acc.closed++;
-      else if (l.latestStatus === STATUS_ENUM.NOT_INTERESTED) acc.notInterested++;
-      else if (l.latestStatus === STATUS_ENUM.MEETING) acc.meetings++;
+    const pie=STATUSES.map(n=>({name:n,value:s.sc[n]||0})).filter(x=>x.value>0);
 
-      if (l.nextFollowupDate && l.nextFollowupDate <= currentDateStr) {
-        acc.needFollow++;
-      }
-
-      if (l.latestStatus) {
-        acc.statusCounts[l.latestStatus] = (acc.statusCounts[l.latestStatus] || 0) + 1;
-      }
-      return acc;
-    }, { closed: 0, needFollow: 0, notInterested: 0, meetings: 0, statusCounts: {} });
-
-    const _total = _filteredLeads.length;
-    const { closed: _closed, needFollow: _needFollow, notInterested: _notInterested, meetings: _meetings, statusCounts: _statusCounts } = _kpiStats;
-
-    const _pieData = STATUSES.map(s => ({ 
-      name: s, 
-      value: _statusCounts[s] || 0 
-    })).filter(d => d.value > 0);
-
-    let _chartMonths = [];
-    if (dashboardDateRange.type === "all" || (!dashboardDateRange.min && !dashboardDateRange.max)) {
-      _chartMonths = Array.from({ length: 6 }, (_, i) => {
-        const d = new Date();
-        d.setMonth(d.getMonth() - 5 + i);
-        return { 
-          key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, 
-          label: d.toLocaleDateString("th-TH", { month: "short", year: "2-digit" }) 
-        };
-      });
+    let months=[];
+    if(dr.type==='all'||(!dr.min&&!dr.max)){
+      months=Array.from({length:6},(_,i)=>{const d=new Date();d.setMonth(d.getMonth()-5+i);return{key:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),label:d.toLocaleDateString('th-TH',{month:'short',year:'2-digit'})};});
     } else {
-      let startD = dashboardDateRange.min ? new Date(dashboardDateRange.min) : new Date(new Date().setMonth(new Date().getMonth() - 5));
-      let endD = dashboardDateRange.max ? new Date(dashboardDateRange.max) : new Date();
-      
-      if (startD > endD) {
-        const temp = startD; startD = endD; endD = temp;
-      }
-      
-      let currentD = new Date(startD.getFullYear(), startD.getMonth(), 1);
-      const lastD = new Date(endD.getFullYear(), endD.getMonth(), 1);
-      
-      while (currentD <= lastD) {
-        _chartMonths.push({
-          key: `${currentD.getFullYear()}-${String(currentD.getMonth() + 1).padStart(2, "0")}`,
-          label: currentD.toLocaleDateString("th-TH", { month: "short", year: "2-digit" })
-        });
-        currentD.setMonth(currentD.getMonth() + 1);
-      }
+      let sd=dr.min?new Date(dr.min):new Date(new Date().setMonth(new Date().getMonth()-5));
+      let ed=dr.max?new Date(dr.max):new Date();
+      if(sd>ed){const t=sd;sd=ed;ed=t;}
+      let cd=new Date(sd.getFullYear(),sd.getMonth(),1);
+      const ld=new Date(ed.getFullYear(),ed.getMonth(),1);
+      while(cd<=ld){months.push({key:cd.getFullYear()+'-'+String(cd.getMonth()+1).padStart(2,'0'),label:cd.toLocaleDateString('th-TH',{month:'short',year:'2-digit'})});cd.setMonth(cd.getMonth()+1);}
     }
+    const keys=new Set(months.map(m=>m.key));
+    const lbm=displayLeads.reduce((a,l)=>{if(!l.latestContactDate)return a;const k=l.latestContactDate.slice(0,7);if(!keys.has(k))return a;a[k]=a[k]||{t:0,c:0};a[k].t++;if(l.latestStatus===STATUS_ENUM.CLOSED)a[k].c++;return a;},{});
+    const fbm=Object.values(followups).flat().reduce((a,f)=>{if(!f.date)return a;const k=f.date.slice(0,7);if(keys.has(k))a[k]=(a[k]||0)+1;return a;},{});
+    const line=months.map(m=>({name:m.label,ติดตาม:fbm[m.key]||0,ปิดการขาย:lbm[m.key]?.c||0}));
+    const bar=months.map(m=>({name:m.label,โทร:lbm[m.key]?.t||0,ปิด:lbm[m.key]?.c||0}));
+    const hasData=line.some(d=>d.ติดตาม>0||d.ปิดการขาย>0)||bar.some(d=>d.โทร>0||d.ปิด>0);
+    return{total:fl.length,need:s.need,pie,line,bar,hasData,sc:s.sc};
+  },[displayLeads,followups,dr]);
 
-    const _chartKeys = new Set(_chartMonths.map(m => m.key));
-    
-    const _leadStatsByMonth = displayLeads.reduce((acc, l) => {
-      if (!l.latestContactDate) return acc;
-      const mKey = l.latestContactDate.slice(0, 7);
-      if (!_chartKeys.has(mKey)) return acc;
-      
-      acc[mKey] = acc[mKey] || { totalContact: 0, closed: 0 };
-      acc[mKey].totalContact++;
-      if (l.latestStatus === STATUS_ENUM.CLOSED) {
-        acc[mKey].closed++;
-      }
-      return acc;
-    }, {});
+  const {total,need,pie,line,bar,hasData,sc}=data;
 
-    const _followupStatsByMonth = Object.values(followups).flat().reduce((acc, f) => {
-      if (!f.date) return acc;
-      const mKey = f.date.slice(0, 7);
-      if (_chartKeys.has(mKey)) {
-        acc[mKey] = (acc[mKey] || 0) + 1;
-      }
-      return acc;
-    }, {});
-
-    const _lineData = _chartMonths.map(m => ({
-      name: m.label,
-      ติดตาม: _followupStatsByMonth[m.key] || 0,
-      ปิดการขาย: _leadStatsByMonth[m.key]?.closed || 0,
-    }));
-
-    const _barData = _chartMonths.map(m => ({
-      name: m.label,
-      โทร: _leadStatsByMonth[m.key]?.totalContact || 0,
-      ปิด: _leadStatsByMonth[m.key]?.closed || 0,
-    }));
-
-    const _hasChartData = _lineData.some(d => d.ติดตาม > 0 || d.ปิดการขาย > 0) || _barData.some(d => d.โทร > 0 || d.ปิด > 0);
-
-    return { 
-      filteredLeads: _filteredLeads, 
-      total: _total, 
-      closed: _closed, 
-      needFollow: _needFollow, 
-      notInterested: _notInterested, 
-      meetings: _meetings, 
-      pieData: _pieData, 
-      lineData: _lineData, 
-      barData: _barData, 
-      hasChartData: _hasChartData,
-      statusCounts: _statusCounts
-    };
-  }, [displayLeads, followups, dashboardDateRange]);
-
-  const { filteredLeads, total, closed, needFollow, notInterested, meetings, pieData, lineData, barData, hasChartData, statusCounts } = chartData;
-
-  const statusIcons = {
-    [STATUS_ENUM.MEETING]: "📅",
-    [STATUS_ENUM.PROFILE]: "📝",
-    [STATUS_ENUM.FOLLOW_UP]: "📞",
-    [STATUS_ENUM.UNREACHABLE]: "📵",
-    [STATUS_ENUM.NOT_INTERESTED]: "❌",
-    [STATUS_ENUM.CLOSED]: "✅",
-  };
-
-  const kpis = [
-    { label: "ลีดทั้งหมด", value: total, icon: "👥", color: "#7B68EE" },
-    { label: "ต้องติดตามวันนี้", value: needFollow, icon: "🔔", color: RG.warn },
-    ...STATUSES.map(s => ({
-      label: s,
-      value: statusCounts[s] || 0,
-      icon: statusIcons[s] || "📌",
-      color: STATUS_COLORS[s] || RG.primary
-    }))
+  const kpis=[
+    {label:'ลีดทั้งหมด',value:total,icon:'👥',g:'linear-gradient(135deg,#667eea,#764ba2)',sh:'rgba(102,126,234,0.35)'},
+    {label:'ต้องติดตามวันนี้',value:need,icon:'🔔',g:'linear-gradient(135deg,#f093fb,#f5576c)',sh:'rgba(245,87,108,0.35)'},
+    {label:'ปิดการขาย',value:sc[STATUS_ENUM.CLOSED]||0,icon:'✅',g:'linear-gradient(135deg,#11998e,#38ef7d)',sh:'rgba(56,239,125,0.30)'},
+    {label:'มีตติ้ง',value:sc[STATUS_ENUM.MEETING]||0,icon:'📅',g:'linear-gradient(135deg,#ffd89b,#19547b)',sh:'rgba(25,84,123,0.35)'},
+    {label:'ต้องตามต่อ',value:sc[STATUS_ENUM.FOLLOW_UP]||0,icon:'📞',g:'linear-gradient(135deg,#fc466b,#3f5efb)',sh:'rgba(63,94,251,0.30)'},
+    {label:'ฝากโปรไฟล์',value:sc[STATUS_ENUM.PROFILE]||0,icon:'📝',g:'linear-gradient(135deg,#89f7fe,#66a6ff)',sh:'rgba(102,166,255,0.30)'},
+    {label:'ติดต่อไม่ได้',value:sc[STATUS_ENUM.UNREACHABLE]||0,icon:'📵',g:'linear-gradient(135deg,#868f96,#596164)',sh:'rgba(89,97,100,0.30)'},
+    {label:'ไม่สนใจ',value:sc[STATUS_ENUM.NOT_INTERESTED]||0,icon:'❌',g:'linear-gradient(135deg,#ee9ca7,#ffdde1)',sh:'rgba(238,156,167,0.30)',tc:'#7f1d1d'},
   ];
 
-  // ฟังก์ชันจัดการการ Export หน้าแดชบอร์ด
-  const handleExport = async (e) => {
-    const val = e.target.value;
-    e.target.value = ""; // รีเซ็ต Dropdown
-    if (!val) return;
-
-    const [mode, format] = val.split("_");
-
-    let prevSeller = filterSellers;
-    if (mode === "all" && canExportAll) {
-      setFilterSellers([]);
-      // รอให้ React render ข้อมูลใหม่ก่อน Export
-      await new Promise(resolve => setTimeout(resolve, 800));
-    }
-
-    if (!exportRef.current || isExporting) return;
-    setIsExporting(true);
-    // รอให้จัดสไตล์หัวและท้ายแบบเป็นทางการ
-    await new Promise(resolve => setTimeout(resolve, 200));
-
+  const doExport = async (e) => {
+    const val=e.target.value; e.target.value=''; if(!val) return;
+    const [mode,fmt]=val.split('_');
+    let prev=filterSellers;
+    if(mode==='all'&&canExportAll){setFilterSellers([]);await new Promise(r=>setTimeout(r,800));}
+    if(!exportRef.current||isExporting) return;
+    setIsExporting(true); await new Promise(r=>setTimeout(r,200));
     try {
-      const filename = `dashboard-${(dashboardDateRange.min || "all")}-${new Date().toISOString().slice(0, 10)}`;
-
-      if (format === "png") {
-        const dataUrl = await toPng(exportRef.current, {
-          quality: 1.0,
-          backgroundColor: "#FFFFFF",
-          pixelRatio: 2,
-        });
-        const a = document.createElement("a");
-        a.href = dataUrl;
-        a.download = `${filename}.png`;
-        a.click();
-      } else if (format === "pdf") {
-        const dataUrl = await toJpeg(exportRef.current, {
-          quality: 0.8,
-          backgroundColor: "#FFFFFF",
-          pixelRatio: 1.5,
-        });
-
-        // PDF แนวตั้ง (Portrait)
-        const pdf = new jsPDF("p", "mm", "a4");
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        
-        const imgProps = pdf.getImageProperties(dataUrl);
-        const imgRatio = imgProps.width / imgProps.height;
-        
-        // เราจะใช้พื้นที่กระดาษให้มากที่สุด โดยให้ขอบบางส่วนเป็น padding จาก HTML แทน
-        const margin = 0;
-        let finalWidth = pdfWidth - margin * 2;
-        let finalHeight = finalWidth / imgRatio;
-
-        // ถ้ายาวเกิน A4 ให้ย่อเพื่อให้พอดีหน้า
-        if (finalHeight > (pdfHeight - margin * 2)) {
-          finalHeight = pdfHeight - margin * 2;
-          finalWidth = finalHeight * imgRatio;
-        }
-        
-        // จัดกึ่งกลางแนวนอน
-        const xOffset = (pdfWidth - finalWidth) / 2;
-        // จัดกึ่งกลางแนวตั้งถ้ามีความสูงเหลือ
-        const yOffset = margin + (pdfHeight - margin * 2 - finalHeight) / 2;
-        pdf.addImage(dataUrl, "PNG", xOffset, yOffset, finalWidth, finalHeight);
-        pdf.save(`${filename}.pdf`);
+      const fn='dashboard-'+(dr.min||'all')+'-'+new Date().toISOString().slice(0,10);
+      if(fmt==='png'){const u=await toPng(exportRef.current,{quality:1,backgroundColor:'#fff',pixelRatio:2});const a=document.createElement('a');a.href=u;a.download=fn+'.png';a.click();}
+      else if(fmt==='pdf'){
+        const u=await toJpeg(exportRef.current,{quality:0.8,backgroundColor:'#fff',pixelRatio:1.5});
+        const pdf=new jsPDF('p','mm','a4');const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+        const ip=pdf.getImageProperties(u);const ratio=ip.width/ip.height;
+        let fw=pw,fh=fw/ratio; if(fh>ph){fh=ph;fw=fh*ratio;}
+        pdf.addImage(u,'PNG',(pw-fw)/2,(ph-fh)/2,fw,fh); pdf.save(fn+'.pdf');
       }
-    } catch (error) {
-      console.error("Export failed", error);
-      toast.error("ไม่สามารถส่งออกภาพได้ กรุณาลองใหม่อีกครั้ง");
-    } finally {
-      setIsExporting(false);
-      // คืนค่า Dashboard กลับเป็น Current View
-      if (mode === "all" && currentUser?.permissions?.dashboard?.export === 'all') {
-        setFilterSellers(prevSeller);
-      }
-    }
+    } catch(err){toast.error('ไม่สามารถส่งออกได้');}
+    finally{setIsExporting(false);if(mode==='all'&&currentUser?.permissions?.dashboard?.export==='all')setFilterSellers(prev);}
   };
 
-  return (
-    <div>
-      {/* ส่วนหัวและตัวกรองเดือน */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          
-          {/* ตัวเลือกช่วงเวลา */}
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "16px" }}>
-            <button 
-              onClick={() => setShowDateModal(true)} 
-              style={{ 
-                padding: "8px 16px", 
-                borderRadius: 8, 
-                border: `2px solid ${RG.primary}`, 
-                background: "#fff", 
-                color: RG.primary, 
-                cursor: "pointer", 
-                fontWeight: 600, 
-                fontSize: 13, 
-                transition: "all 0.2s",
-                whiteSpace: "nowrap"
-              }}
-            >
-              📅 เลือกช่วงเวลา
-            </button>
-            <div style={{ fontSize: 14, color: RG.textMuted, background: "#f8fafc", padding: "6px 12px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
-              แสดงข้อมูล: <span style={{ fontWeight: 600, color: RG.primaryMid }}>{getDateRangeLabel(dashboardDateRange)}</span>
-            </div>
-          </div>
-        </div>
-          <div style={{ display: "flex", flexDirection: "row", gap: 10, alignItems: "center" }}>
-            {(canViewAll || canViewSelect) && (
-              <div style={{ position: "relative" }}>
-                <div 
-                  onClick={() => setIsSellerDropdownOpen(!isSellerDropdownOpen)}
-                  style={{ ...inputStyle, width: "180px", cursor: "pointer", backgroundColor: filterSellers.length > 0 ? "#fffbeb" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", border: filterSellers.length > 0 ? "1px solid #fcd34d" : `1px solid ${RG.border}` }}
-                >
-                  <span style={{ color: filterSellers.length > 0 ? "#b45309" : RG.text }}>
-                    {filterSellers.length === 0 ? "👥 แสดงทุกเซลส์" : `👥 เลือกแล้ว ${filterSellers.length} เซลส์`}
-                  </span>
-                  <span style={{ fontSize: 10 }}>▼</span>
-                </div>
-                {isSellerDropdownOpen && (
-                  <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 50, padding: "8px 0", marginTop: "4px", maxHeight: "250px", overflowY: "auto" }}>
-                    <label style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13, borderBottom: "1px solid #eee" }}>
-                      <input type="checkbox" checked={filterSellers.length === 0} onChange={() => setFilterSellers([])} style={{ marginRight: 8 }} />
-                      แสดงทุกเซลส์
-                    </label>
-                    {sellerList.map(seller => (
-                      <label key={seller} style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13 }}>
-                        <input 
-                          type="checkbox" 
-                          checked={filterSellers.includes(seller)} 
-                          onChange={() => {
-                            setFilterSellers(prev => 
-                              prev.includes(seller) ? prev.filter(s => s !== seller) : [...prev, seller]
-                            );
-                          }} 
-                          style={{ marginRight: 8 }} 
-                        />
-                        {seller}
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+  const crd = (ex) => ({background:RG.surface,borderRadius:20,padding:28,boxShadow:'0 2px 16px rgba(3,181,170,0.08)',border:'1px solid '+RG.border});
+  const nowStr=new Date().toLocaleDateString('th-TH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
-            {/* Dropdown Export (PNG/PDF) */}
-            {canExport && (
-              <select 
-                onChange={handleExport}
-                disabled={isExporting}
-                value=""
-                style={{
-                  padding: "0 14px",
-                  borderRadius: "8px",
-                  border: `1px solid ${RG.primary}`,
-                  backgroundColor: "#ffffff",
-                  color: RG.primary,
-                  cursor: isExporting ? "not-allowed" : "pointer",
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  height: "36px",
-                  outline: "none",
-                  fontFamily: "'Sarabun', sans-serif",
-                  boxSizing: "border-box"
-                }}
-              >
-                <option value="" disabled>{isExporting ? "กำลังเซฟ..." : "⬇ Export Dashboard"}</option>
-                <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)">
-                  <option value="current_png">PNG Image</option>
-                  <option value="current_pdf">PDF (Print)</option>
-                </optgroup>
-                {canExportAll && (
-                  <optgroup label="ทั้งหมด (All Report)">
-                    <option value="all_png">PNG Image</option>
-                    <option value="all_pdf">PDF (Print All)</option>
-                  </optgroup>
-                )}
-              </select>
-            )}
-          </div>
-        </div>
-      {/* พื้นที่ครอบคลุมสำหรับดักจับภาพเพื่อ Export */}
-      <div ref={exportRef} style={{ 
-        padding: isExporting ? "40px 15px" : "4px", 
-        borderRadius: isExporting ? "0px" : "16px", 
-        background: isExporting ? "#ffffff" : "transparent",
-        color: "#000",
-        fontFamily: isExporting ? "'Sarabun', 'Segoe UI', sans-serif" : "inherit",
-        width: isExporting ? "1100px" : "100%", // ขยายให้กว้างขึ้นเพื่อดันให้ชิดขอบซ้ายขวาใน PDF
-        boxSizing: "border-box",
-        margin: "0" // ป้องกันบั๊ก html-to-image ครอปภาพซ้ายขวา
-      }}>
-        
-        {/* Formal Header (Visible only during export) */}
-        {isExporting && (
-          <div style={{ marginBottom: 40, paddingBottom: 24, borderBottom: `2px solid ${RG.border}`, display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "0 10px" }}>
-            <div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: RG.text, marginBottom: 8, fontFamily: "'Sarabun', sans-serif" }}>รายงานสรุปภาพรวมการขาย (Sales Overview Report)</div>
-              <div style={{ fontSize: 16, color: RG.textMuted }}>
-                ช่วงเวลา: <span style={{ fontWeight: 600, color: RG.primaryMid }}>
-                  {dashboardDateRange.type === "last6months" ? "6 เดือนล่าสุด (ค่าเริ่มต้น)" :
-                   dashboardDateRange.type === "all" ? "ทั้งหมด (All Time)" :
-                   (dashboardDateRange.min || dashboardDateRange.max) ? `${dashboardDateRange.min || "..."} ถึง ${dashboardDateRange.max || "..."}` : "ทั้งหมด (All Time)"}
-                </span>
-              </div>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: RG.primaryMid, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
-                <div style={{ width: 24, height: 24, background: RG.primary, borderRadius: "50%", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>Q</div>
-                Sales_CRM
-              </div>
-              <div style={{ fontSize: 12, color: RG.textMuted, marginTop: 8 }}>
-                ข้อมูล ณ วันที่พิมพ์: {new Date().toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "numeric" })} เวลา {new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}
-              </div>
-            </div>
-          </div>
-        )}
+  return React.createElement(React.Fragment,null,
+    React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:28,flexWrap:'wrap',gap:12}},
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}},
+        React.createElement('button',{onClick:()=>setShowModal(true),style:{display:'flex',alignItems:'center',gap:8,padding:'9px 20px',borderRadius:50,border:'1.5px solid '+RG.primary,background:'#fff',color:RG.primary,cursor:'pointer',fontWeight:600,fontSize:13,fontFamily:RG.fontHeading,boxShadow:'0 2px 8px rgba(3,181,170,0.15)',whiteSpace:'nowrap'}},
+          React.createElement('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:'2.5'},
+            React.createElement('rect',{x:3,y:4,width:18,height:18,rx:2}),
+            React.createElement('line',{x1:16,y1:2,x2:16,y2:6}),React.createElement('line',{x1:8,y1:2,x2:8,y2:6}),React.createElement('line',{x1:3,y1:10,x2:21,y2:10})
+          ),
+          getLabel(dr)
+        ),
+        React.createElement('span',{style:{fontSize:12,color:RG.textMuted,fontFamily:RG.fontBody}},nowStr)
+      ),
+      React.createElement('div',{style:{display:'flex',gap:10,alignItems:'center'}},
+        (canViewAll||canViewSelect)&&React.createElement('div',{style:{position:'relative'}},
+          React.createElement('div',{onClick:()=>setSellerOpen(!sellerOpen),style:{...inputStyle,width:'180px',cursor:'pointer',backgroundColor:filterSellers.length>0?'#fffbeb':'#fff',display:'flex',justifyContent:'space-between',alignItems:'center',border:filterSellers.length>0?'1px solid #fcd34d':'1px solid '+RG.border,borderRadius:50,paddingLeft:14,paddingRight:10}},
+            React.createElement('span',{style:{color:filterSellers.length>0?'#b45309':RG.text,fontSize:13,fontFamily:RG.fontHeading}},filterSellers.length===0?'👥 ทุกเซลส์':'👥 '+filterSellers.length+' เซลส์'),
+            React.createElement('span',{style:{fontSize:10}},'▼')
+          ),
+          sellerOpen&&React.createElement('div',{style:{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1px solid '+RG.border,borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',zIndex:50,padding:'8px 0',marginTop:8,maxHeight:250,overflowY:'auto'}},
+            React.createElement('label',{style:{display:'flex',alignItems:'center',padding:'8px 16px',cursor:'pointer',fontSize:13,borderBottom:'1px solid #eee'}},
+              React.createElement('input',{type:'checkbox',checked:filterSellers.length===0,onChange:()=>setFilterSellers([]),style:{marginRight:8}}),'แสดงทุกเซลส์'
+            ),
+            sellerList.map(s=>React.createElement('label',{key:s,style:{display:'flex',alignItems:'center',padding:'8px 16px',cursor:'pointer',fontSize:13}},
+              React.createElement('input',{type:'checkbox',checked:filterSellers.includes(s),onChange:()=>setFilterSellers(p=>p.includes(s)?p.filter(x=>x!==s):[...p,s]),style:{marginRight:8}}),s
+            ))
+          )
+        ),
+        canExport&&React.createElement('select',{onChange:doExport,disabled:isExporting,value:'',style:{padding:'0 18px',borderRadius:50,border:'1.5px solid '+RG.primary,backgroundColor:RG.primary,color:'#fff',cursor:isExporting?'not-allowed':'pointer',fontSize:13,fontWeight:600,height:38,outline:'none',fontFamily:RG.fontHeading,boxShadow:'0 2px 8px rgba(3,181,170,0.3)'}},
+          React.createElement('option',{value:'',disabled:true},isExporting?'กำลังเซฟ...':'⬇ Export'),
+          React.createElement('optgroup',{label:'เฉพาะหน้าปัจจุบัน'},React.createElement('option',{value:'current_png'},'PNG Image'),React.createElement('option',{value:'current_pdf'},'PDF (Print)')),
+          canExportAll&&React.createElement('optgroup',{label:'ทั้งหมด'},React.createElement('option',{value:'all_png'},'PNG Image'),React.createElement('option',{value:'all_pdf'},'PDF (Print All)'))
+        )
+      )
+    ),
 
-        {/* KPIs */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 32 }}>
-          {kpis.map(k => (
-            <div key={k.label} style={{ background: isExporting ? "#f8fafc" : RG.surface, borderRadius: 12, border: isExporting ? "1px solid #cbd5e1" : `1px solid ${RG.border}`, padding: isExporting ? "20px 10px" : "16px 14px", textAlign: "center", boxShadow: isExporting ? "none" : RG.shadowSoft, backdropFilter: isExporting ? "none" : RG.glassFilter }}>
-              <div style={{ fontSize: isExporting ? 32 : 28, marginBottom: 8 }}>{k.icon}</div>
-              <div style={{ fontSize: isExporting ? 32 : 28, fontWeight: 700, color: k.color }}>{k.value}</div>
-              <div style={{ fontSize: isExporting ? 13 : 12, color: RG.textMuted, marginTop: 4 }}>{k.label}</div>
-            </div>
-          ))}
-        </div>
+    React.createElement('div',{ref:exportRef,style:{padding:isExporting?'40px 15px':'4px',background:isExporting?'#fff':'transparent',fontFamily:isExporting?'Sarabun,sans-serif':'inherit',width:isExporting?'1100px':'100%',boxSizing:'border-box',margin:0}},
 
-        {/* กราฟสัดส่วน และ แนวโน้ม */}
-        <div style={{ display: "grid", gridTemplateColumns: isExporting ? "1fr" : "1fr 1fr", gap: 24, marginBottom: 24 }}>
-          <div style={{ background: isExporting ? "#ffffff" : RG.surface, borderRadius: 12, border: isExporting ? "1px solid #cbd5e1" : `1px solid ${RG.border}`, padding: 20, minHeight: isExporting ? 300 : 260, boxShadow: isExporting ? "none" : RG.shadowSoft, backdropFilter: isExporting ? "none" : RG.glassFilter }}>
-            <h4 style={{ margin: "0 0 16px", color: RG.text, fontSize: 14, fontWeight: 700 }}>สัดส่วนสถานะลีด</h4>
-            {pieData.length === 0 ? (
-              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 180, color: RG.textMuted, fontSize: 13 }}>
-                ไม่มีข้อมูลสัดส่วนในช่วงเวลานี้
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={isExporting ? 250 : 200}>
-                <PieChart style={{ overflow: "visible" }}>
-                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={isExporting ? 85 : 70} dataKey="value" label={({ name, percent }) => `${name} ${Math.round(percent * 100)}%`} labelLine={false} fontSize={13} isAnimationActive={!isExporting}>
-                    {pieData.map(entry => <Cell key={entry.name} fill={STATUS_COLORS[entry.name] || "#ccc"} />)}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-          
-          <div style={{ background: isExporting ? "#ffffff" : RG.surface, borderRadius: 12, border: isExporting ? "1px solid #cbd5e1" : `1px solid ${RG.border}`, padding: 20, minHeight: isExporting ? 300 : 260, boxShadow: isExporting ? "none" : RG.shadowSoft, backdropFilter: isExporting ? "none" : RG.glassFilter }}>
-            <h3 style={{ margin: "0 0 16px", color: RG.primary, fontSize: 16 }}>
-              แนวโน้มการติดตาม
-            </h3>
-            {!hasChartData ? (
-              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 180, color: RG.textMuted, fontSize: 13 }}>
-                ไม่มีข้อมูลการติดตามในช่วงเวลานี้
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={isExporting ? 250 : 200}>
-                <LineChart data={lineData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0e0e4" />
-                  <XAxis dataKey="name" tick={{ fontSize: 13 }} />
-                  <YAxis tick={{ fontSize: 13 }} />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="ติดตาม" stroke={RG.primary} strokeWidth={2} dot={{ r: 6 }} activeDot={{ r: 8 }} isAnimationActive={!isExporting} />
-                  <Line type="monotone" dataKey="ปิดการขาย" stroke={RG.success} strokeWidth={2} dot={{ r: 6 }} activeDot={{ r: 8 }} isAnimationActive={!isExporting} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
+      isExporting&&React.createElement('div',{style:{marginBottom:40,paddingBottom:24,borderBottom:'2px solid '+RG.border,display:'flex',justifyContent:'space-between',alignItems:'flex-end'}},
+        React.createElement('div',null,React.createElement('div',{style:{fontSize:28,fontWeight:700,color:RG.text,marginBottom:8}},'รายงานสรุปภาพรวมการขาย'),React.createElement('div',{style:{fontSize:16,color:RG.textMuted}},'ช่วงเวลา: ',React.createElement('span',{style:{fontWeight:600,color:RG.primaryMid}},getLabel(dr)))),
+        React.createElement('div',{style:{textAlign:'right'}},React.createElement('div',{style:{fontSize:20,fontWeight:700,color:RG.primaryMid}},'Sales_CRM'),React.createElement('div',{style:{fontSize:12,color:RG.textMuted,marginTop:8}},'ข้อมูล ณ '+new Date().toLocaleDateString('th-TH',{day:'2-digit',month:'short',year:'numeric'})+' เวลา '+new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})))
+      ),
 
-        {/* กราฟ Bar Chart */}
-        <div style={{ background: RG.surface, borderRadius: 12, border: isExporting ? "1px solid #cbd5e1" : `1px solid ${RG.border}`, padding: 20, minHeight: isExporting ? 320 : 240, boxShadow: isExporting ? "none" : "none" }}>
-          <h3 style={{ margin: "0 0 16px", color: RG.primary, fontSize: 16 }}>
-            Monthly Conversion
-          </h3>
-          {!hasChartData ? (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 150, color: RG.textMuted, fontSize: 13 }}>
-              ไม่มีข้อมูลสรุป Conversion ในช่วงเวลานี้
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={isExporting ? 270 : 180}>
-              <BarChart data={barData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0e0e4" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="โทร" fill={RG.primary} radius={[4, 4, 0, 0]} maxBarSize={60} isAnimationActive={!isExporting} />
-                <Bar dataKey="ปิด" fill={RG.success} radius={[4, 4, 0, 0]} maxBarSize={60} isAnimationActive={!isExporting} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
+      React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(8, 1fr)',gap:12,marginBottom:32}},
+        kpis.map(k=>React.createElement('div',{key:k.label,
+          style:{background:k.g,borderRadius:12,padding:'12px 10px 10px',boxShadow:'0 4px 12px '+(k.sh||'rgba(0,0,0,0.15)'),position:'relative',overflow:'hidden',transition:'transform 0.25s,box-shadow 0.25s',cursor:'pointer',border:'none'},
+          onMouseOver:(e)=>{if(!isExporting){e.currentTarget.style.transform='translateY(-4px) scale(1.02)';e.currentTarget.style.boxShadow='0 12px 24px '+(k.sh||'rgba(0,0,0,0.2)');}},
+          onMouseOut:(e)=>{if(!isExporting){e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 4px 12px '+(k.sh||'rgba(0,0,0,0.15)');}},
+        },
+          React.createElement('div',{style:{position:'absolute',top:-10,right:-10,width:40,height:40,borderRadius:'50%',background:'rgba(255,255,255,0.13)'}}),
+          React.createElement('div',{style:{position:'absolute',bottom:-15,right:5,width:30,height:30,borderRadius:'50%',background:'rgba(255,255,255,0.09)'}}),
+          React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',position:'relative'}},
+            React.createElement('div',null,
+              React.createElement('div',{style:{fontSize:10,fontFamily:RG.fontHeading,fontWeight:600,color:(k.tc||'rgba(255,255,255,0.85)'),marginBottom:4}},k.label),
+              React.createElement('div',{style:{fontSize:24,fontWeight:800,fontFamily:RG.fontHeading,color:(k.tc||'#fff'),lineHeight:1}},k.value)
+            ),
+            React.createElement('div',{style:{fontSize:18,opacity:0.9,lineHeight:1}},k.icon)
+          )
+        ))
+      ),
 
-      </div>
-    
-      {/* Modal Filter Date */}
-      {showDateModal && (
-        <Modal title="กรองข้อมูลวันที่" onClose={() => setShowDateModal(false)} width={450}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 120, fontSize: 13, color: RG.textMuted }}>ติดต่อล่าสุด:</div>
-              <select 
-                value={dashboardDateRange.type || "all"}
-                onChange={(e) => handleDatePreset(e.target.value)}
-                style={{ ...inputStyle, flex: 1 }}
-              >
-                <option value="today">วันนี้</option>
-                <option value="thismonth">เดือนนี้</option>
-                <option value="lastmonth">เดือนที่แล้ว</option>
-                <option value="thisquarter">ไตรมาสนี้</option>
-                <option value="lastquarter">ไตรมาสที่แล้ว</option>
-                <option value="last6months">6 เดือนล่าสุด (ค่าเริ่มต้น)</option>
-                <option value="thisyear">ปีนี้</option>
-                <option value="all">ทั้งหมด (ไม่กรอง)</option>
-                <option value="custom">กำหนดช่วงเวลาแทน (สูงสุด 1 ปี)</option>
-              </select>
-            </div>
+      React.createElement('div',{style:{display:'grid',gridTemplateColumns:isExporting?'1fr':'380px 1fr',gap:24,marginBottom:24}},
 
-            {(dashboardDateRange.type === "custom") && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, paddingLeft: 132 }}>
-                <input 
-                  type="date" 
-                  value={dashboardDateRange.min} 
-                  onChange={e => handleCustomDateChange("min", e.target.value)} 
-                  style={{ ...inputStyle, flex: 1 }} 
-                />
-                <span style={{ color: RG.textMuted }}>-</span>
-                <input 
-                  type="date" 
-                  value={dashboardDateRange.max} 
-                  onChange={e => handleCustomDateChange("max", e.target.value)} 
-                  style={{ ...inputStyle, flex: 1 }} 
-                />
-              </div>
-            )}
+        React.createElement('div',{style:crd(isExporting)},
+          React.createElement('h4',{style:{margin:'0 0 20px',color:RG.text,fontSize:16,fontWeight:700,fontFamily:RG.fontHeading}},'สัดส่วนสถานะลีด'),
+          pie.length===0
+            ?React.createElement('div',{style:{display:'flex',flexDirection:'column',justifyContent:'center',alignItems:'center',height:200,color:RG.textMuted,fontSize:13,gap:10}},React.createElement('span',{style:{fontSize:48}},'📭'),'ไม่มีข้อมูลในช่วงเวลานี้')
+            :React.createElement(React.Fragment,null,
+              React.createElement(ResponsiveContainer,{width:'100%',height:220},
+                React.createElement(PieChart,null,
+                  React.createElement(Pie,{data:pie,cx:'50%',cy:'50%',innerRadius:isExporting?58:72,outerRadius:isExporting?92:106,paddingAngle:3,dataKey:'value',isAnimationActive:!isExporting},
+                    pie.map(e=>React.createElement(Cell,{key:e.name,fill:STATUS_COLORS[e.name]||'#ccc',stroke:'none'}))
+                  ),
+                  React.createElement(Tooltip,{content:({active,payload})=>{
+                    if(active&&payload?.length){const d=payload[0];const pct=Math.round((d.value/total)*100);return React.createElement('div',{style:{background:'rgba(2,52,54,0.95)',borderRadius:10,padding:'10px 16px'}},React.createElement('p',{style:{color:'#9CEAEF',fontSize:12,margin:'0 0 4px',fontFamily:RG.fontHeading}},d.name),React.createElement('p',{style:{color:'#fff',fontSize:16,fontWeight:700,margin:0}},d.value+' ลีด ('+pct+'%)'));}return null;
+                  }}),
+                  React.createElement('text',{x:'50%',y:'43%',textAnchor:'middle',dominantBaseline:'middle',style:{fontSize:32,fontWeight:800,fill:RG.text,fontFamily:RG.fontHeading}},total),
+                  React.createElement('text',{x:'50%',y:'57%',textAnchor:'middle',dominantBaseline:'middle',style:{fontSize:11,fill:RG.textMuted,fontFamily:RG.fontBody}},'ลีดทั้งหมด')
+                )
+              ),
+              React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px 16px',marginTop:8}},
+                pie.map(e=>React.createElement('div',{key:e.name,style:{display:'flex',alignItems:'center',gap:8}},
+                  React.createElement('div',{style:{width:10,height:10,borderRadius:'50%',background:STATUS_COLORS[e.name]||'#ccc',flexShrink:0}}),
+                  React.createElement('span',{style:{fontSize:12,color:RG.textMuted,fontFamily:RG.fontBody,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},e.name),
+                  React.createElement('span',{style:{fontSize:12,fontWeight:700,color:RG.text,fontFamily:RG.fontHeading}},e.value)
+                ))
+              )
+            )
+        ),
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12 }}>
-              <button 
-                onClick={() => setDashboardDateRange({ ...getPresetRange("last6months"), type: "last6months" })}
-                style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${RG.border}`, background: "#f5e6ea", color: RG.primary, cursor: "pointer", fontWeight: 600, fontSize: 13 }}
-              >
-                กลับเป็นค่าเริ่มต้น
-              </button>
-              <button 
-                onClick={() => setShowDateModal(false)}
-                style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: RG.gradient, color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 13 }}
-              >
-                ตกลง
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
+        React.createElement('div',{style:crd(isExporting)},
+          React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}},
+            React.createElement('h4',{style:{margin:0,color:RG.text,fontSize:16,fontWeight:700,fontFamily:RG.fontHeading}},'แนวโน้มการติดตาม'),
+            React.createElement('div',{style:{display:'flex',gap:16}},
+              [{label:'ติดตาม',color:RG.primary},{label:'ปิดการขาย',color:RG.success}].map(l=>React.createElement('span',{key:l.label,style:{display:'flex',alignItems:'center',gap:6,fontSize:12,color:RG.textMuted,fontFamily:RG.fontBody}},React.createElement('span',{style:{width:20,height:3,borderRadius:2,background:l.color,display:'inline-block'}}),l.label))
+            )
+          ),
+          !hasData
+            ?React.createElement('div',{style:{display:'flex',flexDirection:'column',justifyContent:'center',alignItems:'center',height:240,color:RG.textMuted,fontSize:13,gap:10}},React.createElement('span',{style:{fontSize:48}},'📊'),'ไม่มีข้อมูลในช่วงเวลานี้')
+            :React.createElement(ResponsiveContainer,{width:'100%',height:isExporting?250:280},
+              React.createElement(AreaChart,{data:line,margin:{top:5,right:10,left:-20,bottom:0}},
+                React.createElement('defs',null,
+                  React.createElement('linearGradient',{id:'gT',x1:0,y1:0,x2:0,y2:1},React.createElement('stop',{offset:'5%',stopColor:RG.primary,stopOpacity:0.3}),React.createElement('stop',{offset:'95%',stopColor:RG.primary,stopOpacity:0})),
+                  React.createElement('linearGradient',{id:'gP',x1:0,y1:0,x2:0,y2:1},React.createElement('stop',{offset:'5%',stopColor:RG.success,stopOpacity:0.3}),React.createElement('stop',{offset:'95%',stopColor:RG.success,stopOpacity:0}))
+                ),
+                React.createElement(CartesianGrid,{strokeDasharray:'3 3',stroke:'rgba(3,181,170,0.1)'}),
+                React.createElement(XAxis,{dataKey:'name',tick:{fontSize:12,fill:RG.textMuted},axisLine:false,tickLine:false}),
+                React.createElement(YAxis,{tick:{fontSize:12,fill:RG.textMuted},axisLine:false,tickLine:false}),
+                React.createElement(Tooltip,{content:React.createElement(Tip,null)}),
+                React.createElement(Area,{type:'monotone',dataKey:'ติดตาม',stroke:RG.primary,strokeWidth:2.5,fill:'url(#gT)',dot:{r:5,fill:RG.primary,strokeWidth:2,stroke:'#fff'},activeDot:{r:7},isAnimationActive:!isExporting}),
+                React.createElement(Area,{type:'monotone',dataKey:'ปิดการขาย',stroke:RG.success,strokeWidth:2.5,fill:'url(#gP)',dot:{r:5,fill:RG.success,strokeWidth:2,stroke:'#fff'},activeDot:{r:7},isAnimationActive:!isExporting})
+              )
+            )
+        )
+      ),
 
-        {/* Formal Footer */}
-        {isExporting && (
-          <div style={{ marginTop: 50, borderTop: "2px solid #e2e8f0", paddingTop: 20, display: "flex", justifyContent: "space-between", color: "#64748b", fontSize: 13 }}>
-            <div>© 2026 Sales_CRM System. All rights reserved.</div>
-            <div>รายงานสำหรับใช้ภายในองค์กรเท่านั้น (Internal Use Only)</div>
-          </div>
-        )}
-</div>
+      React.createElement('div',{style:crd(isExporting)},
+        React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}},
+          React.createElement('h4',{style:{margin:0,color:RG.text,fontSize:16,fontWeight:700,fontFamily:RG.fontHeading}},'Monthly Conversion'),
+          React.createElement('div',{style:{display:'flex',gap:16}},
+            [{label:'โทร',color:RG.primary},{label:'ปิด',color:RG.success}].map(l=>React.createElement('span',{key:l.label,style:{display:'flex',alignItems:'center',gap:6,fontSize:12,color:RG.textMuted}},React.createElement('span',{style:{width:12,height:12,borderRadius:3,background:l.color,display:'inline-block'}}),l.label))
+          )
+        ),
+        !hasData
+          ?React.createElement('div',{style:{display:'flex',flexDirection:'column',justifyContent:'center',alignItems:'center',height:160,color:RG.textMuted,fontSize:13,gap:10}},React.createElement('span',{style:{fontSize:48}},'📈'),'ไม่มีข้อมูลในช่วงเวลานี้')
+          :React.createElement(ResponsiveContainer,{width:'100%',height:isExporting?270:200},
+            React.createElement(BarChart,{data:bar,margin:{top:5,right:10,left:-20,bottom:0}},
+              React.createElement(CartesianGrid,{strokeDasharray:'3 3',stroke:'rgba(3,181,170,0.1)',vertical:false}),
+              React.createElement(XAxis,{dataKey:'name',tick:{fontSize:12,fill:RG.textMuted},axisLine:false,tickLine:false}),
+              React.createElement(YAxis,{tick:{fontSize:12,fill:RG.textMuted},axisLine:false,tickLine:false}),
+              React.createElement(Tooltip,{content:React.createElement(Tip,null),cursor:{fill:'rgba(3,181,170,0.05)'}}),
+              React.createElement(Bar,{dataKey:'โทร',fill:RG.primary,radius:[6,6,0,0],maxBarSize:52,isAnimationActive:!isExporting}),
+              React.createElement(Bar,{dataKey:'ปิด',fill:RG.success,radius:[6,6,0,0],maxBarSize:52,isAnimationActive:!isExporting})
+            )
+          )
+      ),
+
+      isExporting&&React.createElement('div',{style:{marginTop:50,borderTop:'2px solid #e2e8f0',paddingTop:20,display:'flex',justifyContent:'space-between',color:'#64748b',fontSize:13}},
+        React.createElement('div',null,'© 2026 Sales_CRM System. All rights reserved.'),
+        React.createElement('div',null,'รายงานสำหรับใช้ภายในองค์กรเท่านั้น (Internal Use Only)')
+      )
+    ),
+
+    showModal&&React.createElement(Modal,{title:'กรองข้อมูลตามช่วงเวลา',onClose:()=>setShowModal(false),width:450},
+      React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:16}},
+        React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12}},
+          React.createElement('div',{style:{width:120,fontSize:13,color:RG.textMuted}},'ติดต่อล่าสุด:'),
+          React.createElement('select',{value:dr.type||'all',onChange:(e)=>setDr({...getPresetRange(e.target.value),type:e.target.value}),style:{...inputStyle,flex:1}},
+            React.createElement('option',{value:'today'},'วันนี้'),
+            React.createElement('option',{value:'thismonth'},'เดือนนี้'),
+            React.createElement('option',{value:'lastmonth'},'เดือนที่แล้ว'),
+            React.createElement('option',{value:'thisquarter'},'ไตรมาสนี้'),
+            React.createElement('option',{value:'lastquarter'},'ไตรมาสที่แล้ว'),
+            React.createElement('option',{value:'last6months'},'6 เดือนล่าสุด (ค่าเริ่มต้น)'),
+            React.createElement('option',{value:'thisyear'},'ปีนี้'),
+            React.createElement('option',{value:'all'},'ทั้งหมด (ไม่กรอง)'),
+            React.createElement('option',{value:'custom'},'กำหนดช่วงเวลาแทน (สูงสุด 1 ปี)')
+          )
+        ),
+        dr.type==='custom'&&React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12,paddingLeft:132}},
+          React.createElement('input',{type:'date',value:dr.min||'',onChange:e=>{const next={...dr,min:e.target.value,type:'custom'};if(chkYear(next.min,next.max))setDr(next);},style:{...inputStyle,flex:1}}),
+          React.createElement('span',{style:{color:RG.textMuted}},'-'),
+          React.createElement('input',{type:'date',value:dr.max||'',onChange:e=>{const next={...dr,max:e.target.value,type:'custom'};if(chkYear(next.min,next.max))setDr(next);},style:{...inputStyle,flex:1}})
+        ),
+        React.createElement('div',{style:{display:'flex',justifyContent:'space-between',marginTop:12}},
+          React.createElement('button',{onClick:()=>setDr({...getPresetRange('last6months'),type:'last6months'}),style:{padding:'8px 16px',borderRadius:8,border:'1px solid '+RG.border,background:'#f5e6ea',color:RG.primary,cursor:'pointer',fontWeight:600,fontSize:13}},'กลับเป็นค่าเริ่มต้น'),
+          React.createElement('button',{onClick:()=>setShowModal(false),style:{padding:'8px 24px',borderRadius:8,border:'none',background:RG.gradient,color:'#fff',cursor:'pointer',fontWeight:600,fontSize:13}},'ตกลง')
+        )
+      )
+    )
   );
 }

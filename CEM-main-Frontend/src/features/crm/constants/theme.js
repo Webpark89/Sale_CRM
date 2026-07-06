@@ -8,6 +8,10 @@ export const RG = {
   
   navbarBg:      "#FFFFFF",   // Clean white navbar
  
+  // === FONTS ===
+  fontHeading:   "'Kanit', sans-serif",
+  fontBody:      "'Sarabun', sans-serif",
+
   // === GRADIENTS ===
   gradient:      "linear-gradient(135deg, #07BEB8 0%, #037971 100%)", // Turquoise to Dark Teal
   gradientSoft:  "linear-gradient(135deg, #C4FFF9 0%, #9CEAEF 100%)",
@@ -18,7 +22,7 @@ export const RG = {
   textMuted:     "#049A8F",   // Medium Teal for muted text
   surface:       "#FFFFFF",   
   surfaceSolid:  "#FFFFFF",
-  background:    "#F5FCFC",   // Kept very light to ensure high contrast with #023436 text
+  background:    "url('/bg-fluid.jpg') center/cover fixed",   // AI Generated Fluid Background
   border:        "#9CEAEF",   // Pale turquoise border
   shadowSoft:    "0 4px 12px rgba(3, 181, 170, 0.15)", // Teal shadow
   shadowGlow:    "0 4px 15px rgba(3, 181, 170, 0.3)",

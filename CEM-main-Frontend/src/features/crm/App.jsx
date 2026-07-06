@@ -674,7 +674,7 @@ export default function App() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: RG.background, fontFamily: "'Sarabun', sans-serif", color: RG.text, display: "flex", flexDirection: "row" }}>
+    <div style={{ minHeight: "100vh", background: RG.background, fontFamily: RG.fontBody, color: RG.text, display: "flex", flexDirection: "row" }}>
       <Toaster position="top-right" />
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #E8FFFD; } ::-webkit-scrollbar-thumb { background: #03B5AA; border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; }`}</style>
 
@@ -682,7 +682,7 @@ export default function App() {
       <aside 
         style={{ 
           width: isSidebarExpanded ? 240 : 80, 
-          background: RG.navbarBg, 
+          background: "linear-gradient(180deg, #023436 0%, #0f766e 100%)", // Material Dashboard Dark Sidebar
           padding: isSidebarExpanded ? "32px 20px" : "32px 10px", 
           display: "flex", 
           flexDirection: "column", 
@@ -733,19 +733,20 @@ export default function App() {
 
         {/* Logo Section */}
         <div style={{ display: "flex", alignItems: "center", gap: isSidebarExpanded ? 12 : 0, justifyContent: isSidebarExpanded ? "flex-start" : "center", marginBottom: 48, transition: "all 0.3s" }}>
-          <div style={{ minWidth: 40, width: 40, height: 40, background: RG.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 20, boxShadow: RG.shadowSoft }}>S</div>
+          <div style={{ minWidth: 40, width: 40, height: 40, background: "rgba(255,255,255,0.1)", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 20, boxShadow: RG.shadowSoft }}>S</div>
           <div style={{ display: "flex", flexDirection: "column", opacity: isSidebarExpanded ? 1 : 0, width: isSidebarExpanded ? "auto" : 0, overflow: "hidden", transition: "all 0.2s", whiteSpace: "nowrap" }}>
-            <span style={{ color: RG.primary, fontWeight: 700, fontSize: 18, lineHeight: 1.2 }}>Sales CRM System</span>
-            <span style={{ color: RG.textMuted, fontSize: 11, lineHeight: 1.2 }}>Lead & Sales Management</span>
+            <span style={{ color: "#fff", fontFamily: RG.fontHeading, fontWeight: 700, fontSize: 18, lineHeight: 1.2 }}>Sales CRM System</span>
+            <span style={{ color: "rgba(255,255,255,0.7)", fontFamily: RG.fontBody, fontSize: 11, lineHeight: 1.2 }}>Lead & Sales Management</span>
           </div>
         </div>
 
         {/* Menu Navigation */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
-          {isSidebarExpanded && <div style={{ fontSize: 11, fontWeight: 700, color: RG.textMuted, letterSpacing: 1, marginBottom: 8, paddingLeft: 20, textAlign: "left", opacity: isSidebarExpanded ? 1 : 0.5, transition: "all 0.3s" }}>MENU</div>}
+          {isSidebarExpanded && <div style={{ fontSize: 11, fontWeight: 700, fontFamily: RG.fontHeading, color: "rgba(255,255,255,0.5)", letterSpacing: 1, marginBottom: 8, paddingLeft: 20, textAlign: "left", opacity: isSidebarExpanded ? 1 : 0.5, transition: "all 0.3s" }}>MENU</div>}
           {navItems.map(n => (
-            <button key={n.key} onClick={() => setPage(n.key)} style={{ padding: isSidebarExpanded ? "14px 20px" : "14px 0", borderRadius: 12, border: "none", background: page === n.key ? RG.primary : "transparent", color: page === n.key ? "#fff" : RG.textMuted, cursor: "pointer", fontWeight: page === n.key ? 700 : 500, fontSize: 15, fontFamily: "'Sarabun', sans-serif", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: isSidebarExpanded ? "flex-start" : "center", gap: isSidebarExpanded ? 12 : 0, boxShadow: page === n.key ? RG.shadowSoft : "none", whiteSpace: "nowrap" }}>
-              <span style={{ fontSize: 20, width: 24, display: "flex", justifyContent: "center", opacity: page === n.key ? 1 : 0.7 }}>{n.icon}</span> 
+            <button key={n.key} onClick={() => setPage(n.key)} style={{ position: "relative", padding: isSidebarExpanded ? "14px 20px" : "14px 0", borderRadius: 12, border: "none", background: page === n.key ? "linear-gradient(195deg, #07BEB8, #037971)" : "transparent", color: page === n.key ? "#fff" : "rgba(255,255,255,0.8)", cursor: "pointer", fontWeight: page === n.key ? 600 : 400, fontSize: 15, fontFamily: RG.fontHeading, transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: isSidebarExpanded ? "flex-start" : "center", gap: isSidebarExpanded ? 12 : 0, boxShadow: page === n.key ? "0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(3, 181, 170, 0.4)" : "none", whiteSpace: "nowrap", marginBottom: 4 }}>
+              {page === n.key && <div style={{ position: "absolute", left: -10, top: "50%", transform: "translateY(-50%)", width: 4, height: 20, background: "#fff", borderRadius: "0 4px 4px 0" }} />}
+              <span style={{ fontSize: 20, width: 24, display: "flex", justifyContent: "center", opacity: page === n.key ? 1 : 0.8 }}>{n.icon}</span> 
               <span style={{ opacity: isSidebarExpanded ? 1 : 0, width: isSidebarExpanded ? "auto" : 0, overflow: "hidden", transition: "all 0.2s" }}>{n.label}</span>
             </button>
           ))}
@@ -756,7 +757,7 @@ export default function App() {
       <main style={{ flex: 1, marginLeft: isSidebarExpanded ? 240 : 80, height: "100vh", overflowY: "auto", position: "relative", transition: "margin-left 0.3s" }}>
         
         {/* Floating Top-Right Actions */}
-        <div style={{ position: "absolute", top: 24, right: 40, display: "flex", alignItems: "center", gap: 16, zIndex: 100 }}>
+        <div style={{ position: "absolute", top: 24, right: 40, display: "flex", alignItems: "center", gap: 16, zIndex: 100, background: "rgba(255,255,255,0.8)", backdropFilter: "blur(12px)", padding: "10px 20px", borderRadius: "16px", boxShadow: "0 4px 20px 0 rgba(0,0,0,0.05)" }}>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
             <button onClick={undo} disabled={histIdx < 0} style={{ padding: "8px 12px", borderRadius: "20px", border: "1px solid " + RG.border, background: histIdx < 0 ? "#f8f9fa" : "#fff", color: histIdx < 0 ? "#ccc" : RG.text, cursor: histIdx < 0 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "6px", fontWeight: "600", boxShadow: RG.shadowSoft }} title="Undo (ย้อนกลับ)">
               <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
@@ -795,8 +796,8 @@ export default function App() {
                 👥
               </div>
               <div>
-                <h2 style={{ margin: 0, color: "#0f766e", fontSize: 24, fontWeight: 800 }}>จัดการข้อมูลลูกค้า (Leads)</h2>
-                <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: 14 }}>ระบบจัดการฐานข้อมูลลูกค้าและการติดตามการขาย</p>
+                <h2 style={{ margin: 0, color: RG.text, fontFamily: RG.fontHeading, fontSize: 24, fontWeight: 700 }}>จัดการข้อมูลลูกค้า (Leads)</h2>
+                <p style={{ margin: "4px 0 0 0", color: RG.textMuted, fontFamily: RG.fontBody, fontSize: 14 }}>ระบบจัดการฐานข้อมูลลูกค้าและการติดตามการขาย</p>
               </div>
             </div>
             <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
@@ -920,8 +921,8 @@ export default function App() {
               >
                 <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1600 }}>
                   <thead>
-                    <tr style={{ position: "sticky", top: 0, borderBottom: `2px solid ${RG.border}`, background: RG.text, zIndex: 10 }}>
-                      <th style={{ padding: "12px 10px", textAlign: "center", color: "#fff", fontSize: 13, width: 36, position: "relative" }}>
+                    <tr style={{ position: "sticky", top: 0, background: RG.text, zIndex: 10, boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
+                      <th style={{ padding: "16px 10px", textAlign: "center", color: "#fff", fontSize: 13, width: 36, position: "relative" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <input type="checkbox" checked={checked.length === filtered.length && filtered.length > 0} onChange={e => setChecked(e.target.checked ? filtered.map(l => l.id) : [])} />
                           {checked.length > 0 && (
@@ -932,9 +933,9 @@ export default function App() {
                         </div>
                       </th>
                       {/* เพิ่ม Column สำหรับติดดาว */}
-                      <th style={{ padding: "12px 8px", color: "#fff", fontSize: 13, width: 36 }} />
-                      <th style={{ padding: "12px 8px", color: "#fff", fontSize: 13, width: 36 }} />
-                      <th style={{ padding: "12px 10px", color: "#fff", fontSize: 12, fontWeight: 600, width: 40, textAlign: "center" }}>#</th>
+                      <th style={{ padding: "16px 8px", color: "#fff", fontSize: 13, width: 36 }} />
+                      <th style={{ padding: "16px 8px", color: "#fff", fontSize: 13, width: 36 }} />
+                      <th style={{ padding: "16px 10px", color: "#fff", fontSize: 13, fontWeight: 700, width: 40, textAlign: "center" }}>#</th>
                       {[
                         { label: "บริษัท", key: "companyName" },
                         { label: "เลขนิติบุคคล", key: "companyNumber" },
@@ -952,11 +953,11 @@ export default function App() {
                         { label: "ติดต่อล่าสุด", key: "latestContactDate", sortable: true },
                         { label: "นัดถัดไป", key: "nextFollowupDate", sortable: true }
                       ].map(col => (
-                        <th key={col.label} style={{ padding: "12px 10px", textAlign: "left", color: "#fff", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+                        <th key={col.label} style={{ padding: "16px 10px", textAlign: "left", color: "#fff", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>
                           {col.sortable ? (
                             <div onClick={() => handleSort(col.key)} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", userSelect: "none" }}>
                               {col.label}
-                              <span style={{ fontSize: 10, color: sortConfig.key === col.key ? RG.primaryPale : "rgba(255, 255, 255, 0.4)" }}>
+                              <span style={{ fontSize: 10, color: sortConfig.key === col.key ? RG.primaryLight : "rgba(255, 255, 255, 0.4)" }}>
                                 {sortConfig.key === col.key ? (sortConfig.direction === 'asc' ? "▲" : "▼") : "▽"}
                               </span>
                             </div>
@@ -988,38 +989,45 @@ export default function App() {
                         leadFollowups.some(f => f.status === "มีตติ้ง");
                       
                       // 3. กำหนดสีพื้นหลัง: ถ้าเคยมีตติ้งให้ไฮไลต์สีส้มให้เห็นชัดเจน ถ้าไม่เคย ให้สลับสีตามเดิม
-                      const rowBackground = lead.latestStatus === "มีตติ้ง" ? "linear-gradient(90deg, #FFEDD5, #FED7AA)" : (i % 2 === 0 ? RG.rowOdd : RG.rowEven);
-
+                      const rowBackground = lead.latestStatus === "มีตติ้ง" ? "#FEF08A" : "#fff";
+                      const hoverBackground = lead.latestStatus === "มีตติ้ง" ? "#FDE047" : "#f9fafb";
                       return (
-                        <tr key={lead.id} style={{ background: rowBackground, borderBottom: `1px solid ${RG.border}` }}>
-                          <td style={{ padding: "8px 10px", textAlign: "center" }}>
+                        <tr 
+                          key={lead.id} 
+                          style={{ background: rowBackground, borderBottom: `1px solid #e5e7eb`, transition: "background-color 0.2s ease" }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = hoverBackground}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = rowBackground}
+                        >
+                          <td style={{ padding: "16px 10px", textAlign: "center" }}>
                             <input type="checkbox" checked={checked.includes(lead.id)} onChange={e => setChecked(c => (e.target.checked ? [...c, lead.id] : c.filter(x => x !== lead.id)))} />
                           </td>
                           {/* ปุ่มติดดาว */}
-                          <td style={{ padding: "8px 6px", textAlign: "center" }}>
+                          <td style={{ padding: "16px 6px", textAlign: "center" }}>
                             <button onClick={() => toggleStar(lead.id)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 16 }}>
                               {lead.isStarred ? "⭐" : "☆"}
                             </button>
                           </td>
-                          <td style={{ padding: "8px 6px" }}>
-                            <button onClick={() => setSelectedLead(lead)} style={{ background: RG.gradient, border: "none", color: "#fff", width: 26, height: 26, borderRadius: 6, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>👁</button>
+                          <td style={{ padding: "16px 6px" }}>
+                            <button onClick={() => setSelectedLead(lead)} style={{ background: "#f3f4f6", border: "1px solid #e5e7eb", color: "#4b5563", width: 28, height: 28, borderRadius: 6, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }} onMouseEnter={e => {e.currentTarget.style.background = RG.primary; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = RG.primary;}} onMouseLeave={e => {e.currentTarget.style.background = "#f3f4f6"; e.currentTarget.style.color = "#4b5563"; e.currentTarget.style.borderColor = "#e5e7eb";}}>👁</button>
                           </td>
-                          <td style={{ padding: "8px 10px", textAlign: "center", fontSize: 13, color: RG.textMuted, fontWeight: 600 }}>
+                          <td style={{ padding: "16px 10px", textAlign: "center", fontSize: 13, color: RG.textMuted, fontWeight: 600 }}>
                             {(actualPage - 1) * itemsPerPage + i + 1}
                           </td>
-                          <td style={{ padding: "8px 10px", fontWeight: lead.isStarred ? 600 : 400 }}><EditableCell value={lead.companyName} onSave={v => inlineEdit(lead.id, "companyName", v)} /></td>
-                          <td style={{ padding: "8px 10px" }}>
+                          <td style={{ padding: "16px 10px", fontWeight: lead.isStarred ? 600 : 400 }}>
+                            <EditableCell value={lead.companyName} onSave={v => inlineEdit(lead.id, "companyName", v)} />
+                          </td>
+                          <td style={{ padding: "16px 10px" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                               <EditableCell value={lead.companyNumber} onSave={v => inlineEdit(lead.id, "companyNumber", v)} />
-                              {isDup && <span style={{ background: "#ffeeee", color: RG.danger, fontSize: 10, padding: "1px 6px", borderRadius: 10, border: "1px solid #ffcccc", whiteSpace: "nowrap" }}>ซ้ำ!</span>}
+                              {isDup && <span style={{ background: "#ffeeee", color: RG.danger, fontSize: 10, padding: "2px 8px", borderRadius: 12, border: "1px solid #ffcccc", whiteSpace: "nowrap", fontWeight: 600 }}>ซ้ำ!</span>}
                             </div>
                           </td>
-                          <td style={{ padding: "8px 10px" }}><EditableCell value={lead.contactName} onSave={v => inlineEdit(lead.id, "contactName", v)} /></td>
-                          <td style={{ padding: "8px 10px" }}><EditableCell value={lead.contactPhone} onSave={v => inlineEdit(lead.id, "contactPhone", v)} type="phone" /></td>
-                          <td style={{ padding: "8px 10px" }}><EditableCell value={lead.contactEmail} onSave={v => inlineEdit(lead.id, "contactEmail", v)} /></td>
-                          <td style={{ padding: "8px 10px" }}><EditableCell value={lead.description} onSave={v => inlineEdit(lead.id, "description", v)} /></td>
+                          <td style={{ padding: "16px 10px" }}><EditableCell value={lead.contactName} onSave={v => inlineEdit(lead.id, "contactName", v)} /></td>
+                          <td style={{ padding: "16px 10px" }}><EditableCell value={lead.contactPhone} onSave={v => inlineEdit(lead.id, "contactPhone", v)} type="phone" /></td>
+                          <td style={{ padding: "16px 10px" }}><EditableCell value={lead.contactEmail} onSave={v => inlineEdit(lead.id, "contactEmail", v)} /></td>
+                          <td style={{ padding: "16px 10px" }}><EditableCell value={lead.description} onSave={v => inlineEdit(lead.id, "description", v)} /></td>
                           {(currentUser?.permissions?.leads?.view_owner || currentUser?.role === 'admin' || currentUser?.role === 'header_saler') && (
-                            <td style={{ padding: "8px 10px", whiteSpace: "nowrap", color: RG.primaryMid, fontWeight: 600 }}>
+                            <td style={{ padding: "16px 10px", whiteSpace: "nowrap", color: RG.primaryMid, fontWeight: 600 }}>
                               {currentUser?.role === 'admin' || currentUser?.role === 'header_saler' || currentUser?.permissions?.leads?.reassign ? (
                                 <span onClick={() => { setReassignConfirm({ leadId: lead.id, oldOwner: lead.owner, companyName: lead.companyName }); fetchAllSellers(); }} style={{ cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}>{lead.owner || "-"}</span>
                               ) : (
@@ -1027,12 +1035,12 @@ export default function App() {
                               )}
                             </td>
                           )}
-                          <td style={{ padding: "8px 10px" }}><EditableCell value={lead.revenue} onSave={v => inlineEdit(lead.id, "revenue", Number(v))} type="number" /></td>
-                          <td style={{ padding: "8px 10px" }}><EditableCell value={lead.registeredCapital} onSave={v => inlineEdit(lead.id, "registeredCapital", Number(v))} type="number" /></td>
-                          <td style={{ padding: "8px 10px" }}><EditableCell value={lead.profit} onSave={v => inlineEdit(lead.id, "profit", Number(v))} type="number" /></td>
-                          <td style={{ padding: "8px 10px" }}><StatusBadge status={lead.latestStatus} /></td>
-                          <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}><EditableCell value={lead.latestContactDate} onSave={v => inlineEdit(lead.id, "latestContactDate", v)} type="date" /></td>
-                          <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>{lead.nextFollowupDate && lead.nextFollowupDate === today() ? (
+                          <td style={{ padding: "16px 10px" }}><EditableCell value={lead.revenue} onSave={v => inlineEdit(lead.id, "revenue", Number(v))} type="number" /></td>
+                          <td style={{ padding: "16px 10px" }}><EditableCell value={lead.registeredCapital} onSave={v => inlineEdit(lead.id, "registeredCapital", Number(v))} type="number" /></td>
+                          <td style={{ padding: "16px 10px" }}><EditableCell value={lead.profit} onSave={v => inlineEdit(lead.id, "profit", Number(v))} type="number" /></td>
+                          <td style={{ padding: "16px 10px" }}><StatusBadge status={lead.latestStatus} /></td>
+                          <td style={{ padding: "16px 10px", whiteSpace: "nowrap" }}><EditableCell value={lead.latestContactDate} onSave={v => inlineEdit(lead.id, "latestContactDate", v)} type="date" /></td>
+                          <td style={{ padding: "16px 10px", whiteSpace: "nowrap" }}>{lead.nextFollowupDate && lead.nextFollowupDate === today() ? (
                               /* 1. เคสวันปัจจุบัน: แสดงข้อความ "ถึงกำหนดแล้ว" สีดำตัวหนา */
                               <span style={{ color: "#000000", fontSize: 12, fontWeight: 700 }}>🔔 ถึงกำหนดแล้ว</span>
                             ) : lead.nextFollowupDate && lead.nextFollowupDate < today() ? (
@@ -1085,8 +1093,8 @@ export default function App() {
                 📊
               </div>
               <div>
-                <h2 style={{ margin: 0, color: "#0f766e", fontSize: 24, fontWeight: 800 }}>ภาพรวมและสถิติ (Dashboard)</h2>
-                <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: 14 }}>สรุปผลการดำเนินงานและสถิติการขาย</p>
+                <h2 style={{ margin: 0, color: RG.text, fontFamily: RG.fontHeading, fontSize: 24, fontWeight: 700 }}>ภาพรวมและสถิติ (Dashboard)</h2>
+                <p style={{ margin: "4px 0 0 0", color: RG.textMuted, fontFamily: RG.fontBody, fontSize: 14 }}>สรุปผลการดำเนินงานและสถิติการขาย</p>
               </div>
             </div>
             <Dashboard leads={leads} followups={followups} currentUser={currentUser} />
@@ -1100,8 +1108,8 @@ export default function App() {
                 📄
               </div>
               <div>
-                <h2 style={{ margin: 0, color: "#0f766e", fontSize: 24, fontWeight: 800 }}>รายงานการติดตาม (Reports)</h2>
-                <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: 14 }}>สร้างรายงานและสรุปผลข้อมูลลูกค้าสำหรับการส่งมอบ</p>
+                <h2 style={{ margin: 0, color: RG.text, fontFamily: RG.fontHeading, fontSize: 24, fontWeight: 700 }}>รายงานการติดตาม (Reports)</h2>
+                <p style={{ margin: "4px 0 0 0", color: RG.textMuted, fontFamily: RG.fontBody, fontSize: 14 }}>สร้างรายงานและสรุปผลข้อมูลลูกค้าสำหรับการส่งมอบ</p>
               </div>
             </div>
             {/* ส่งฟังก์ชัน setSelectedLead เข้าไปเป็น onViewLead */}
@@ -1116,8 +1124,8 @@ export default function App() {
                 🔐
               </div>
               <div>
-                <h2 style={{ margin: 0, color: "#0f766e", fontSize: 24, fontWeight: 800 }}>จัดการ Role & สิทธิ์การใช้งาน (Role Management)</h2>
-                <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: 14 }}>สร้างและกำหนด Permission ของแต่ละ Role ภายในระบบ</p>
+                <h2 style={{ margin: 0, color: RG.text, fontFamily: RG.fontHeading, fontSize: 24, fontWeight: 700 }}>จัดการ Role & สิทธิ์การใช้งาน (Role Management)</h2>
+                <p style={{ margin: "4px 0 0 0", color: RG.textMuted, fontFamily: RG.fontBody, fontSize: 14 }}>สร้างและกำหนด Permission ของแต่ละ Role ภายในระบบ</p>
               </div>
             </div>
             <RoleManagementPage currentUser={currentUser} />
@@ -1131,8 +1139,8 @@ export default function App() {
                 ⚙️
               </div>
               <div>
-                <h2 style={{ margin: 0, color: "#0f766e", fontSize: 24, fontWeight: 800 }}>จัดการผู้ใช้งาน (User Management)</h2>
-                <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: 14 }}>สร้างและจัดการสิทธิ์ผู้ใช้งานระบบ</p>
+                <h2 style={{ margin: 0, color: RG.text, fontFamily: RG.fontHeading, fontSize: 24, fontWeight: 700 }}>จัดการผู้ใช้งาน (User Management)</h2>
+                <p style={{ margin: "4px 0 0 0", color: RG.textMuted, fontFamily: RG.fontBody, fontSize: 14 }}>สร้างและจัดการสิทธิ์ผู้ใช้งานระบบ</p>
               </div>
             </div>
             <UserManagement currentUser={currentUser} />
