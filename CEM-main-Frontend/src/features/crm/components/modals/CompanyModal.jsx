@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import html2canvas from "html2canvas"; // ⚠️ อย่าลืม import html2canvas
 import { RG } from "../../constants/theme";
 import { STATUSES } from "../../constants/status";
-import { parseDateTH, today, fmtNum, formatNumberWithCommas, parseNumberFromCommas, PROVINCES } from "../../crmHelpers/helpers";
+import { parseDateTH, today, fmtNum, formatNumberWithCommas, parseNumberFromCommas, PROVINCES, formatPhoneNumber } from "../../crmHelpers/helpers";
 import { API_BASE_URL } from "../../services/api";
 import Btn from "../common/Btn";
 import Field from "../common/Field";
@@ -120,7 +120,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                 </tr>
                 <tr>
                   <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>เบอร์โทรศัพท์</td>
-                  <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>{lead.contactPhone || "-"}</td>
+                  <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>{formatPhoneNumber(lead.contactPhone) || "-"}</td>
                 </tr>
                 <tr>
                   <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>อีเมล</td>

@@ -3,7 +3,7 @@
 // ==========================================
 const express = require("express");
 // ดึงตัวพ่อครัว (ฟังก์ชันทำงานจริง) มาจาก mainController แทน
-const { getLeads, getAllLeadsMaster, createLead, updateLead, toggleStar, deleteLead, deleteLeads, restoreLeads, hardDeleteLead, reassignLead, bulkReassignLeads, getTeamStats } = require("../controllers/mainController");
+const { getLeads, getAllLeadsMaster, createLead, updateLead, toggleStar, deleteLead, deleteLeads, restoreLeads, hardDeleteLead, reassignLead, bulkReassignLeads, getTeamStats, acknowledgeLead } = require("../controllers/mainController");
 const { authenticate, requireManagerAccess, requirePermission } = require("../middleware/authMiddleware");
 
 const router = express.Router();
@@ -27,5 +27,6 @@ router.delete("/:id", deleteLead);   // ย้ายลงถังขยะ (So
 router.get("/team/stats", requireManagerAccess, getTeamStats);
 router.put("/team/bulk-reassign", bulkReassignLeads);
 router.put("/:id/reassign", reassignLead);
+router.put("/:id/acknowledge", acknowledgeLead);
 
 module.exports = router;

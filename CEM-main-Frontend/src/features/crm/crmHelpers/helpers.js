@@ -32,6 +32,12 @@ export function parseDateTH(d) {
   return dt.toLocaleDateString("th-TH", { year: "2-digit", month: "short", day: "numeric" });
 }
 
+export function parseDateTimeTH(d) {
+  if (!d) return "";
+  const dt = new Date(d);
+  return dt.toLocaleDateString("th-TH", { year: "2-digit", month: "short", day: "numeric" }) + " " + dt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+}
+
 export function formatNumberWithCommas(value) {
   if (value === undefined || value === null) return "";
   const str = value.toString();

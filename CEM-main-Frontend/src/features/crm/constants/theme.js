@@ -10,7 +10,7 @@ export const RG = {
  
   // === FONTS ===
   fontHeading:   "'Kanit', sans-serif",
-  fontBody:      "'Sarabun', sans-serif",
+  fontBody:      "'Kanit', sans-serif",
 
   // === GRADIENTS ===
   gradient:      "linear-gradient(135deg, #07BEB8 0%, #037971 100%)", // Turquoise to Dark Teal

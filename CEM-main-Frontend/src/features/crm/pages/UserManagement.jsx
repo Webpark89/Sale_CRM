@@ -33,6 +33,7 @@ export default function UserManagement({ currentUser }) {
   const [newUser, setNewUser] = useState({ username: "", password: "", confirmPassword: "", display_name: "", role_id: "" });
   const [roles, setRoles] = useState([]);
 
+  const [showEditUser, setShowEditUser] = useState(null);
   const [showChangePwd, setShowChangePwd] = useState(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -71,6 +72,7 @@ export default function UserManagement({ currentUser }) {
   const handleAddUser = async () => {
     if (!newUser.username || !newUser.password) return toast.error("กรุณากรอก Username และ Password");
     if (newUser.password !== newUser.confirmPassword) return toast.error("รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน");
+    if (!newUser.role_id) return toast.error("กรุณาเลือก Role (บทบาท) ให้กับผู้ใช้งาน");
     try {
       await createUserApi(newUser);
       setShowAddUser(false);
@@ -82,17 +84,28 @@ export default function UserManagement({ currentUser }) {
   };
 
   const handleChangePassword = async () => {
-    if (newPassword && newPassword !== confirmPassword) return toast.error("รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน");
+    if (!newPassword || newPassword !== confirmPassword) return toast.error("รหัสผ่านและการยืนยันรหัสผ่านไม่ถูกต้อง");
     try {
-      if (editRoleId && editRoleId !== showChangePwd.role_id) {
-        await updateUserRoleApi(showChangePwd.id, editRoleId);
-      }
-      if (editUsername !== showChangePwd.username || newPassword || editDisplayName !== showChangePwd.display_name) {
-        await updateUserPasswordApi(showChangePwd.id, editUsername, newPassword, editDisplayName);
-      }
+      await updateUserPasswordApi(showChangePwd.id, showChangePwd.username, newPassword, showChangePwd.display_name);
       setShowChangePwd(null);
       setNewPassword("");
       setConfirmPassword("");
+      toast.success("อัปเดตรหัสผ่านสำเร็จ");
+      loadData();
+    } catch (e) {
+      toast.error(e.response?.data?.error || "เกิดข้อผิดพลาด");
+    }
+  };
+
+  const handleEditUser = async () => {
+    try {
+      if (editRoleId && editRoleId !== showEditUser.role_id) {
+        await updateUserRoleApi(showEditUser.id, editRoleId);
+      }
+      if (editUsername !== showEditUser.username || editDisplayName !== showEditUser.display_name) {
+        await updateUserPasswordApi(showEditUser.id, editUsername, "", editDisplayName);
+      }
+      setShowEditUser(null);
       setEditUsername("");
       setEditDisplayName("");
       setEditRoleId("");
@@ -200,7 +213,7 @@ export default function UserManagement({ currentUser }) {
               </td>
               <td style={{ padding: 12 }}>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <Btn small variant="secondary" onClick={() => { setShowChangePwd(u); setNewPassword(""); setConfirmPassword(""); setEditUsername(u.username); setEditDisplayName(u.display_name || ""); setEditRoleId(u.role_id || ""); }}>แก้ไขข้อมูลผู้ใช้</Btn>
+                  <Btn small variant="secondary" onClick={() => { setShowEditUser(u); setEditUsername(u.username); setEditDisplayName(u.display_name || ""); setEditRoleId(u.role_id || ""); }}>แก้ไขข้อมูลผู้ใช้</Btn>
                   {u.id !== currentUser.id && (
                     <Btn small variant={u.is_active ? "danger" : "warning"} onClick={() => setShowStatusModal(u)}>
                       สถานะ / ลบ
@@ -234,8 +247,8 @@ export default function UserManagement({ currentUser }) {
         </Modal>
       )}
 
-      {showChangePwd && (
-        <Modal title="แก้ไขข้อมูลผู้ใช้" onClose={() => setShowChangePwd(null)}>
+      {showEditUser && (
+        <Modal title="แก้ไขข้อมูลผู้ใช้" onClose={() => setShowEditUser(null)}>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <label style={{ fontSize: 14, fontWeight: "bold" }}>Username</label>
             <input placeholder="Username" style={inputStyle} value={editUsername} onChange={e => setEditUsername(e.target.value)} />
@@ -255,15 +268,22 @@ export default function UserManagement({ currentUser }) {
               ))}
             </select>
             
-            <div style={{ background: '#f8fafc', padding: 16, borderRadius: 8, marginTop: 8, border: '1px solid #e2e8f0' }}>
-              <label style={{ fontSize: 14, fontWeight: "bold", display: 'block', marginBottom: 8, color: '#334155' }}>เปลี่ยนรหัสผ่าน (ปล่อยว่างถ้าไม่ต้องการเปลี่ยน)</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <input placeholder="รหัสผ่านใหม่" type="password" style={inputStyle} value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-                <input placeholder="ยืนยันรหัสผ่านใหม่" type="password" style={inputStyle} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
-              </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <Btn onClick={handleEditUser} style={{ flex: 1 }}>บันทึกข้อมูล</Btn>
+              <Btn variant="secondary" onClick={() => { setShowChangePwd(showEditUser); setShowEditUser(null); setNewPassword(""); setConfirmPassword(""); }} style={{ flex: 1 }}>เปลี่ยนรหัสผ่าน</Btn>
             </div>
-            
-            <Btn onClick={handleChangePassword} style={{ marginTop: 8 }}>บันทึกข้อมูล</Btn>
+          </div>
+        </Modal>
+      )}
+
+      {showChangePwd && (
+        <Modal title="เปลี่ยนรหัสผ่าน" onClose={() => setShowChangePwd(null)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <label style={{ fontSize: 14, fontWeight: "bold" }}>รหัสผ่านใหม่</label>
+            <input placeholder="รหัสผ่านใหม่" type="password" style={inputStyle} value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+            <label style={{ fontSize: 14, fontWeight: "bold" }}>ยืนยันรหัสผ่านใหม่</label>
+            <input placeholder="ยืนยันรหัสผ่านใหม่" type="password" style={inputStyle} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+            <Btn onClick={handleChangePassword} style={{ marginTop: 8 }}>บันทึกรหัสผ่าน</Btn>
           </div>
         </Modal>
       )}

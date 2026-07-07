@@ -125,12 +125,12 @@ export default function Dashboard({ leads, followups, currentUser }) {
   const kpis=[
     {label:'ลีดทั้งหมด',value:total,icon:'👥',c:RG.primary},
     {label:'ต้องติดตามวันนี้',value:need,icon:'🔔',c:'#C62828'},
-    {label:'ปิดการขาย',value:sc[STATUS_ENUM.CLOSED]||0,icon:'✅',c:STATUS_COLORS[STATUS_ENUM.CLOSED]},
     {label:'มีตติ้ง',value:sc[STATUS_ENUM.MEETING]||0,icon:'📅',c:STATUS_COLORS[STATUS_ENUM.MEETING]},
-    {label:'ต้องตามต่อ',value:sc[STATUS_ENUM.FOLLOW_UP]||0,icon:'📞',c:STATUS_COLORS[STATUS_ENUM.FOLLOW_UP]},
     {label:'ฝากโปรไฟล์',value:sc[STATUS_ENUM.PROFILE]||0,icon:'📝',c:STATUS_COLORS[STATUS_ENUM.PROFILE]},
+    {label:'ต้องตามต่อ',value:sc[STATUS_ENUM.FOLLOW_UP]||0,icon:'📞',c:STATUS_COLORS[STATUS_ENUM.FOLLOW_UP]},
     {label:'ติดต่อไม่ได้',value:sc[STATUS_ENUM.UNREACHABLE]||0,icon:'📵',c:STATUS_COLORS[STATUS_ENUM.UNREACHABLE]},
     {label:'ไม่สนใจ',value:sc[STATUS_ENUM.NOT_INTERESTED]||0,icon:'❌',c:STATUS_COLORS[STATUS_ENUM.NOT_INTERESTED]},
+    {label:'ปิดการขาย',value:sc[STATUS_ENUM.CLOSED]||0,icon:'✅',c:STATUS_COLORS[STATUS_ENUM.CLOSED]},
   ];
 
   const doExport = async (e) => {

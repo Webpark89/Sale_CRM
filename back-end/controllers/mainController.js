@@ -86,8 +86,8 @@ const createLead = asyncHandler(async (req, res) => {
   const contact_email = req.body.contact_email || req.body.contactEmail;
   const contact_phone = req.body.contact_phone || req.body.contactPhone;
 
-  if (contact_phone && !/^\d+$/.test(contact_phone)) {
-    return res.status(400).json({ error: "เบอร์โทรศัพท์ต้องเป็นตัวเลขเท่านั้น" });
+  if (contact_phone && !/^[\d\s\-\+\(\)]+$/.test(contact_phone)) {
+    return res.status(400).json({ error: "เบอร์โทรศัพท์ต้องเป็นตัวเลข (อนุญาตให้ใช้ -, space)" });
   }
 
   const rev = Number(req.body.revenue);
@@ -159,8 +159,8 @@ const updateLead = asyncHandler(async (req, res) => {
   const contact_email = req.body.contact_email || req.body.contactEmail;
   const contact_phone = req.body.contact_phone || req.body.contactPhone;
 
-  if (contact_phone && !/^\d+$/.test(contact_phone)) {
-    return res.status(400).json({ error: "เบอร์โทรศัพท์ต้องเป็นตัวเลขเท่านั้น" });
+  if (contact_phone && !/^[\d\s\-\+\(\)]+$/.test(contact_phone)) {
+    return res.status(400).json({ error: "เบอร์โทรศัพท์ต้องเป็นตัวเลข (อนุญาตให้ใช้ -, space)" });
   }
 
   const rev = req.body.revenue !== undefined ? Number(req.body.revenue) : undefined;
@@ -525,6 +525,19 @@ const getTeamStats = asyncHandler(async (req, res) => {
   res.json(stats);
 });
 
+const acknowledgeLead = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const lead = await Lead.findById(id);
+  if (!lead) return res.status(404).json({ error: 'ไม่พบข้อมูลลีด' });
+  
+  if (lead.owner_id !== req.user.id) {
+    return res.status(403).json({ error: 'ไม่มีสิทธิ์รับทราบลีดนี้' });
+  }
+
+  await Lead.setAcknowledged(id);
+  res.json({ success: true, message: 'รับทราบลีดใหม่สำเร็จ' });
+});
+
 const reassignLead = asyncHandler(async (req, res) => {
   const perms = req.user.permissions || {};
   const canReassign = req.user.role_is_system || (perms.leads && perms.leads.reassign === true);
@@ -561,5 +574,5 @@ module.exports = {
   restoreLeads, hardDeleteLead,
   getFollowups, createFollowup, markDone, deleteFollowup,
   getUsers, createUser, updateUserPassword, updateUserRole, toggleUserActive, deleteUser, restoreUser, updateUserPermissions,
-  getTeamStats, reassignLead, bulkReassignLeads
+  getTeamStats, reassignLead, bulkReassignLeads, acknowledgeLead
 };

@@ -125,6 +125,11 @@ export const reassignLeadApi = async (leadId, newOwnerId) => {
   return data;
 };
 
+export const acknowledgeLeadApi = async (leadId) => {
+  const { data } = await api.put(`/leads/${leadId}/acknowledge`);
+  return data;
+};
+
 export const bulkReassignLeadsApi = async (fromOwnerId, toOwnerId) => {
   const { data } = await api.put("/leads/team/bulk-reassign", { from_owner_id: fromOwnerId, to_owner_id: toOwnerId });
   return data;

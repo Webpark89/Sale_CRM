@@ -4,7 +4,7 @@ import { toJpeg } from "html-to-image";
 import { jsPDF } from "jspdf";
 import { STATUSES, STATUS_COLORS, STATUS_ENUM } from "../constants/status";
 import { RG } from "../constants/theme";
-import { today, fmtNum, PROVINCES } from "../crmHelpers/helpers";
+import { today, fmtNum, PROVINCES, formatPhoneNumber } from "../crmHelpers/helpers";
 import StatusBadge from "../components/common/StatusBadge";
 import { inputStyle } from "../components/common/styles";
 import Modal from "../components/common/Modal";
@@ -165,9 +165,16 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
     return true;
   });
   
+  const todayDateStr = new Date().toISOString().split("T")[0];
+
   const filteredLeads = filterStatuses.length === 0
     ? [...reportLeads] 
-    : reportLeads.filter(l => filterStatuses.includes(l.latestStatus));
+    : reportLeads.filter(l => {
+        if (filterStatuses.includes("followup_today") && l.nextFollowupDate && l.nextFollowupDate.split("T")[0] <= todayDateStr) {
+          return true;
+        }
+        return filterStatuses.includes(l.latestStatus);
+      });
 
   const finalLeads = filteredLeads.sort((a, b) => {
     const rankA = STATUSES.indexOf(a.latestStatus);
@@ -212,8 +219,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
   }, {});
 
   const statGroups = [];
-  const todayDateStr = new Date().toISOString().split("T")[0];
-  const ftItems = finalLeads.filter(l => l.latestStatus === STATUS_ENUM.FOLLOW_UP && l.nextFollowupDate && l.nextFollowupDate.split("T")[0] === todayDateStr);
+  const ftItems = finalLeads.filter(l => l.nextFollowupDate && l.nextFollowupDate.split("T")[0] <= todayDateStr);
   
   if (filterStatuses.includes("followup_today") && ftItems.length > 0) {
     statGroups.push({ status: "ต้องติดตามวันนี้ 🔔", items: ftItems });
@@ -231,7 +237,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
   const { totalMeetings, totalClosed, followupToday } = finalLeads.reduce((acc, l) => {
     if (l.latestStatus === STATUS_ENUM.MEETING) acc.totalMeetings++;
     if (l.latestStatus === STATUS_ENUM.CLOSED) acc.totalClosed++;
-    if (l.latestStatus === STATUS_ENUM.FOLLOW_UP && l.nextFollowupDate && l.nextFollowupDate.split("T")[0] === todayDateStr) acc.followupToday++;
+    if (l.nextFollowupDate && l.nextFollowupDate.split("T")[0] <= todayDateStr) acc.followupToday++;
     return acc;
   }, { totalMeetings: 0, totalClosed: 0, followupToday: 0 });
 
@@ -724,7 +730,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
                               <td style={{ padding: "10px", textAlign: "center", color: RG.textMuted }}>{(pageIndex === 0 ? 0 : FIRST_PAGE_LIMIT + (pageIndex - 1) * OTHER_PAGE_LIMIT) + i + 1}</td>
                               <td style={{ padding: "10px", fontWeight: 600, color: RG.text }}>{l.companyName || "-"}</td>
                               <td style={{ padding: "10px", color: RG.text }}>{l.contactName || "-"}</td>
-                              <td style={{ padding: "10px", color: RG.text }}>{l.contactPhone || "-"}</td>
+                              <td style={{ padding: "10px", color: RG.text }}>{formatPhoneNumber(l.contactPhone) || "-"}</td>
                               <td style={{ padding: "10px", textAlign: "right", color: RG.text }}>{l.revenue ? fmtNum(l.revenue) : "-"}</td>
                               <td style={{ padding: "10px", textAlign: "center" }}>
                                 <span style={{ display: "inline-block", padding: "4px 8px", borderRadius: "12px", fontSize: 11, fontWeight: 600, background: STATUS_COLORS[l.latestStatus] ? STATUS_COLORS[l.latestStatus] + "22" : "#eee", color: STATUS_COLORS[l.latestStatus] || "#666" }}>

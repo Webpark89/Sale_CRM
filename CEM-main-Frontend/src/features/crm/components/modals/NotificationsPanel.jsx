@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { RG } from "../../constants/theme";
-import { parseDateTH, today } from "../../crmHelpers/helpers";
+import { parseDateTH, parseDateTimeTH, today } from "../../crmHelpers/helpers";
 import Btn from "../common/Btn";
 import Modal from "../common/Modal";
 import StatusBadge from "../common/StatusBadge";
@@ -16,12 +16,23 @@ const PRIORITY_WEIGHT = {
   "ไม่สนใจ": 0
 };
 
-export default function NotificationsPanel({ currentUser, leads, onMarkDone, onViewLead, onClose }) {
+export default function NotificationsPanel({ notifTab = 1, currentUser, leads, onMarkDone, onViewLead, onClose }) {
   const [filterDate, setFilterDate] = useState(today());
   const [expandedSection, setExpandedSection] = useState(null); // 'dueToday' | 'overdue' | 'general'
+  const [activeTab, setActiveTab] = useState(notifTab); // 1 = Follow-ups, 2 = General
   const isDefaultDate = filterDate === today();
 
-  const sortLeads = (arr) => arr.sort((a, b) => {
+  useEffect(() => {
+    setActiveTab(notifTab);
+  }, [notifTab]);
+
+  const sortLeads = (arr, isGeneral = false) => arr.sort((a, b) => {
+    if (isGeneral) {
+      const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return timeB - timeA; // Descending (newest first)
+    }
+
     const dateA = a.nextFollowupDate || a.latestContactDate || "";
     const dateB = b.nextFollowupDate || b.latestContactDate || "";
     if (dateA !== dateB) {
@@ -33,26 +44,30 @@ export default function NotificationsPanel({ currentUser, leads, onMarkDone, onV
     return weightB - weightA;
   });
 
-  const dueToday = sortLeads(leads.filter(l => l.ownerId === currentUser?.id && l.nextFollowupDate === filterDate && l.latestStatus !== "ปิดการขาย"));
-  const overdue = sortLeads(leads.filter(l => l.ownerId === currentUser?.id && l.nextFollowupDate && l.nextFollowupDate < filterDate && l.latestStatus !== "ปิดการขาย"));
+  const dueToday = sortLeads(leads.filter(l => Number(l.ownerId) === Number(currentUser?.id) && l.nextFollowupDate === filterDate && l.latestStatus !== "ปิดการขาย"));
+  const overdue = sortLeads(leads.filter(l => Number(l.ownerId) === Number(currentUser?.id) && l.nextFollowupDate && l.nextFollowupDate < filterDate && l.latestStatus !== "ปิดการขาย"));
   
   // General: 1. สร้างเอง (ฝากโปรไฟล์) 2. ได้รับมอบหมายใหม่ (isAcknowledged === 0)
   const general = sortLeads(leads.filter(l => {
-    if (l.latestStatus === "ปิดการขาย") return false;
-    
-    const isNewlyAssigned = l.isAcknowledged === 0 && l.ownerId === currentUser?.id;
+    const isNewlyAssigned = Number(l.isAcknowledged) === 0 && Number(l.ownerId) === Number(currentUser?.id);
     if (isNewlyAssigned) return true;
 
-    const isNewlyCreatedByMe = l.latestStatus === "ฝากโปรไฟล์" && (l.createdBy === currentUser?.id || l.createdBy === null);
+    if (l.latestStatus === "ปิดการขาย") return false;
+    
+    const isNewlyCreatedByMe = l.latestStatus === "ฝากโปรไฟล์" && (Number(l.createdBy) === Number(currentUser?.id) || l.createdBy === null);
     
     return isNewlyCreatedByMe;
-  }));
+  }), true);
+
+  const hasFollowups = dueToday.length > 0 || overdue.length > 0;
+  const hasGeneral = general.length > 0;
 
   const getNoteText = (l) => {
-    if (l.isAcknowledged === 0 && l.ownerId === currentUser?.id) {
-      return `🔄 โอนย้ายมาจาก: ${l.prevOwnerUsername || 'ไม่มี'} | 🔄 โอนย้ายมาโดย: ${l.assignerUsername || l.creatorUsername || 'ระบบ'}`;
+    const timeStr = l.createdAt ? ` | 🕒 ${parseDateTimeTH(l.createdAt)}` : "";
+    if (Number(l.isAcknowledged) === 0 && Number(l.ownerId) === Number(currentUser?.id)) {
+      return `🔄 โอนย้ายมาจาก: ${l.prevOwnerUsername || 'ไม่มี'} | 🔄 โอนย้ายมาโดย: ${l.assignerUsername || l.creatorUsername || 'ระบบ'}${timeStr}`;
     }
-    return "✨ ลีดใหม่ที่สร้างสำเร็จ";
+    return `✨ ลีดใหม่ที่สร้างสำเร็จ${timeStr}`;
   };
 
   const renderLeadCard = (l, isOverdue, sectionType) => {
@@ -66,17 +81,36 @@ export default function NotificationsPanel({ currentUser, leads, onMarkDone, onV
             <p style={{ margin: 0, fontWeight: 600, color: RG.text, fontSize: 14 }}>{l.companyName}</p>
             {isOverdue && <span style={{ fontSize: 11, background: "#fee2e2", color: "#dc2626", padding: "2px 8px", borderRadius: 12, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>ค้าง!</span>}
           </div>
-          <p style={{ margin: "2px 0 0", fontSize: 12, color: isOverdue ? "#dc2626" : RG.textMuted }}>
-            กำหนดติดตาม: {l.nextFollowupDate ? parseDateTH(l.nextFollowupDate) : "ยังไม่ได้กำหนด"}
-          </p>
-          {noteText && <p style={{ margin: "4px 0 0", fontSize: 11, color: RG.primary, fontWeight: 600 }}>{noteText}</p>}
+          {sectionType === "general" ? (
+            <>
+              {Number(l.isAcknowledged) === 0 ? (
+                <p style={{ margin: "4px 0 0", fontSize: 12, color: RG.primary }}>
+                  🔄 โอนย้ายโดย: {l.assignerUsername || "ระบบ"}
+                </p>
+              ) : (
+                <p style={{ margin: "4px 0 0", fontSize: 12, color: RG.primary }}>
+                  ✨ สร้างใหม่
+                </p>
+              )}
+              <p style={{ margin: "2px 0 0", fontSize: 11, color: RG.textMuted }}>
+                เมื่อ: {l.updatedAt || l.createdAt ? new Date(l.updatedAt || l.createdAt).toLocaleString("th-TH") : "ไม่ทราบเวลา"}
+              </p>
+            </>
+          ) : (
+            <>
+              <p style={{ margin: "2px 0 0", fontSize: 12, color: isOverdue ? "#dc2626" : RG.textMuted }}>
+                กำหนดติดตาม: {l.nextFollowupDate ? parseDateTH(l.nextFollowupDate) : "ยังไม่ได้กำหนด"}
+              </p>
+              {noteText && <p style={{ margin: "4px 0 0", fontSize: 11, color: RG.primary, fontWeight: 600 }}>{noteText}</p>}
+            </>
+          )}
           <div style={{ marginTop: 6 }}>
             <StatusBadge status={l.latestStatus} />
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6, width: 105, flexShrink: 0 }}>
           <Btn small variant="Third" onClick={(e) => { e.stopPropagation(); onViewLead(l); }} style={{ width: "100%", textAlign: "center", padding: "6px 0", fontSize: 12 }}>ข้อมูลเพิ่มเติม</Btn>
-          <Btn small variant="success" onClick={(e) => { e.stopPropagation(); onMarkDone(l); }} style={{ width: "100%", textAlign: "center", padding: "6px 0", fontSize: 12 }}>ติดตามแล้ว ✓</Btn>
+          <Btn small variant="success" onClick={(e) => { e.stopPropagation(); onMarkDone(l, sectionType); }} style={{ width: "100%", textAlign: "center", padding: "6px 0", fontSize: 12 }}>{sectionType === "general" ? "รับทราบ ✓" : "ติดตามแล้ว ✓"}</Btn>
         </div>
       </div>
     );
@@ -167,10 +201,45 @@ export default function NotificationsPanel({ currentUser, leads, onMarkDone, onV
         {expandedSection ? (
           renderExpandedView()
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            
+            {/* Tabs Header */}
+            <div style={{ display: "flex", gap: "8px", marginBottom: "8px", padding: "4px", background: RG.surface, borderRadius: "10px", border: `1px solid ${RG.border}` }}>
+              <button
+                onClick={() => setActiveTab(1)}
+                style={{
+                  flex: 1, padding: "10px", borderRadius: "8px", border: "none", cursor: "pointer",
+                  fontWeight: 600, fontSize: "14px", fontFamily: "'Sarabun', sans-serif", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px",
+                  background: activeTab === 1 ? RG.primary : "transparent",
+                  color: activeTab === 1 ? "#fff" : RG.textMuted,
+                  transition: "all 0.2s"
+                }}
+              >
+                <span>📅 การติดตาม</span>
+                <span style={{ background: activeTab === 1 ? "#fff" : RG.border, color: activeTab === 1 ? RG.primary : RG.text, padding: "2px 8px", borderRadius: "12px", fontSize: "12px" }}>
+                  {dueToday.length + overdue.length}
+                </span>
+              </button>
+              <button
+                onClick={() => setActiveTab(2)}
+                style={{
+                  flex: 1, padding: "10px", borderRadius: "8px", border: "none", cursor: "pointer",
+                  fontWeight: 600, fontSize: "14px", fontFamily: "'Sarabun', sans-serif", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px",
+                  background: activeTab === 2 ? "#8b5cf6" : "transparent",
+                  color: activeTab === 2 ? "#fff" : RG.textMuted,
+                  transition: "all 0.2s"
+                }}
+              >
+                <span>🔔 ลีดใหม่ & โอนย้าย</span>
+                <span style={{ background: activeTab === 2 ? "#fff" : RG.border, color: activeTab === 2 ? "#8b5cf6" : RG.text, padding: "2px 8px", borderRadius: "12px", fontSize: "12px" }}>
+                  {general.length}
+                </span>
+              </button>
+            </div>
             
             {/* ส่วนที่ 1: การติดตาม (Follow-ups) */}
-            <div style={{ background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "12px", padding: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+            {activeTab === 1 && (
+              <div style={{ background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "12px", padding: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
               <h3 style={{ margin: "0 0 16px 0", color: RG.text, fontSize: 15, borderBottom: `2px solid ${RG.primaryLight}`, paddingBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span>📌 ส่วนที่ 1: การติดตาม (Follow-ups)</span>
                 <span style={{ fontSize: 12, fontWeight: "normal", color: RG.textMuted }}>รวม {dueToday.length + overdue.length} รายการ</span>
@@ -196,16 +265,24 @@ export default function NotificationsPanel({ currentUser, leads, onMarkDone, onV
               )}
               {renderSection("📅 การติดตาม ณ ปัจจุบัน", dueToday, false, 'dueToday', RG.primary)}
               {renderSection("⚠️ การติดตามที่ค้างอยู่ (ผ่านมาแล้ว)", overdue, true, 'overdue', "#dc2626")}
-            </div>
+              </div>
+            )}
 
             {/* ส่วนที่ 2: การแจ้งเตือนทั่วไป */}
-            {general.length > 0 && (
+            {activeTab === 2 && (
               <div style={{ background: "#fff", border: "1px solid #ddd6fe", borderRadius: "12px", padding: "16px", boxShadow: "0 2px 8px rgba(139,92,246,0.08)" }}>
-                <h3 style={{ margin: "0 0 16px 0", color: "#6d28d9", fontSize: 15, borderBottom: "2px solid #c4b5fd", paddingBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span>📌 ส่วนที่ 2: การแจ้งเตือนทั่วไป (General)</span>
-                  <span style={{ fontSize: 12, fontWeight: "normal", color: "#8b5cf6" }}>รวม {general.length} รายการ</span>
-                </h3>
-                {renderSection("🔔 การแจ้งเตือนทั่วไป (ลีดใหม่/รอติดต่อ)", general, false, 'general', "#8b5cf6")}
+                <div style={{ marginBottom: 16 }}>
+                  {general.length === 0 ? (
+                    <p style={{ color: RG.textMuted, textAlign: "center", padding: "10px 0", fontSize: 13 }}>ไม่มีรายการแจ้งเตือนใหม่ 🎉</p>
+                  ) : (
+                    <>
+                      <h4 style={{ margin: "0 0 12px 0", color: "#8b5cf6" }}>
+                        🔔 การแจ้งเตือนลีดใหม่และรับโอนย้าย <span style={{ color: RG.textMuted, fontSize: 14, fontWeight: "normal" }}>({general.length} รายการ)</span>
+                      </h4>
+                      {general.map(l => renderLeadCard(l, false, 'general'))}
+                    </>
+                  )}
+                </div>
               </div>
             )}
             

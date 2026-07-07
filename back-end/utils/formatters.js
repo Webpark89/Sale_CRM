@@ -44,7 +44,7 @@ const formatLead = (row) => ({
   contactEmail:    row.contact_email,
   province:        row.province,
   createdAt:       row.created_at,
-  updatedAt:       row.created_at, 
+  updatedAt:       row.updated_at, 
 });
 
 /**

@@ -9,28 +9,16 @@ import EditableCell from "./components/common/EditableCell";
 import StatusBadge from "./components/common/StatusBadge";
 import Modal from "./components/common/Modal";
 import { inputStyle } from "./components/common/styles";
-import AddLeadModal from "./components/modals/AddLeadModal";
-import CompanyModal from "./components/modals/CompanyModal";
-import FollowupQuickForm from "./components/modals/FollowupQuickForm";
-import NotificationsPanel from "./components/modals/NotificationsPanel";
-import FilterModal from "./components/modals/FilterModal";
+import Sidebar from "./components/layout/Sidebar";
+import TopHeader from "./components/layout/TopHeader";
+import AppModals from "./components/layout/AppModals";
 import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
 import UserManagement from "./pages/UserManagement";
 import RoleManagementPage from "./pages/RoleManagementPage";
-import {
-  fetchLeads,
-  fetchAllFollowups,
-  addLeadToApi,
-  updateLeadToApi,
-  toggleLeadStarApi,
-  deleteMultipleLeadsFromApi,
-  addFollowupToApi,
-  markFollowupDoneApi,
-  restoreLeadsApi,
-  hardDeleteLeadApi,
-  fetchAllLeadsMaster
-} from "./services/apiService";
+import LeadsPage from "./pages/LeadsPage";
+import { fetchLeads, fetchAllFollowups, addLeadToApi, updateLeadToApi, deleteLeadFromApi, restoreLeadsApi, hardDeleteLeadApi, fetchAllLeadsMaster, toggleLeadStarApi, deleteMultipleLeadsFromApi, addFollowupToApi, markFollowupDoneApi, acknowledgeLeadApi } from "./services/apiService";
+import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { API_BASE_URL } from "./services/api";
 import { printHTMLTable } from "../../utils/exportHelpers";
 
@@ -76,7 +64,9 @@ export default function App() {
     if (user.permissions?.users?.menu) return "user_management";
     return "leads"; // fallback
   };
-  const [page, setPage] = useState(() => getDefaultPage(currentUser));
+  const location = useLocation();
+  const navigate = useNavigate();
+  const page = location.pathname.substring(1) || getDefaultPage(currentUser);
   const [selectedLead, setSelectedLead] = useState(null);
   const [showAddLead, setShowAddLead] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
@@ -153,6 +143,7 @@ export default function App() {
   }, [authenticated]);
 
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [notifTab, setNotifTab] = useState(1);
   const [filterSellers, setFilterSellers] = useState([]); // [] means all sellers
   const [isSellerDropdownOpen, setIsSellerDropdownOpen] = useState(false);
   
@@ -160,19 +151,25 @@ export default function App() {
 
   const syncStatus = "Cloud Synced";
   const currentDateStr = today();
-  const myLeads = leads.filter(l => l.ownerId === currentUser?.id || l.createdBy === currentUser?.id);
+  const myLeads = leads.filter(l => Number(l.ownerId) === Number(currentUser?.id) || Number(l.createdBy) === Number(currentUser?.id));
   const generalCount = myLeads.filter(l => {
-    if (l.latestStatus === "ปิดการขาย") return false;
-    
-    const isNewlyAssigned = l.isAcknowledged === 0 && l.ownerId === currentUser?.id;
+    const isNewlyAssigned = Number(l.isAcknowledged) === 0 && Number(l.ownerId) === Number(currentUser?.id);
     if (isNewlyAssigned) return true;
 
+    if (l.latestStatus === "ปิดการขาย") return false;
     const isNewlyCreatedByMe = l.latestStatus === "ฝากโปรไฟล์" && (l.createdBy === currentUser?.id || l.createdBy === null);
     
     return isNewlyCreatedByMe;
   }).length;
-  
-  const dueTodayCount = myLeads.filter(l => (l.ownerId === currentUser?.id && l.nextFollowupDate && l.nextFollowupDate <= currentDateStr && l.latestStatus !== "ปิดการขาย")).length + generalCount;
+  const dueTodayCount = myLeads.filter(l => (Number(l.ownerId) === Number(currentUser?.id) && l.nextFollowupDate && l.nextFollowupDate <= currentDateStr && l.latestStatus !== "ปิดการขาย")).length;
+
+  console.log("Notification Debug:", { 
+    generalCount, 
+    dueTodayCount,
+    myLeadsLength: myLeads.length,
+    newAssigned: myLeads.filter(l => Number(l.isAcknowledged) === 0 && Number(l.ownerId) === Number(currentUser?.id)),
+    currentUserId: currentUser?.id
+  });
 
   // Undo/Redo Stack
   const [history, setHistory] = useState([]);
@@ -222,7 +219,13 @@ export default function App() {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    const intervalId = setInterval(() => {
+      if (authenticated) {
+        loadData();
+      }
+    }, 15000);
+    return () => clearInterval(intervalId);
+  }, [loadData, authenticated]);
 
   const undo = async () => {
     if (histIdx < 0) return;
@@ -336,23 +339,43 @@ export default function App() {
     }
   };
 
-  const markDone = async lead => {
+  const markDone = async (lead, sectionType) => {
     try {
+      let currentLeads = leads;
+      
+      if (sectionType === "general") {
+        let updated = false;
+        const isNewlyAssigned = Number(lead.isAcknowledged) === 0 && Number(lead.ownerId) === Number(currentUser?.id);
+        const isNewlyCreatedByMe = lead.latestStatus === "ฝากโปรไฟล์" && (Number(lead.createdBy) === Number(currentUser?.id) || lead.createdBy === null);
+
+        if (isNewlyAssigned) {
+          await acknowledgeLeadApi(lead.id);
+          currentLeads = currentLeads.map(l => l.id === lead.id ? { ...l, isAcknowledged: 1 } : l);
+          updated = true;
+        }
+
+        if (isNewlyCreatedByMe) {
+          await addFollowupToApi(lead.id, { sequence: 1, status: "ต้องตามต่อ", detail: "กดรับทราบการสร้างลีดใหม่ (ระบบเคลียร์แจ้งเตือน)", date: today() });
+          currentLeads = currentLeads.map(l => l.id === lead.id ? { ...l, latestStatus: "ต้องตามต่อ" } : l);
+          loadData(); // Reload followups
+          updated = true;
+        }
+
+        if (updated) {
+          setLeads(currentLeads);
+          return; // Early return to prevent opening the follow-up modal
+        }
+      }
+
       const fups = followups[lead.id] || [];
       const fup = fups.find(f => !f.completed && f.nextFollowupDate && f.nextFollowupDate <= today());
       if (fup) {
         await markFollowupDoneApi(fup.id);
-        // แก้เฟพาะรายการที่เราเพิ่งกดเท่านั้น ไม่ใช่ทุกรายการ
         const updated = fups.map(f => f.id === fup.id ? { ...f, completed: true } : f);
         const newFollowups = { ...followups, [lead.id]: updated };
         setFollowups(newFollowups);
-        
-        // เคลียร์ nextFollowupDate ออกจาก lead ด้วยเพื่อให้หายจากแจ้งเตือน
-        const newLeads = leads.map(l => l.id === lead.id ? { ...l, nextFollowupDate: null } : l);
-        setLeads(newLeads);
       }
       setMarkDoneLead(lead);
-      setShowNotif(false);
     } catch(e) {
       console.error(e);
     }
@@ -416,7 +439,7 @@ export default function App() {
   const deleteLead = async (id) => {
     if (!window.confirm("ยืนยันการลบลีดนี้ (ลบชั่วคราว)?")) return;
     try {
-      await deleteLeadApi(id);
+      await deleteLeadFromApi(id);
       loadData();
     } catch (e) {
       toast.error("ลบข้อมูลไม่สำเร็จ");
@@ -682,435 +705,55 @@ export default function App() {
       <div style={{ position: "absolute", top: -20, left: -20, right: -20, bottom: -20, background: RG.background, filter: "blur(12px)", zIndex: 0 }} />
       <div style={{ display: "flex", flexDirection: "row", width: "100%", zIndex: 1 }}>
       <Toaster position="top-right" />
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; } body { margin: 0; padding: 0; height: 100vh; overflow-x: hidden; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #E8FFFD; } ::-webkit-scrollbar-thumb { background: #03B5AA; border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; }`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; } body { margin: 0; padding: 0; height: 100vh; overflow-x: hidden; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #E8FFFD; } ::-webkit-scrollbar-thumb { background: #03B5AA; border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; } table, table * { font-family: 'Sarabun', sans-serif !important; }`}</style>
 
       {/* Left Sidebar (Hoverable) */}
-      <aside 
-        style={{ 
-          width: isSidebarExpanded ? 240 : 80, 
-          background: "rgba(2, 52, 54, 0.6)", // Glassmorphism Dark Teal
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          padding: isSidebarExpanded ? "32px 20px" : "32px 10px", 
-          display: "flex", 
-          flexDirection: "column", 
-          borderRight: `1px solid rgba(156, 234, 239, 0.2)`, 
-          position: "fixed", 
-          top: 0, 
-          left: 0,
-          height: "100vh", 
-          zIndex: 110,
-          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-        }}
-      >
-        {/* Toggle Button */}
-        <button 
-          onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-          style={{
-            position: "absolute",
-            top: "50%",
-            marginTop: -16,
-            right: -16,
-            width: 32,
-            height: 32,
-            background: "#fff",
-            border: `2px solid ${RG.primary}`,
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            color: RG.primary,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-            zIndex: 120,
-            transition: "transform 0.2s"
-          }}
-          onMouseOver={(e) => e.currentTarget.style.transform = "scale(1.1)"}
-          onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}
-        >
-          {isSidebarExpanded ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: -2 }}>
-              <polyline points="15 18 9 12 15 6"></polyline>
-            </svg>
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: -2 }}>
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          )}
-        </button>
-
-        {/* Logo Section */}
-        <div style={{ display: "flex", alignItems: "center", gap: isSidebarExpanded ? 12 : 0, justifyContent: isSidebarExpanded ? "flex-start" : "center", marginBottom: 48, transition: "all 0.3s" }}>
-          <div style={{ minWidth: 42, width: 42, height: 42, background: "linear-gradient(135deg, #07BEB8, #68D8D6)", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "#023436", fontSize: 22, boxShadow: "0 4px 15px rgba(104, 216, 214, 0.4)", textShadow: "0 1px 2px rgba(255,255,255,0.5)" }}>S</div>
-          <div style={{ display: "flex", flexDirection: "column", opacity: isSidebarExpanded ? 1 : 0, width: isSidebarExpanded ? "auto" : 0, overflow: "hidden", transition: "all 0.2s", whiteSpace: "nowrap" }}>
-            <span style={{ color: "#fff", fontFamily: RG.fontHeading, fontWeight: 700, fontSize: 18, lineHeight: 1.2, textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}>Sales CRM</span>
-            <span style={{ color: RG.primaryLight, fontFamily: RG.fontBody, fontSize: 11, lineHeight: 1.2, fontWeight: 600 }}>System Management</span>
-          </div>
-        </div>
-
-        {/* Menu Navigation */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
-          {isSidebarExpanded && <div style={{ fontSize: 11, fontWeight: 700, fontFamily: RG.fontHeading, color: RG.primaryGhost, letterSpacing: 1, marginBottom: 8, paddingLeft: 20, textAlign: "left", opacity: isSidebarExpanded ? 1 : 0.5, transition: "all 0.3s" }}>MENU</div>}
-          {navItems.map(n => (
-            <button key={n.key} onClick={() => setPage(n.key)} style={{ position: "relative", padding: isSidebarExpanded ? "14px 20px" : "14px 0", borderRadius: 12, border: "none", background: page === n.key ? "linear-gradient(195deg, #07BEB8, #037971)" : "transparent", color: page === n.key ? "#fff" : "rgba(255,255,255,0.8)", cursor: "pointer", fontWeight: page === n.key ? 600 : 400, fontSize: 15, fontFamily: RG.fontHeading, transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: isSidebarExpanded ? "flex-start" : "center", gap: isSidebarExpanded ? 12 : 0, boxShadow: page === n.key ? "0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(3, 181, 170, 0.4)" : "none", whiteSpace: "nowrap", marginBottom: 4 }}>
-              {page === n.key && <div style={{ position: "absolute", left: -10, top: "50%", transform: "translateY(-50%)", width: 4, height: 20, background: "#fff", borderRadius: "0 4px 4px 0" }} />}
-              <span style={{ fontSize: 20, width: 24, display: "flex", justifyContent: "center", opacity: page === n.key ? 1 : 0.8 }}>{n.icon}</span> 
-              <span style={{ opacity: isSidebarExpanded ? 1 : 0, width: isSidebarExpanded ? "auto" : 0, overflow: "hidden", transition: "all 0.2s" }}>{n.label}</span>
-            </button>
-          ))}
-        </div>
-      </aside>
+      <Sidebar 
+        isSidebarExpanded={isSidebarExpanded} 
+        setIsSidebarExpanded={setIsSidebarExpanded} 
+        navItems={navItems} 
+        page={page} 
+      />
 
       {/* Main Content Area */}
       <main style={{ flex: 1, marginLeft: isSidebarExpanded ? 240 : 80, height: "100vh", overflowY: "auto", position: "relative", transition: "margin-left 0.3s" }}>
         
-        {/* Floating Top-Right Actions */}
-        <div style={{ position: "absolute", top: 16, right: 24, display: "flex", alignItems: "center", gap: 16, zIndex: 100, background: "rgba(255,255,255,0.8)", backdropFilter: "blur(12px)", padding: "10px 20px", borderRadius: "16px", boxShadow: "0 4px 20px 0 rgba(0,0,0,0.05)", border: `1px solid ${RG.border}` }}>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <button onClick={undo} disabled={histIdx < 0} style={{ padding: "8px 12px", borderRadius: "20px", border: "1px solid " + RG.border, background: histIdx < 0 ? "#f8f9fa" : "#fff", color: histIdx < 0 ? "#ccc" : RG.text, cursor: histIdx < 0 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "6px", fontWeight: "600", boxShadow: RG.shadowSoft }} title="Undo (ย้อนกลับ)">
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
-            </button>
-            <button onClick={redo} disabled={histIdx >= history.length - 1} style={{ padding: "8px 12px", borderRadius: "20px", border: "1px solid " + RG.border, background: histIdx >= history.length - 1 ? "#f8f9fa" : "#fff", color: histIdx >= history.length - 1 ? "#ccc" : RG.text, cursor: histIdx >= history.length - 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "6px", fontWeight: "600", boxShadow: RG.shadowSoft }} title="Redo (ทำซ้ำ)">
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6"></path></svg>
-            </button>
-          </div>
-          <span style={{ color: RG.primaryMid, fontSize: 12, background: RG.primaryPale, borderRadius: 12, padding: "6px 16px", fontWeight: 700, border: `1px solid ${RG.primaryGhost}` }}>☁ Cloud Synced</span>
-          
-          <div style={{ display: "flex", gap: 8, background: RG.surface, padding: "6px 12px", borderRadius: 20, boxShadow: RG.shadowSoft, border: `1px solid ${RG.border}` }}>
-            <button onClick={() => setShowNotif(true)} style={{ background: "transparent", border: "none", color: RG.textMuted, cursor: "pointer", fontSize: 20, position: "relative", padding: "4px" }}>
-              🔔 {dueTodayCount > 0 && <span style={{ position: "absolute", top: -2, right: -4, background: RG.warn, color: "#fff", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, border: "2px solid #fff" }}>{dueTodayCount}</span>}
-            </button>
-          </div>
+        {/* Top Header Actions */}
+        <TopHeader 
+          undo={undo} 
+          redo={redo} 
+          histIdx={histIdx} 
+          history={history} 
+          dueTodayCount={dueTodayCount} 
+          generalCount={generalCount}
+          openNotifTab={(tabNum) => { setNotifTab(tabNum); setShowNotif(true); }} 
+          currentUser={currentUser} 
+          setAuthenticated={setAuthenticated} 
+        />
 
-          <div style={{ display: "flex", alignItems: "center", gap: 12, background: RG.surface, padding: "8px 16px 8px 8px", borderRadius: 24, boxShadow: RG.shadowSoft, border: `1px solid ${RG.border}` }}>
-            <div style={{ width: 36, height: 36, borderRadius: "50%", background: RG.primary, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700 }}>
-              {currentUser?.username?.substring(0, 2).toUpperCase() || "AD"}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <span style={{ color: RG.text, fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>{currentUser?.username || "admin"}</span>
-              <span style={{ color: RG.textMuted, fontSize: 10, lineHeight: 1.2 }}>
-                {{ admin: "ผู้ดูแลระบบ", header_saler: "หัวหน้าเซลส์", saler: "เซลส์" }[currentUser?.role] || "USER"}
-              </span>
-            </div>
-            <button onClick={() => { localStorage.removeItem("crm_session"); setAuthenticated(false); }} title="ออกจากระบบ" style={{ background: "transparent", border: "none", color: RG.primary, cursor: "pointer", fontSize: 20, padding: "4px", marginLeft: 8 }}>🚪</button>
-          </div>
-        </div>
-
-        <div style={{ padding: "24px", paddingTop: 80, width: "100%", maxWidth: "100%" }}>
-        {page === "leads" && (
-          <>
-            <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #0f766e, #14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", boxShadow: "0 4px 6px rgba(15, 118, 110, 0.2)" }}>
-                👥
-              </div>
-              <div>
-                <h2 style={{ margin: 0, color: RG.text, fontFamily: RG.fontHeading, fontSize: 24, fontWeight: 700 }}>จัดการข้อมูลลูกค้า (Leads)</h2>
-                <p style={{ margin: "4px 0 0 0", color: RG.textMuted, fontFamily: RG.fontBody, fontSize: 14 }}>ระบบจัดการฐานข้อมูลลูกค้าและการติดตามการขาย</p>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-              <Btn onClick={() => setShowAddLead(true)}>+ เพิ่มลีดใหม่</Btn>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 ค้นหาบริษัท, เลขนิติบุคคล, เบอร์..." style={{ ...inputStyle, width: 280 }} />
-              
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", borderLeft: `1px solid ${RG.border}`, paddingLeft: 12 }}>
-                {/* ปุ่มแสดงเฉพาะรายการโปรด */}
-                <button 
-                  onClick={() => setShowFavorites(!showFavorites)} 
-                  style={{ 
-                    padding: "4px 10px", borderRadius: 20, 
-                    border: `1.5px solid ${showFavorites ? RG.primary : RG.border}`, 
-                    background: showFavorites ? "#F0FDF4" : "#fff", 
-                    color: showFavorites ? RG.primaryMid : RG.textMuted, 
-                    fontSize: 12, cursor: "pointer", fontWeight: showFavorites ? 700 : 400, 
-                    fontFamily: "'Sarabun', sans-serif" 
-                  }}
-                >
-                  {showFavorites ? "⭐ กำลังดูรายการโปรด" : "☆ รายการโปรด"}
-                </button>
-
-                <button 
-                  onClick={() => setShowFilterModal(true)} 
-                  style={{ padding: "4px 10px", borderRadius: 20, border: `1.5px solid ${RG.primary}`, background: (filterStatus.length > 0 || Object.values(finFilters).some(f => f.min || f.max)) ? RG.primary : "#fff", color: (filterStatus.length > 0 || Object.values(finFilters).some(f => f.min || f.max)) ? "#fff" : RG.primary, fontSize: 12, cursor: "pointer", fontWeight: 700, fontFamily: "'Sarabun', sans-serif", display: "flex", alignItems: "center", gap: 4 }}
-                >
-                  ⚙️ ตัวกรอง {(filterStatus.length > 0 || Object.values(finFilters).some(f => f.min || f.max)) && "(เปิดใช้งาน)"}
-                </button>
-              </div>
-
-              <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
-                {(canViewAll || canViewSelect) && (
-                  <div style={{ position: "relative" }}>
-                    <div 
-                      onClick={() => setIsSellerDropdownOpen(!isSellerDropdownOpen)}
-                      style={{ ...inputStyle, width: "180px", cursor: "pointer", backgroundColor: filterSellers.length > 0 ? "#F0FDF4" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", border: filterSellers.length > 0 ? `1px solid ${RG.primaryLight}` : `1px solid ${RG.border}` }}
-                    >
-                      <span style={{ color: filterSellers.length > 0 ? RG.primaryMid : RG.text }}>
-                        {filterSellers.length === 0 ? "👥 แสดงทุกเซลส์" : `👥 เลือกแล้ว ${filterSellers.length} เซลส์`}
-                      </span>
-                      <span style={{ fontSize: 10 }}>▼</span>
-                    </div>
-                    {isSellerDropdownOpen && (
-                      <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 50, padding: "8px 0", marginTop: "4px", maxHeight: "250px", overflowY: "auto" }}>
-                        <label style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13, borderBottom: "1px solid #eee" }}>
-                          <input type="checkbox" checked={filterSellers.length === 0} onChange={() => setFilterSellers([])} style={{ marginRight: 8 }} />
-                          แสดงทุกเซลส์
-                        </label>
-                        {[...new Set(leads.map(l => l.owner).filter(Boolean))].map(seller => (
-                          <label key={seller} style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13 }}>
-                            <input 
-                              type="checkbox" 
-                              checked={filterSellers.includes(seller)} 
-                              onChange={() => {
-                                setFilterSellers(prev => 
-                                  prev.includes(seller) ? prev.filter(s => s !== seller) : [...prev, seller]
-                                );
-                              }} 
-                              style={{ marginRight: 8 }} 
-                            />
-                            {seller}
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {canExport && (
-                  <select 
-                    onChange={handleExport}
-                    style={{ 
-                      padding: "0 14px",
-                      borderRadius: "8px",
-                      border: `1px solid ${RG.primary}`,
-                      backgroundColor: "#ffffff",
-                      color: RG.primary,
-                      cursor: "pointer",
-                      fontSize: "13px",
-                      fontWeight: 600,
-                      height: "36px",
-                      outline: "none",
-                      fontFamily: "'Sarabun', sans-serif",
-                      boxSizing: "border-box"
-                    }}
-                  >
-                    <option value="">⬇ Export</option>
-                    <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)">
-                      <option value="current_csv">Excel / CSV</option>
-                      <option value="current_json">JSON</option>
-                      <option value="current_pdf">PDF (Print)</option>
-                    </optgroup>
-                    {canExportAll && (
-                      <optgroup label="ทั้งหมด (All Report)">
-                        <option value="all_csv">Excel / CSV</option>
-                        <option value="all_json">JSON</option>
-                        <option value="all_pdf">PDF (Print All)</option>
-                      </optgroup>
-                    )}
-                  </select>
-                )}
-              </div>
-            </div>
-
-            <div style={{ background: RG.surface, borderRadius: 12, border: `1px solid ${RG.border}`, overflow: "hidden", boxShadow: RG.shadowSoft, backdropFilter: RG.glassFilter }}>
-              
-              {/* แถบเลื่อนด้านบน */}
-              <div 
-                ref={topScrollRef} 
-                onScroll={handleTopScroll} 
-                style={{ overflowX: "auto", maxWidth: "100%" }}
-              >
-                <div style={{ width: syncTableWidth, height: 1 }}></div>
-              </div>
-
-              {/* ตารางหลัก */}
-              <div 
-                ref={bottomScrollRef} 
-                onScroll={handleBottomScroll}
-                style={{ overflowX: "auto", maxWidth: "100%", paddingBottom: 10 }}
-              >
-                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1600 }}>
-                  <thead>
-                    <tr style={{ position: "sticky", top: 0, background: RG.text, zIndex: 10, boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
-                      <th style={{ padding: "16px 10px", textAlign: "center", color: "#fff", fontSize: 13, width: 36, position: "relative" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <input type="checkbox" checked={checked.length === filtered.length && filtered.length > 0} onChange={e => setChecked(e.target.checked ? filtered.map(l => l.id) : [])} />
-                          {checked.length > 0 && (
-                            <button onClick={() => setShowDeleteConfirm(true)} style={{ position: "absolute", left: 36, background: "#fff5f5", border: `1px solid ${RG.warn}`, borderRadius: "6px", padding: "4px 8px", color: RG.warn, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", gap: 4, zIndex: 20, boxShadow: "0 2px 4px rgba(220, 53, 69, 0.1)" }} title="ลบข้อมูลที่เลือก">
-                              🗑 <span style={{ fontSize: 12, fontWeight: 700 }}>({checked.length})</span>
-                            </button>
-                          )}
-                        </div>
-                      </th>
-                      {/* เพิ่ม Column สำหรับติดดาว */}
-                      <th style={{ padding: "16px 8px", color: "#fff", fontSize: 13, width: 36 }} />
-                      <th style={{ padding: "16px 8px", color: "#fff", fontSize: 13, width: 36 }} />
-                      <th style={{ padding: "16px 10px", color: "#fff", fontSize: 13, fontWeight: 700, width: 40, textAlign: "center" }}>#</th>
-                      {[
-                        { label: "บริษัท", key: "companyName" },
-                        { label: "เลขนิติบุคคล", key: "companyNumber" },
-                        { label: "ผู้ติดต่อ", key: "contactName" },
-                        { label: "เบอร์", key: "contactPhone" },
-                        { label: "อีเมล", key: "contactEmail" },
-                        { label: "จังหวัด", key: "province", sortable: true },
-                        { label: "รายละเอียด", key: "description" },
-                        ...(currentUser?.permissions?.leads?.view_owner || currentUser?.role === 'admin' || currentUser?.role === 'header_saler'
-                          ? [{ label: "เซลผู้ดูแล", key: "owner", sortable: true }]
-                          : []),
-                        { label: "รายได้รวม", key: "revenue", sortable: true },
-                        { label: "ทุนจดทะเบียน", key: "registeredCapital", sortable: true },
-                        { label: "กำไร", key: "profit", sortable: true },
-                        { label: "สถานะ", key: "latestStatus", sortable: true },
-                        { label: "ติดต่อล่าสุด", key: "latestContactDate", sortable: true },
-                        { label: "นัดถัดไป", key: "nextFollowupDate", sortable: true },
-                        { label: "เอกสารล่าสุด", key: "latestPdfFile", sortable: false }
-                      ].map(col => (
-                        <th key={col.label} style={{ padding: "16px 10px", textAlign: "left", color: "#fff", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>
-                          {col.sortable ? (
-                            <div onClick={() => handleSort(col.key)} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", userSelect: "none" }}>
-                              {col.label}
-                              <span style={{ fontSize: 10, color: sortConfig.key === col.key ? RG.primaryLight : "rgba(255, 255, 255, 0.4)" }}>
-                                {sortConfig.key === col.key ? (sortConfig.direction === 'asc' ? "▲" : "▼") : "▽"}
-                              </span>
-                              {col.key === "province" && filterProvince.length > 0 && <span style={{ width: 6, height: 6, background: "#f87171", borderRadius: "50%" }}></span>}
-                            </div>
-                          ) : (
-                            col.label
-                          )}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedLeads.length === 0 && (
-                      <tr>
-                        <td colSpan={15} style={{ textAlign: "center", padding: "40px", color: RG.textMuted }}>
-                          ไม่พบข้อมูล
-                        </td>
-                      </tr>
-                    )}
-                    {paginatedLeads.map((lead, i) => {
-                      const isDup = dupNumbers.includes(lead.companyNumber);
-                      
-                      // 1. ดึงประวัติการติดตามทั้งหมดของลีดรายการนี้
-                      const leadFollowups = followups[lead.id] || [];
-
-                      // 2. ตรวจสอบว่า "สถานะปัจจุบัน" หรือ "ประวัติที่ผ่านมา" เคยเป็น "มีตติ้ง" หรือไม่
-                      const hasMeetingHistory = 
-                        lead.latestStatus === "มีตติ้ง" || 
-                        lead.everHadMeeting === true || // ตรวจสอบจากความจำฝังตัวที่เราเพิ่มเข้าไป
-                        leadFollowups.some(f => f.status === "มีตติ้ง");
-                      
-                      // 3. กำหนดสีพื้นหลัง: ถ้าเคยมีตติ้งให้ไฮไลต์สีส้มให้เห็นชัดเจน ถ้าไม่เคย ให้สลับสีตามเดิม
-                      const rowBackground = lead.latestStatus === "มีตติ้ง" ? "#FEF08A" : "#fff";
-                      const hoverBackground = lead.latestStatus === "มีตติ้ง" ? "#FDE047" : "#e2e8f0";
-                      return (
-                        <tr 
-                          key={lead.id} 
-                          style={{ background: rowBackground, borderBottom: `1px solid #e5e7eb`, transition: "background-color 0.2s ease" }}
-                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = hoverBackground}
-                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = rowBackground}
-                        >
-                          <td style={{ padding: "16px 10px", textAlign: "center" }}>
-                            <input type="checkbox" checked={checked.includes(lead.id)} onChange={e => setChecked(c => (e.target.checked ? [...c, lead.id] : c.filter(x => x !== lead.id)))} />
-                          </td>
-                          {/* ปุ่มติดดาว */}
-                          <td style={{ padding: "16px 6px", textAlign: "center" }}>
-                            <button onClick={() => toggleStar(lead.id)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 16 }}>
-                              {lead.isStarred ? "⭐" : "☆"}
-                            </button>
-                          </td>
-                          <td style={{ padding: "16px 6px" }}>
-                            <button onClick={() => setSelectedLead(lead)} style={{ background: "#f3f4f6", border: "1px solid #e5e7eb", color: "#4b5563", width: 28, height: 28, borderRadius: 6, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }} onMouseEnter={e => {e.currentTarget.style.background = RG.primary; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = RG.primary;}} onMouseLeave={e => {e.currentTarget.style.background = "#f3f4f6"; e.currentTarget.style.color = "#4b5563"; e.currentTarget.style.borderColor = "#e5e7eb";}}>👁</button>
-                          </td>
-                          <td style={{ padding: "16px 10px", textAlign: "center", fontSize: 13, color: RG.textMuted, fontWeight: 600 }}>
-                            {(actualPage - 1) * itemsPerPage + i + 1}
-                          </td>
-                          <td style={{ padding: "16px 10px", fontWeight: lead.isStarred ? 600 : 400 }}>
-                            <EditableCell value={lead.companyName} onSave={v => inlineEdit(lead.id, "companyName", v)} />
-                          </td>
-                          <td style={{ padding: "16px 10px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <EditableCell value={lead.companyNumber} onSave={v => inlineEdit(lead.id, "companyNumber", v)} />
-                              {isDup && <span style={{ background: "#ffeeee", color: RG.danger, fontSize: 10, padding: "2px 8px", borderRadius: 12, border: "1px solid #ffcccc", whiteSpace: "nowrap", fontWeight: 600 }}>ซ้ำ!</span>}
-                            </div>
-                          </td>
-                          <td style={{ padding: "16px 10px" }}><EditableCell value={lead.contactName} onSave={v => inlineEdit(lead.id, "contactName", v)} /></td>
-                          <td style={{ padding: "16px 10px" }}><EditableCell value={lead.contactPhone} onSave={v => inlineEdit(lead.id, "contactPhone", v)} type="phone" /></td>
-                          <td style={{ padding: "16px 10px" }}><EditableCell value={lead.contactEmail} onSave={v => inlineEdit(lead.id, "contactEmail", v)} /></td>
-                          <td style={{ padding: "16px 10px" }}><EditableCell value={lead.province} onSave={v => inlineEdit(lead.id, "province", v)} type="select" options={PROVINCES} /></td>
-                          <td style={{ padding: "16px 10px" }}><EditableCell value={lead.description} onSave={v => inlineEdit(lead.id, "description", v)} /></td>
-                          {(currentUser?.permissions?.leads?.view_owner || currentUser?.role === 'admin' || currentUser?.role === 'header_saler') && (
-                            <td style={{ padding: "16px 10px", whiteSpace: "nowrap", color: RG.primaryMid, fontWeight: 600 }}>
-                              {currentUser?.role === 'admin' || currentUser?.role === 'header_saler' || currentUser?.permissions?.leads?.reassign ? (
-                                <span onClick={() => { setReassignConfirm({ leadId: lead.id, oldOwner: lead.owner, companyName: lead.companyName }); fetchAllSellers(); }} style={{ cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}>{lead.owner || "-"}</span>
-                              ) : (
-                                lead.owner || "-"
-                              )}
-                            </td>
-                          )}
-                          <td style={{ padding: "16px 10px" }}><EditableCell value={lead.revenue} onSave={v => inlineEdit(lead.id, "revenue", Number(v))} type="number" /></td>
-                          <td style={{ padding: "16px 10px" }}><EditableCell value={lead.registeredCapital} onSave={v => inlineEdit(lead.id, "registeredCapital", Number(v))} type="number" /></td>
-                          <td style={{ padding: "16px 10px" }}><EditableCell value={lead.profit} onSave={v => inlineEdit(lead.id, "profit", Number(v))} type="number" /></td>
-                          <td style={{ padding: "16px 10px" }}><StatusBadge status={lead.latestStatus} /></td>
-                          <td style={{ padding: "16px 10px", whiteSpace: "nowrap" }}><EditableCell value={lead.latestContactDate} onSave={v => inlineEdit(lead.id, "latestContactDate", v)} type="date" /></td>
-                          <td style={{ padding: "16px 10px", whiteSpace: "nowrap" }}>{lead.nextFollowupDate && lead.nextFollowupDate === today() ? (
-                              /* 1. เคสวันปัจจุบัน: แสดงข้อความ "ถึงกำหนดแล้ว" สีดำตัวหนา */
-                              <span style={{ color: "#000000", fontSize: 12, fontWeight: 700 }}>🔔 ถึงกำหนดแล้ว</span>
-                            ) : lead.nextFollowupDate && lead.nextFollowupDate < today() ? (
-                              /* 2. เคสเลยกำหนด (อดีต): แสดงวันที่เดิม แต่เป็นสีแดงเตือน */
-                              <span style={{ color: RG.danger, fontSize: 12, fontWeight: 700 }}>🔔 {parseDateTH(lead.nextFollowupDate)}</span>
-                            ) : (
-                              /* 3. เคสยังไม่ถึงกำหนด (อนาคต) หรือว่างเปล่า: แสดงช่องเลือกวันที่ตามปกติ */
-                              <EditableCell value={lead.nextFollowupDate} onSave={v => inlineEdit(lead.id, "nextFollowupDate", v)} type="date" />
-                            )}
-                          </td>
-                          <td style={{ padding: "16px 10px", textAlign: "center" }}>
-                            {(() => {
-                              const fups = followups[lead.id] || [];
-                              const latestWithPdf = [...fups].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).find(f => f.pdfFile);
-                              return latestWithPdf ? (
-                                <a href={`${API_BASE_URL}/uploads/pdfs/${latestWithPdf.pdfFile}`} target="_blank" rel="noopener noreferrer" style={{ color: RG.primary, textDecoration: "none", fontSize: 18, title: "ดูไฟล์สรุปการติดตามล่าสุด" }}>
-                                  📄
-                                </a>
-                              ) : <span style={{ color: "#ccc" }}>-</span>;
-                            })()}
-                          </td>
-                        </tr>
-                      );
-                    })} 
-                  </tbody>
-                </table>
-              </div>
-              <div style={{ padding: "10px 16px", background: "#ffffff", borderTop: `1px solid ${RG.border}`, fontSize: 12, color: RG.textMuted, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                  <span>แสดง {paginatedLeads.length} จาก {filtered.length} รายการ (ทั้งหมด {leads.length} รายการ)</span>
-                  {filterStatus.length > 0 && <span style={{ background: "#f1f5f9", padding: "2px 8px", borderRadius: 10 }}>สถานะ: {filterStatus.join(", ")}</span>}
-                  {filterProvince.length > 0 && <span style={{ background: "#f1f5f9", padding: "2px 8px", borderRadius: 10 }}>จังหวัด: {filterProvince.join(", ")}</span>}
-                </div>
-                {totalPages > 1 && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <button 
-                      disabled={actualPage === 1} 
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
-                      style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${actualPage === 1 ? "#e2e8f0" : RG.border}`, background: actualPage === 1 ? "#f8f9fa" : "#fff", color: actualPage === 1 ? "#cbd5e1" : RG.text, cursor: actualPage === 1 ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 600 }}
-                    >
-                      ก่อนหน้า
-                    </button>
-                    <span style={{ fontWeight: 600 }}>หน้า {actualPage} / {totalPages}</span>
-                    <button 
-                      disabled={actualPage === totalPages} 
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
-                      style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${actualPage === totalPages ? "#e2e8f0" : RG.border}`, background: actualPage === totalPages ? "#f8f9fa" : "#fff", color: actualPage === totalPages ? "#cbd5e1" : RG.text, cursor: actualPage === totalPages ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 600 }}
-                    >
-                      ถัดไป
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-
-        {page === "dashboard" && (
+        <div style={{ padding: "0 18px 18px 18px", marginTop: "-32px", width: "100%", maxWidth: "100%", position: "relative", zIndex: 10 }}>
+        <Routes>
+        <Route path="/" element={<Navigate to={`/${getDefaultPage(currentUser)}`} replace />} />
+        <Route path="/leads" element={
+          <LeadsPage 
+            leads={leads} currentUser={currentUser} allSellers={allSellers} checked={checked} setChecked={setChecked}
+            search={search} setSearch={setSearch} filterStatus={filterStatus} finFilters={finFilters}
+            showFavorites={showFavorites} setShowFavorites={setShowFavorites} setShowFilterModal={setShowFilterModal}
+            isSellerDropdownOpen={isSellerDropdownOpen} setIsSellerDropdownOpen={setIsSellerDropdownOpen}
+            filterSellers={filterSellers} setFilterSellers={setFilterSellers}
+            filterProvince={filterProvince}
+            paginatedLeads={paginatedLeads} sortConfig={sortConfig} handleSort={handleSort}
+            toggleStar={toggleStar} setSelectedLead={setSelectedLead} actualPage={actualPage} itemsPerPage={itemsPerPage} inlineEdit={inlineEdit}
+            dupNumbers={dupNumbers} followups={followups} setReassignConfirm={setReassignConfirm} fetchAllSellers={fetchAllSellers}
+            filteredLength={filtered.length} totalPages={totalPages} setCurrentPage={setCurrentPage}
+            canViewAll={canViewAll} canViewSelect={canViewSelect} canExport={canExport} canExportAll={canExportAll}
+            handleExport={handleExport} setShowAddLead={setShowAddLead} setShowDeleteConfirm={setShowDeleteConfirm}
+            topScrollRef={topScrollRef} handleTopScroll={handleTopScroll} handleBottomScroll={handleBottomScroll} bottomScrollRef={bottomScrollRef} syncTableWidth={syncTableWidth}
+            filtered={filtered}
+          />
+        } />
+        
+        <Route path="/dashboard" element={
           <div>
             <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #0f766e, #14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", boxShadow: "0 4px 6px rgba(15, 118, 110, 0.2)" }}>
@@ -1123,9 +766,9 @@ export default function App() {
             </div>
             <Dashboard leads={leads} followups={followups} currentUser={currentUser} />
           </div>
-        )}
+        } />
 
-        {page === "reports" && (
+        <Route path="/reports" element={
           <div>
             <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #0f766e, #14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", boxShadow: "0 4px 6px rgba(15, 118, 110, 0.2)" }}>
@@ -1139,9 +782,9 @@ export default function App() {
             {/* ส่งฟังก์ชัน setSelectedLead เข้าไปเป็น onViewLead */}
             <Reports leads={leads} onViewLead={setSelectedLead} isMaster={false} onExitMaster={() => {}} currentUser={currentUser} />
           </div>
-        )}
+        } />
 
-        {page === "role_management" && (currentUser?.role_is_system || currentUser?.permissions?.roles?.menu) && (
+        <Route path="/role_management" element={(currentUser?.role_is_system || currentUser?.permissions?.roles?.menu) ? (
           <div>
             <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #0f766e, #14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", boxShadow: "0 4px 6px rgba(15, 118, 110, 0.2)" }}>
@@ -1154,9 +797,9 @@ export default function App() {
             </div>
             <RoleManagementPage currentUser={currentUser} />
           </div>
-        )}
+        ) : <Navigate to="/" replace />} />
 
-        {page === "user_management" && (currentUser?.role_is_system || currentUser?.permissions?.users?.menu) && (
+        <Route path="/user_management" element={(currentUser?.role_is_system || currentUser?.permissions?.users?.menu) ? (
           <div>
             <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #0f766e, #14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", boxShadow: "0 4px 6px rgba(15, 118, 110, 0.2)" }}>
@@ -1169,100 +812,23 @@ export default function App() {
             </div>
             <UserManagement currentUser={currentUser} />
           </div>
-        )}
+        ) : <Navigate to="/" replace />} />
+        </Routes>
         </div>
       </main>
 
-      {showNotif && <NotificationsPanel currentUser={currentUser} leads={myLeads} onMarkDone={markDone} onViewLead={(lead) => { setSelectedLead(lead); setIsModalReadOnly(true); }} onClose={() => setShowNotif(false)} />}
-      
-      {showFilterModal && <FilterModal filterStatus={filterStatus} setFilterStatus={setFilterStatus} finFilters={finFilters} setFinFilters={setFinFilters} dateFilters={dateFilters} setDateFilters={setDateFilters} filterProvince={filterProvince} setFilterProvince={setFilterProvince} onClose={() => setShowFilterModal(false)} />}
-
-      {markDoneLead && (
-        <Modal title={`บันทึกการติดตาม — ${markDoneLead.companyName}`} onClose={() => setMarkDoneLead(null)}>
-          <p style={{ color: RG.textMuted, fontSize: 14, marginBottom: 16 }}>กรุณาบันทึกการติดตามครั้งใหม่</p>
-          {(() => {
-            const fups = followups[markDoneLead.id] || [];
-            const nextSeq = fups.length > 0 ? Math.max(...fups.map(f => f.sequence)) + 1 : 1;
-            return <FollowupQuickForm leadId={markDoneLead.id} nextSeq={nextSeq} onSave={(lid, f) => { saveFollowup(lid, f); setMarkDoneLead(null); }} />;
-          })()}
-        </Modal>
-      )}
-
-      {/* ส่ง leads={leads} ไปให้ AddLeadModal เพื่อตรวจสอบเลขนิติบุคคลซ้ำ */}
-      {showAddLead && <AddLeadModal leads={leads} onClose={() => setShowAddLead(false)} onSave={addLead} currentUser={currentUser} allSellers={allSellers} fetchAllSellers={fetchAllSellers} />}
-
-      {/* ส่ง leads={leads} ไปให้ CompanyModal เพื่อตรวจสอบเลขนิติบุคคลซ้ำ */}
-      {selectedLead && <CompanyModal readOnly={isModalReadOnly} lead={selectedLead} leads={leads} followups={followups} onClose={() => { setSelectedLead(null); setIsModalReadOnly(false); }} onSave={saveLead} onSaveFollowup={saveFollowup} allSellers={allSellers} fetchAllSellers={fetchAllSellers} handleReassign={handleReassign} setReassignConfirm={setReassignConfirm} currentUser={currentUser} />}
-
-      {reassignConfirm && (
-        <Modal title={`โอนย้ายผู้ดูแล: ${reassignConfirm.companyName}`} onClose={() => { setReassignConfirm(null); setSelectedNewOwner(""); }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div>
-              <span style={{ color: RG.textMuted, fontSize: 14 }}>ผู้ดูแลปัจจุบัน:</span>
-              <div style={{ fontWeight: 600, fontSize: 16, color: RG.text }}>{reassignConfirm.oldOwner || "-"}</div>
-            </div>
-            <div>
-              <span style={{ color: RG.textMuted, fontSize: 14 }}>เลือกผู้ดูแลใหม่:</span>
-              <select 
-                value={selectedNewOwner} 
-                onChange={e => setSelectedNewOwner(e.target.value)} 
-                style={{ ...inputStyle, width: "100%", marginTop: 8 }}
-              >
-                <option value="" disabled>-- เลือกเซลส์ --</option>
-                {allSellers.map(s => (
-                  <option key={s.id} value={s.id}>{s.username} {s.display_name ? `(${s.display_name})` : ""}</option>
-                ))}
-              </select>
-            </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-              <button onClick={() => { setReassignConfirm(null); setSelectedNewOwner(""); }} style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid #ccc", background: "#fff", cursor: "pointer" }}>ยกเลิก</button>
-              <button onClick={handleReassignClick} disabled={isReassigning} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: RG.primary, color: "#fff", cursor: isReassigning ? "not-allowed" : "pointer" }}>
-                ยืนยันการโอนย้าย
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {confirmFinalReassign && (
-        <Modal title="ยืนยันการโอนย้าย" onClose={() => setConfirmFinalReassign(false)}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <p style={{ margin: 0 }}>แน่ใจว่าจะเปลี่ยนใช่มั้ย?</p>
-            <div style={{ display: "flex", gap: 10, marginTop: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => setConfirmFinalReassign(false)} style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid #ccc", background: "#fff", cursor: "pointer" }}>ยกเลิก</button>
-              <button onClick={handleReassign} disabled={isReassigning} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: RG.danger, color: "#fff", cursor: isReassigning ? "not-allowed" : "pointer" }}>
-                {isReassigning ? "กำลังบันทึก..." : "ยืนยัน"}
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {alertModal && (
-        <Modal title={alertModal.type === 'success' ? "สำเร็จ" : "ข้อผิดพลาด"} onClose={() => setAlertModal(null)}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "16px 0" }}>
-            <div style={{ fontSize: 48 }}>
-              {alertModal.type === 'success' ? '✅' : '❌'}
-            </div>
-            <p style={{ color: RG.text, fontSize: 16, textAlign: "center", margin: 0 }}>
-              {alertModal.message}
-            </p>
-            <button onClick={() => setAlertModal(null)} style={{ padding: "8px 24px", borderRadius: 6, border: "none", background: RG.primary, color: "#fff", cursor: "pointer", marginTop: 16, fontSize: 14, fontWeight: 600 }}>
-              ตกลง
-            </button>
-          </div>
-        </Modal>
-      )}
-
-      {showDeleteConfirm && (
-        <Modal title="ยืนยันการลบ" onClose={() => setShowDeleteConfirm(false)}>
-          <p style={{ color: RG.text, marginBottom: 20 }}>คุณต้องการลบ <strong>{checked.length}</strong> รายการหรือไม่? การกระทำนี้ไม่สามารถยกเลิกได้</p>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Btn variant="danger" onClick={deleteSelected}>ลบ {checked.length} รายการ</Btn>
-            <Btn variant="secondary" onClick={() => setShowDeleteConfirm(false)}>ยกเลิก</Btn>
-          </div>
-        </Modal>
-      )}
+      <AppModals
+        showNotif={showNotif} setShowNotif={setShowNotif} notifTab={notifTab} currentUser={currentUser} myLeads={myLeads} markDone={markDone} setSelectedLead={setSelectedLead} setIsModalReadOnly={setIsModalReadOnly}
+        showFilterModal={showFilterModal} setShowFilterModal={setShowFilterModal} filterStatus={filterStatus} setFilterStatus={setFilterStatus} finFilters={finFilters} setFinFilters={setFinFilters}
+        dateFilters={dateFilters} setDateFilters={setDateFilters} filterProvince={filterProvince} setFilterProvince={setFilterProvince}
+        markDoneLead={markDoneLead} setMarkDoneLead={setMarkDoneLead} followups={followups} saveFollowup={saveFollowup}
+        showAddLead={showAddLead} setShowAddLead={setShowAddLead} leads={leads} addLead={addLead} allSellers={allSellers} fetchAllSellers={fetchAllSellers}
+        selectedLead={selectedLead} isModalReadOnly={isModalReadOnly} saveLead={saveLead} handleReassign={handleReassign} setReassignConfirm={setReassignConfirm}
+        reassignConfirm={reassignConfirm} selectedNewOwner={selectedNewOwner} setSelectedNewOwner={setSelectedNewOwner} isReassigning={isReassigning} handleReassignClick={handleReassignClick}
+        confirmFinalReassign={confirmFinalReassign} setConfirmFinalReassign={setConfirmFinalReassign} handleFinalReassign={handleReassign}
+        alertModal={alertModal} setAlertModal={setAlertModal}
+        showDeleteConfirm={showDeleteConfirm} setShowDeleteConfirm={setShowDeleteConfirm} checked={checked} deleteSelected={deleteSelected}
+      />
       </div>
     </div>
   );

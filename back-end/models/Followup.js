@@ -35,8 +35,8 @@ const Followup = {
         data.contact_date,
         data.detail,
         data.status,
-        data.next_followup_date,
-        data.pdf_file,
+        data.next_followup_date || null,
+        data.pdf_file || null,
       ]
     );
 

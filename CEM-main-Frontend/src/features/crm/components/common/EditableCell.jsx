@@ -37,7 +37,7 @@ export default function EditableCell({ value, onSave, type = "text", options }) 
         }} 
         title={val ? String(val) : "คลิกเพื่อแก้ไข"}
       >
-        {type === "number" ? fmtNum(val) : type === "date" ? parseDateTH(val) : val || "—"}
+        {type === "number" ? fmtNum(val) : type === "date" ? parseDateTH(val) : type === "phone" ? formatPhoneNumber(val) : val || "—"}
       </span>
     );
   }

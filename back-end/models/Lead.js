@@ -119,18 +119,23 @@ const Lead = {
       (data.isStarred !== undefined ? data.isStarred : data.is_starred) ? 1 : 0
     ];
 
-    if (data.owner_id !== undefined) {
+    const newOwnerId = data.owner_id !== undefined ? data.owner_id : data.ownerId;
+    if (newOwnerId !== undefined) {
       updates.push("owner_id = ?");
-      params.push(data.owner_id);
+      params.push(newOwnerId);
+      
+      // If we reassign through inline edit, we should also reset acknowledge status
+      updates.push("is_acknowledged = 0");
     }
     if (data.assigned_by !== undefined) {
       updates.push("assigned_by = ?");
       params.push(data.assigned_by);
       updates.push("is_acknowledged = 0");
     }
-    if (data.previous_owner_id !== undefined) {
+    const newPrevOwner = data.previous_owner_id !== undefined ? data.previous_owner_id : data.previousOwnerId;
+    if (newPrevOwner !== undefined) {
       updates.push("previous_owner_id = ?");
-      params.push(data.previous_owner_id);
+      params.push(newPrevOwner);
     }
 
     params.push(id);
