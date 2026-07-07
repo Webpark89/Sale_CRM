@@ -27,8 +27,8 @@ const Followup = {
 
   create: async (data) => {
     await db.execute(
-      `INSERT INTO followups (lead_id, sequence, contact_date, detail, status, next_followup_date)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO followups (lead_id, sequence, contact_date, detail, status, next_followup_date, pdf_file)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         data.lead_id,
         data.sequence,
@@ -36,6 +36,7 @@ const Followup = {
         data.detail,
         data.status,
         data.next_followup_date,
+        data.pdf_file,
       ]
     );
 

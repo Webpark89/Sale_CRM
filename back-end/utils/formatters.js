@@ -42,6 +42,7 @@ const formatLead = (row) => ({
   contactName:     row.contact_name,
   contactPhone:    row.contact_phone,
   contactEmail:    row.contact_email,
+  province:        row.province,
   createdAt:       row.created_at,
   updatedAt:       row.created_at, 
 });
@@ -57,6 +58,7 @@ const formatFollowup = (row) => ({
   detail:          row.detail,
   status:          row.status,
   nextFollowupDate: formatDateLocal(row.next_followup_date),
+  pdfFile:         row.pdf_file,
   completed:       !!row.completed,
   createdAt:       row.created_at,
 });
@@ -87,6 +89,7 @@ const cleanAuditData = (data) => {
     contactName: data.contactName || data.contact_name,
     contactPhone: data.contactPhone || data.contact_phone,
     contactEmail: data.contactEmail || data.contact_email,
+    province: data.province,
     description: data.description,
     revenue: Number(data.revenue) || undefined,
     registeredCapital: Number(data.registeredCapital || data.registered_capital) || undefined,

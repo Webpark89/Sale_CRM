@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { PieChart, Pie, Cell, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { STATUSES, STATUS_COLORS, STATUS_ENUM } from "../constants/status";
 import { RG } from "../constants/theme";
-import { today } from "../crmHelpers/helpers";
+import { today, PROVINCES } from "../crmHelpers/helpers";
 import { toJpeg, toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import { inputStyle } from "../components/common/styles";
@@ -63,6 +63,10 @@ export default function Dashboard({ leads, followups, currentUser }) {
   const [sellerOpen, setSellerOpen] = useState(false);
   const sellerList = [...new Set(leads.map(l=>l.owner).filter(Boolean))];
 
+  const [filterProvince, setFilterProvince] = useState([]);
+  const [provinceOpen, setProvinceOpen] = useState(false);
+  const provinceList = PROVINCES;
+
   const isAdmin = currentUser?.role==='admin'||currentUser?.role_is_system;
   const canViewAll = isAdmin||currentUser?.permissions?.dashboard?.view==='all';
   const canViewSelect = isAdmin||currentUser?.permissions?.dashboard?.view_select;
@@ -70,7 +74,10 @@ export default function Dashboard({ leads, followups, currentUser }) {
   const canExport = canExportAll||currentUser?.permissions?.dashboard?.export==='own';
 
   const roleLeads = (canViewAll||(canViewSelect&&filterSellers.length>0))?leads:leads.filter(l=>l.owner===currentUser?.username);
-  const displayLeads = filterSellers.length===0?roleLeads:roleLeads.filter(l=>filterSellers.includes(l.owner));
+  let displayLeads = filterSellers.length===0?roleLeads:roleLeads.filter(l=>filterSellers.includes(l.owner));
+  if (filterProvince.length > 0) {
+    displayLeads = displayLeads.filter(l => filterProvince.includes(l.province));
+  }
 
   const chkYear = (a,b)=>{
     if(a&&b){ const diff=Math.ceil(Math.abs(new Date(b)-new Date(a))/(864e5)); if(diff>365){toast.error('ระยะเวลาเกิน 1 ปี');return false;} } return true;
@@ -116,14 +123,14 @@ export default function Dashboard({ leads, followups, currentUser }) {
   const {total,need,pie,line,bar,hasData,sc}=data;
 
   const kpis=[
-    {label:'ลีดทั้งหมด',value:total,icon:'👥',g:'linear-gradient(135deg,#667eea,#764ba2)',sh:'rgba(102,126,234,0.35)'},
-    {label:'ต้องติดตามวันนี้',value:need,icon:'🔔',g:'linear-gradient(135deg,#f093fb,#f5576c)',sh:'rgba(245,87,108,0.35)'},
-    {label:'ปิดการขาย',value:sc[STATUS_ENUM.CLOSED]||0,icon:'✅',g:'linear-gradient(135deg,#11998e,#38ef7d)',sh:'rgba(56,239,125,0.30)'},
-    {label:'มีตติ้ง',value:sc[STATUS_ENUM.MEETING]||0,icon:'📅',g:'linear-gradient(135deg,#ffd89b,#19547b)',sh:'rgba(25,84,123,0.35)'},
-    {label:'ต้องตามต่อ',value:sc[STATUS_ENUM.FOLLOW_UP]||0,icon:'📞',g:'linear-gradient(135deg,#fc466b,#3f5efb)',sh:'rgba(63,94,251,0.30)'},
-    {label:'ฝากโปรไฟล์',value:sc[STATUS_ENUM.PROFILE]||0,icon:'📝',g:'linear-gradient(135deg,#89f7fe,#66a6ff)',sh:'rgba(102,166,255,0.30)'},
-    {label:'ติดต่อไม่ได้',value:sc[STATUS_ENUM.UNREACHABLE]||0,icon:'📵',g:'linear-gradient(135deg,#868f96,#596164)',sh:'rgba(89,97,100,0.30)'},
-    {label:'ไม่สนใจ',value:sc[STATUS_ENUM.NOT_INTERESTED]||0,icon:'❌',g:'linear-gradient(135deg,#ee9ca7,#ffdde1)',sh:'rgba(238,156,167,0.30)',tc:'#7f1d1d'},
+    {label:'ลีดทั้งหมด',value:total,icon:'👥',c:RG.primary},
+    {label:'ต้องติดตามวันนี้',value:need,icon:'🔔',c:'#C62828'},
+    {label:'ปิดการขาย',value:sc[STATUS_ENUM.CLOSED]||0,icon:'✅',c:STATUS_COLORS[STATUS_ENUM.CLOSED]},
+    {label:'มีตติ้ง',value:sc[STATUS_ENUM.MEETING]||0,icon:'📅',c:STATUS_COLORS[STATUS_ENUM.MEETING]},
+    {label:'ต้องตามต่อ',value:sc[STATUS_ENUM.FOLLOW_UP]||0,icon:'📞',c:STATUS_COLORS[STATUS_ENUM.FOLLOW_UP]},
+    {label:'ฝากโปรไฟล์',value:sc[STATUS_ENUM.PROFILE]||0,icon:'📝',c:STATUS_COLORS[STATUS_ENUM.PROFILE]},
+    {label:'ติดต่อไม่ได้',value:sc[STATUS_ENUM.UNREACHABLE]||0,icon:'📵',c:STATUS_COLORS[STATUS_ENUM.UNREACHABLE]},
+    {label:'ไม่สนใจ',value:sc[STATUS_ENUM.NOT_INTERESTED]||0,icon:'❌',c:STATUS_COLORS[STATUS_ENUM.NOT_INTERESTED]},
   ];
 
   const doExport = async (e) => {
@@ -163,9 +170,23 @@ export default function Dashboard({ leads, followups, currentUser }) {
         React.createElement('span',{style:{fontSize:12,color:RG.textMuted,fontFamily:RG.fontBody}},nowStr)
       ),
       React.createElement('div',{style:{display:'flex',gap:10,alignItems:'center'}},
+        React.createElement('div',{style:{position:'relative'}},
+          React.createElement('div',{onClick:()=>setProvinceOpen(!provinceOpen),style:{...inputStyle,width:'180px',cursor:'pointer',backgroundColor:filterProvince.length>0?'#F0FDF4':'#fff',display:'flex',justifyContent:'space-between',alignItems:'center',border:filterProvince.length>0?`1px solid ${RG.primaryLight}`:'1px solid '+RG.border,borderRadius:50,paddingLeft:14,paddingRight:10}},
+            React.createElement('span',{style:{color:filterProvince.length>0?RG.primaryMid:RG.text,fontSize:13,fontFamily:RG.fontHeading}},filterProvince.length===0?'📍 ทุกจังหวัด':'📍 '+filterProvince.length+' จังหวัด'),
+            React.createElement('span',{style:{fontSize:10}},'▼')
+          ),
+          provinceOpen&&React.createElement('div',{style:{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1px solid '+RG.border,borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',zIndex:50,padding:'8px 0',marginTop:8,maxHeight:250,overflowY:'auto'}},
+            React.createElement('label',{style:{display:'flex',alignItems:'center',padding:'8px 16px',cursor:'pointer',fontSize:13,borderBottom:'1px solid #eee'}},
+              React.createElement('input',{type:'checkbox',checked:filterProvince.length===0,onChange:()=>setFilterProvince([]),style:{marginRight:8}}),'แสดงทุกจังหวัด'
+            ),
+            provinceList.map(p=>React.createElement('label',{key:p,style:{display:'flex',alignItems:'center',padding:'8px 16px',cursor:'pointer',fontSize:13}},
+              React.createElement('input',{type:'checkbox',checked:filterProvince.includes(p),onChange:()=>setFilterProvince(arr=>arr.includes(p)?arr.filter(x=>x!==p):[...arr,p]),style:{marginRight:8}}),p
+            ))
+          )
+        ),
         (canViewAll||canViewSelect)&&React.createElement('div',{style:{position:'relative'}},
-          React.createElement('div',{onClick:()=>setSellerOpen(!sellerOpen),style:{...inputStyle,width:'180px',cursor:'pointer',backgroundColor:filterSellers.length>0?'#fffbeb':'#fff',display:'flex',justifyContent:'space-between',alignItems:'center',border:filterSellers.length>0?'1px solid #fcd34d':'1px solid '+RG.border,borderRadius:50,paddingLeft:14,paddingRight:10}},
-            React.createElement('span',{style:{color:filterSellers.length>0?'#b45309':RG.text,fontSize:13,fontFamily:RG.fontHeading}},filterSellers.length===0?'👥 ทุกเซลส์':'👥 '+filterSellers.length+' เซลส์'),
+          React.createElement('div',{onClick:()=>setSellerOpen(!sellerOpen),style:{...inputStyle,width:'180px',cursor:'pointer',backgroundColor:filterSellers.length>0?'#F0FDF4':'#fff',display:'flex',justifyContent:'space-between',alignItems:'center',border:filterSellers.length>0?`1px solid ${RG.primaryLight}`:'1px solid '+RG.border,borderRadius:50,paddingLeft:14,paddingRight:10}},
+            React.createElement('span',{style:{color:filterSellers.length>0?RG.primaryMid:RG.text,fontSize:13,fontFamily:RG.fontHeading}},filterSellers.length===0?'👥 ทุกเซลส์':'👥 '+filterSellers.length+' เซลส์'),
             React.createElement('span',{style:{fontSize:10}},'▼')
           ),
           sellerOpen&&React.createElement('div',{style:{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1px solid '+RG.border,borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',zIndex:50,padding:'8px 0',marginTop:8,maxHeight:250,overflowY:'auto'}},
@@ -194,16 +215,16 @@ export default function Dashboard({ leads, followups, currentUser }) {
 
       React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(8, 1fr)',gap:12,marginBottom:32}},
         kpis.map(k=>React.createElement('div',{key:k.label,
-          style:{background:k.g,borderRadius:12,padding:'12px 10px 10px',boxShadow:'0 4px 12px '+(k.sh||'rgba(0,0,0,0.15)'),position:'relative',overflow:'hidden',transition:'transform 0.25s,box-shadow 0.25s',cursor:'pointer',border:'none'},
-          onMouseOver:(e)=>{if(!isExporting){e.currentTarget.style.transform='translateY(-4px) scale(1.02)';e.currentTarget.style.boxShadow='0 12px 24px '+(k.sh||'rgba(0,0,0,0.2)');}},
-          onMouseOut:(e)=>{if(!isExporting){e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 4px 12px '+(k.sh||'rgba(0,0,0,0.15)');}},
+          style:{background:'#fff',borderRadius:12,padding:'12px 10px 10px',boxShadow:'0 2px 8px rgba(0,0,0,0.06)',position:'relative',overflow:'hidden',transition:'transform 0.25s,box-shadow 0.25s',cursor:'pointer',border:`1px solid #f1f5f9`, borderTop:`4px solid ${k.c}`},
+          onMouseOver:(e)=>{if(!isExporting){e.currentTarget.style.transform='translateY(-4px)';e.currentTarget.style.boxShadow='0 8px 16px rgba(0,0,0,0.1)';}},
+          onMouseOut:(e)=>{if(!isExporting){e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)';}},
         },
-          React.createElement('div',{style:{position:'absolute',top:-10,right:-10,width:40,height:40,borderRadius:'50%',background:'rgba(255,255,255,0.13)'}}),
-          React.createElement('div',{style:{position:'absolute',bottom:-15,right:5,width:30,height:30,borderRadius:'50%',background:'rgba(255,255,255,0.09)'}}),
+          React.createElement('div',{style:{position:'absolute',top:-20,right:-20,width:70,height:70,borderRadius:'50%',background:`${k.c}15`}}),
+          React.createElement('div',{style:{position:'absolute',bottom:-15,right:5,width:40,height:40,borderRadius:'50%',background:`${k.c}10`}}),
           React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',position:'relative'}},
             React.createElement('div',null,
-              React.createElement('div',{style:{fontSize:10,fontFamily:RG.fontHeading,fontWeight:600,color:(k.tc||'rgba(255,255,255,0.85)'),marginBottom:4}},k.label),
-              React.createElement('div',{style:{fontSize:24,fontWeight:800,fontFamily:RG.fontHeading,color:(k.tc||'#fff'),lineHeight:1}},k.value)
+              React.createElement('div',{style:{fontSize:11,fontFamily:RG.fontHeading,fontWeight:600,color:RG.textMuted,marginBottom:4}},k.label),
+              React.createElement('div',{style:{fontSize:24,fontWeight:800,fontFamily:RG.fontHeading,color:k.c,lineHeight:1}},k.value)
             ),
             React.createElement('div',{style:{fontSize:18,opacity:0.9,lineHeight:1}},k.icon)
           )

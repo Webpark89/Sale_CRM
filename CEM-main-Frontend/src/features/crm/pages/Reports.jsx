@@ -4,7 +4,7 @@ import { toJpeg } from "html-to-image";
 import { jsPDF } from "jspdf";
 import { STATUSES, STATUS_COLORS, STATUS_ENUM } from "../constants/status";
 import { RG } from "../constants/theme";
-import { today, fmtNum } from "../crmHelpers/helpers";
+import { today, fmtNum, PROVINCES } from "../crmHelpers/helpers";
 import StatusBadge from "../components/common/StatusBadge";
 import { inputStyle } from "../components/common/styles";
 import Modal from "../components/common/Modal";
@@ -119,11 +119,14 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [filterSellers, setFilterSellers] = useState([]);
   const [isSellerDropdownOpen, setIsSellerDropdownOpen] = useState(false);
+  const [filterProvince, setFilterProvince] = useState([]);
+  const [isProvinceDropdownOpen, setIsProvinceDropdownOpen] = useState(false);
   
   // State ควบคุมการ Export
   const [isExporting, setIsExporting] = useState(false);
 
   const sellerList = [...new Set(leads.map(l => l.owner).filter(Boolean))];
+  const provinceList = PROVINCES;
 
   // สิทธิ์ในการดูข้อมูล — ใช้ Logic เดียวกับ Dashboard
   const canViewAll = currentUser?.role === 'admin' || currentUser?.role_is_system || currentUser?.permissions?.reports?.view === 'all';
@@ -140,9 +143,14 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
     : leads.filter(l => l.owner === currentUser?.username);
 
   // displayLeads: กรองตาม seller ที่เลือก (ถ้าไม่ได้เลือก = แสดงทั้งหมดจาก roleFilteredLeads)
-  const displayLeads = filterSellers.length === 0
+  let displayLeads = filterSellers.length === 0
     ? roleFilteredLeads
     : roleFilteredLeads.filter(l => filterSellers.includes(l.owner));
+
+  if (filterProvince.length > 0) {
+    displayLeads = displayLeads.filter(l => filterProvince.includes(l.province));
+  }
+
   const pdfContainerRef = useRef(null);
   
   const headerRef = useRef(null);
@@ -402,14 +410,50 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
         </div>
 
         <div style={{ display: "flex", flexDirection: "row", gap: 10, alignItems: "center" }}>
+          {/* Province Dropdown */}
+          <div style={{ position: "relative" }}>
+            <div 
+              onClick={() => setIsProvinceDropdownOpen(!isProvinceDropdownOpen)}
+              style={{ ...inputStyle, width: "180px", cursor: "pointer", backgroundColor: filterProvince.length > 0 ? "#F0FDF4" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", border: filterProvince.length > 0 ? `1px solid ${RG.primaryLight}` : `1px solid ${RG.border}` }}
+            >
+              <span style={{ color: filterProvince.length > 0 ? RG.primaryMid : RG.text }}>
+                {filterProvince.length === 0 ? "📍 แสดงทุกจังหวัด" : `📍 เลือกแล้ว ${filterProvince.length} จังหวัด`}
+              </span>
+              <span style={{ fontSize: 10 }}>▼</span>
+            </div>
+            {isProvinceDropdownOpen && (
+              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 50, padding: "8px 0", marginTop: "4px", maxHeight: "250px", overflowY: "auto" }}>
+                <label style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13, borderBottom: "1px solid #eee" }}>
+                  <input type="checkbox" checked={filterProvince.length === 0} onChange={() => setFilterProvince([])} style={{ marginRight: 8 }} />
+                  แสดงทุกจังหวัด
+                </label>
+                {provinceList.map(province => (
+                  <label key={province} style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13 }}>
+                    <input 
+                      type="checkbox" 
+                      checked={filterProvince.includes(province)} 
+                      onChange={() => {
+                        setFilterProvince(prev => 
+                          prev.includes(province) ? prev.filter(p => p !== province) : [...prev, province]
+                        );
+                      }} 
+                      style={{ marginRight: 8 }} 
+                    />
+                    {province}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Seller Dropdown: แสดงเฉพาะผู้ที่มีสิทธิ์ดูข้อมูลของคนอื่น */}
           {(canViewAll || canViewSelect) && (
             <div style={{ position: "relative" }}>
               <div 
                 onClick={() => setIsSellerDropdownOpen(!isSellerDropdownOpen)}
-                style={{ ...inputStyle, width: "180px", cursor: "pointer", backgroundColor: filterSellers.length > 0 ? "#fffbeb" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", border: filterSellers.length > 0 ? "1px solid #fcd34d" : `1px solid ${RG.border}` }}
+                style={{ ...inputStyle, width: "180px", cursor: "pointer", backgroundColor: filterSellers.length > 0 ? "#F0FDF4" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", border: filterSellers.length > 0 ? `1px solid ${RG.primaryLight}` : `1px solid ${RG.border}` }}
               >
-                <span style={{ color: filterSellers.length > 0 ? "#b45309" : RG.text }}>
+                <span style={{ color: filterSellers.length > 0 ? RG.primaryMid : RG.text }}>
                   {filterSellers.length === 0 ? "👥 แสดงทุกเซลส์" : `👥 เลือกแล้ว ${filterSellers.length} เซลส์`}
                 </span>
                 <span style={{ fontSize: 10 }}>▼</span>
@@ -476,57 +520,52 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
         </div>
       </div>
 
-     {/* Cards สรุปตัวเลขสำหรับหน้าจอหลัก */}
+      {/* Cards สรุปตัวเลขสำหรับหน้าจอหลัก */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 8, marginBottom: 32 }}>
         
         {/* การ์ด: โทรทั้งหมด */}
         <div 
           onClick={() => handleToggleStatus("all")} 
-          style={{ background: "linear-gradient(135deg,#667eea,#764ba2)", opacity: filterStatuses.length === 0 ? 1 : 0.4, borderRadius: 12, padding: "12px 10px 10px", position: "relative", overflow: "hidden", border: "none", boxShadow: filterStatuses.length === 0 ? "0 4px 12px rgba(102,126,234,0.35)" : "0 2px 10px rgba(0,0,0,0.05)", cursor: "pointer", transition: "all 0.25s" }}
+          style={{ background: "#fff", opacity: filterStatuses.length === 0 ? 1 : 0.4, borderRadius: 12, padding: "12px 10px 10px", position: "relative", overflow: "hidden", border: `1px solid #f1f5f9`, borderTop: `4px solid ${RG.primary}`, boxShadow: filterStatuses.length === 0 ? "0 4px 12px rgba(0,0,0,0.1)" : "0 2px 8px rgba(0,0,0,0.06)", cursor: "pointer", transition: "all 0.25s" }}
           onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; }}
           onMouseOut={(e) => { e.currentTarget.style.transform = "none"; }}
         >
-          <div style={{ position: "absolute", top: -10, right: -10, width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.13)" }} /><div style={{ position: "absolute", bottom: -15, right: 5, width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,0.09)" }} />
-          <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.85)", marginBottom: 4, fontFamily: RG.fontHeading }}>รายการทั้งหมด</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: "#fff", lineHeight: 1, fontFamily: RG.fontHeading }}>{totalCalls}</div>
+          <div style={{ position: "absolute", top: -20, right: -20, width: 70, height: 70, borderRadius: "50%", background: `${RG.primary}15` }} />
+          <div style={{ position: "absolute", bottom: -15, right: 5, width: 40, height: 40, borderRadius: "50%", background: `${RG.primary}10` }} />
+          <div style={{ fontSize: 11, fontWeight: 600, color: RG.textMuted, marginBottom: 4, fontFamily: RG.fontHeading }}>รายการทั้งหมด</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: RG.primary, lineHeight: 1, fontFamily: RG.fontHeading }}>{totalCalls}</div>
         </div>
 
         {/* การ์ด: ต้องติดตามวันนี้ */}
         <div 
           onClick={() => handleToggleStatus("followup_today")} 
-          style={{ background: "linear-gradient(135deg,#ff758c,#ff7eb3)", opacity: filterStatuses.length === 0 || filterStatuses.includes("followup_today") ? 1 : 0.4, borderRadius: 12, padding: "12px 10px 10px", position: "relative", overflow: "hidden", border: "none", boxShadow: filterStatuses.length === 0 || filterStatuses.includes("followup_today") ? "0 4px 12px rgba(255,117,140,0.35)" : "0 2px 10px rgba(0,0,0,0.05)", cursor: "pointer", transition: "all 0.25s" }}
+          style={{ background: "#fff", opacity: filterStatuses.length === 0 || filterStatuses.includes("followup_today") ? 1 : 0.4, borderRadius: 12, padding: "12px 10px 10px", position: "relative", overflow: "hidden", border: `1px solid #f1f5f9`, borderTop: `4px solid #C62828`, boxShadow: filterStatuses.length === 0 || filterStatuses.includes("followup_today") ? "0 4px 12px rgba(0,0,0,0.1)" : "0 2px 8px rgba(0,0,0,0.06)", cursor: "pointer", transition: "all 0.25s" }}
           onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; }}
           onMouseOut={(e) => { e.currentTarget.style.transform = "none"; }}
         >
-          <div style={{ position: "absolute", top: -10, right: -10, width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.13)" }} /><div style={{ position: "absolute", bottom: -15, right: 5, width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,0.09)" }} />
-          <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.85)", marginBottom: 4, fontFamily: RG.fontHeading }}>ติดตามวันนี้ 🔔</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: "#fff", lineHeight: 1, fontFamily: RG.fontHeading }}>{followupToday}</div>
+          <div style={{ position: "absolute", top: -20, right: -20, width: 70, height: 70, borderRadius: "50%", background: `#C6282815` }} />
+          <div style={{ position: "absolute", bottom: -15, right: 5, width: 40, height: 40, borderRadius: "50%", background: `#C6282810` }} />
+          <div style={{ fontSize: 11, fontWeight: 600, color: RG.textMuted, marginBottom: 4, fontFamily: RG.fontHeading }}>ติดตามวันนี้ 🔔</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: "#C62828", lineHeight: 1, fontFamily: RG.fontHeading }}>{followupToday}</div>
         </div>
 
         {/* การ์ด: ดึงจาก STATUSES ทั้งหมดอัตโนมัติ */}
         {STATUSES.map(s => {
           const isActive = filterStatuses.length === 0 || filterStatuses.includes(s);
-          let grad = "linear-gradient(135deg,#30cfd0,#330867)";
-          let tc = "#fff";
-          let sh = "rgba(0,0,0,0.15)";
-          if (s === STATUS_ENUM.CLOSED) { grad = "linear-gradient(135deg,#11998e,#38ef7d)"; sh = "rgba(56,239,125,0.30)"; }
-          else if (s === STATUS_ENUM.MEETING) { grad = "linear-gradient(135deg,#ffd89b,#19547b)"; sh = "rgba(25,84,123,0.35)"; }
-          else if (s === STATUS_ENUM.FOLLOW_UP) { grad = "linear-gradient(135deg,#fc466b,#3f5efb)"; sh = "rgba(63,94,251,0.30)"; }
-          else if (s === STATUS_ENUM.PROFILE) { grad = "linear-gradient(135deg,#89f7fe,#66a6ff)"; sh = "rgba(102,166,255,0.30)"; }
-          else if (s === STATUS_ENUM.UNREACHABLE) { grad = "linear-gradient(135deg,#868f96,#596164)"; }
-          else if (s === STATUS_ENUM.NOT_INTERESTED) { grad = "linear-gradient(135deg,#ee9ca7,#ffdde1)"; sh = "rgba(238,156,167,0.30)"; tc = "#7f1d1d"; }
+          const c = STATUS_COLORS[s] || RG.primary;
 
           return (
             <div 
               key={s} 
               onClick={() => handleToggleStatus(s)} 
-              style={{ background: grad, opacity: isActive ? 1 : 0.4, borderRadius: 12, padding: "12px 10px 10px", position: "relative", overflow: "hidden", border: "none", boxShadow: isActive ? `0 4px 12px ${sh}` : "0 2px 10px rgba(0,0,0,0.05)", cursor: "pointer", transition: "all 0.25s" }}
+              style={{ background: "#fff", opacity: isActive ? 1 : 0.4, borderRadius: 12, padding: "12px 10px 10px", position: "relative", overflow: "hidden", border: `1px solid #f1f5f9`, borderTop: `4px solid ${c}`, boxShadow: isActive ? `0 4px 12px rgba(0,0,0,0.1)` : "0 2px 8px rgba(0,0,0,0.06)", cursor: "pointer", transition: "all 0.25s" }}
               onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; }}
               onMouseOut={(e) => { e.currentTarget.style.transform = "none"; }}
             >
-              <div style={{ position: "absolute", top: -10, right: -10, width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.13)" }} /><div style={{ position: "absolute", bottom: -15, right: 5, width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,0.09)" }} />
-              <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.85)", marginBottom: 4, fontFamily: RG.fontHeading }}>{s}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: tc, lineHeight: 1, fontFamily: RG.fontHeading }}>
+              <div style={{ position: "absolute", top: -20, right: -20, width: 70, height: 70, borderRadius: "50%", background: `${c}15` }} />
+              <div style={{ position: "absolute", bottom: -15, right: 5, width: 40, height: 40, borderRadius: "50%", background: `${c}10` }} />
+              <div style={{ fontSize: 11, fontWeight: 600, color: RG.textMuted, marginBottom: 4, fontFamily: RG.fontHeading }}>{s}</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: c, lineHeight: 1, fontFamily: RG.fontHeading }}>
                 {reportLeads.filter(l => l.latestStatus === s).length}
               </div>
             </div>
@@ -640,28 +679,21 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
                     <div style={{ marginBottom: "32px" }}>
                       <div style={{ fontSize: 16, fontWeight: 700, color: RG.text, marginBottom: "16px", borderLeft: `4px solid ${RG.primary}`, paddingLeft: "8px" }}>สรุปภาพรวม (Executive Summary)</div>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: "8px" }}>
-                        <div style={{ background: "linear-gradient(135deg,#667eea,#764ba2)", borderRadius: "8px", padding: "12px 8px", textAlign: "center", color: "#fff" }}>
-                          <div style={{ fontSize: 10, fontWeight: 600, marginBottom: "4px", opacity: 0.9 }}>ทั้งหมด</div>
-                          <div style={{ fontSize: 20, fontWeight: 700, fontFamily: RG.fontHeading }}>{totalCalls}</div>
+                        <div style={{ background: "#fff", borderRadius: "8px", padding: "12px 8px", textAlign: "center", border: `1px solid ${RG.border}`, borderTop: `4px solid ${RG.primary}` }}>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: RG.textMuted, marginBottom: "4px" }}>ทั้งหมด</div>
+                          <div style={{ fontSize: 20, fontWeight: 700, fontFamily: RG.fontHeading, color: RG.primary }}>{totalCalls}</div>
                         </div>
-                        <div style={{ background: "linear-gradient(135deg,#ff758c,#ff7eb3)", borderRadius: "8px", padding: "12px 8px", textAlign: "center", color: "#fff" }}>
-                          <div style={{ fontSize: 10, fontWeight: 600, marginBottom: "4px", opacity: 0.9 }}>ติดตามวันนี้</div>
-                          <div style={{ fontSize: 20, fontWeight: 700, fontFamily: RG.fontHeading }}>{followupToday}</div>
+                        <div style={{ background: "#fff", borderRadius: "8px", padding: "12px 8px", textAlign: "center", border: `1px solid ${RG.border}`, borderTop: `4px solid #C62828` }}>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: RG.textMuted, marginBottom: "4px" }}>ติดตามวันนี้</div>
+                          <div style={{ fontSize: 20, fontWeight: 700, fontFamily: RG.fontHeading, color: "#C62828" }}>{followupToday}</div>
                         </div>
                         {STATUSES.map(s => {
-                           let grad = "linear-gradient(135deg,#30cfd0,#330867)";
-                           let tc = "#fff";
-                           if (s === STATUS_ENUM.CLOSED) { grad = "linear-gradient(135deg,#11998e,#38ef7d)"; }
-                           else if (s === STATUS_ENUM.MEETING) { grad = "linear-gradient(135deg,#ffd89b,#19547b)"; }
-                           else if (s === STATUS_ENUM.FOLLOW_UP) { grad = "linear-gradient(135deg,#fc466b,#3f5efb)"; }
-                           else if (s === STATUS_ENUM.PROFILE) { grad = "linear-gradient(135deg,#89f7fe,#66a6ff)"; }
-                           else if (s === STATUS_ENUM.UNREACHABLE) { grad = "linear-gradient(135deg,#868f96,#596164)"; }
-                           else if (s === STATUS_ENUM.NOT_INTERESTED) { grad = "linear-gradient(135deg,#ee9ca7,#ffdde1)"; tc = "#7f1d1d"; }
+                           const c = STATUS_COLORS[s] || RG.primary;
                            
                            return (
-                              <div key={s} style={{ background: grad, borderRadius: "8px", padding: "12px 8px", textAlign: "center", color: tc }}>
-                                <div style={{ fontSize: 10, fontWeight: 600, marginBottom: "4px", opacity: tc === "#fff" ? 0.9 : 1 }}>{s}</div>
-                                <div style={{ fontSize: 20, fontWeight: 700, fontFamily: RG.fontHeading }}>{reportLeads.filter(l => l.latestStatus === s).length}</div>
+                              <div key={s} style={{ background: "#fff", borderRadius: "8px", padding: "12px 8px", textAlign: "center", border: `1px solid ${RG.border}`, borderTop: `4px solid ${c}` }}>
+                                <div style={{ fontSize: 10, fontWeight: 600, color: RG.textMuted, marginBottom: "4px" }}>{s}</div>
+                                <div style={{ fontSize: 20, fontWeight: 700, fontFamily: RG.fontHeading, color: c }}>{reportLeads.filter(l => l.latestStatus === s).length}</div>
                               </div>
                            );
                         })}

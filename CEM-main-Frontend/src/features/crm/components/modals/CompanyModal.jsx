@@ -3,7 +3,8 @@ import toast from 'react-hot-toast';
 import html2canvas from "html2canvas"; // ⚠️ อย่าลืม import html2canvas
 import { RG } from "../../constants/theme";
 import { STATUSES } from "../../constants/status";
-import { parseDateTH, today, fmtNum, formatNumberWithCommas, parseNumberFromCommas } from "../../crmHelpers/helpers";
+import { parseDateTH, today, fmtNum, formatNumberWithCommas, parseNumberFromCommas, PROVINCES } from "../../crmHelpers/helpers";
+import { API_BASE_URL } from "../../services/api";
 import Btn from "../common/Btn";
 import Field from "../common/Field";
 import Modal from "../common/Modal";
@@ -15,6 +16,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ ...lead });
   const [showFollowForm, setShowFollowForm] = useState(false);
+  const [pdfFile, setPdfFile] = useState(null);
   
   const [taxIdError, setTaxIdError] = useState("");
   
@@ -124,6 +126,10 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                   <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>อีเมล</td>
                   <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>{lead.contactEmail || "-"}</td>
                 </tr>
+                <tr>
+                  <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>จังหวัด</td>
+                  <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>{lead.province || "-"}</td>
+                </tr>
                 {(currentUser?.permissions?.leads?.view_owner || currentUser?.role === 'admin' || currentUser?.role === 'header_saler') && (
                   <tr>
                     <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>เซลผู้ดูแล</td>
@@ -156,17 +162,17 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
           <div style={{ marginBottom: "32px" }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: RG.text, marginBottom: "16px", borderLeft: `4px solid ${RG.primary}`, paddingLeft: "8px" }}>ข้อมูลทางการเงิน (Financial Information)</div>
             <div style={{ display: "flex", gap: "16px" }}>
-              <div style={{ flex: 1, background: "#f8f9fa", border: "1px solid #e9ecef", borderRadius: "8px", padding: "16px", textAlign: "center" }}>
+              <div style={{ flex: 1, background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "8px", padding: "16px", textAlign: "center" }}>
                 <div style={{ fontSize: 13, color: RG.textMuted, marginBottom: "8px" }}>ทุนจดทะเบียน (บาท)</div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: RG.text }}>{lead.registeredCapital ? fmtNum(lead.registeredCapital) : "-"}</div>
               </div>
-              <div style={{ flex: 1, background: "#f0fdf4", border: "1px solid #dcfce7", borderRadius: "8px", padding: "16px", textAlign: "center" }}>
-                <div style={{ fontSize: 13, color: "#166534", marginBottom: "8px" }}>รายได้รวม (บาท)</div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: "#15803d" }}>{lead.revenue ? fmtNum(lead.revenue) : "-"}</div>
+              <div style={{ flex: 1, background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "8px", padding: "16px", textAlign: "center" }}>
+                <div style={{ fontSize: 13, color: RG.textMuted, marginBottom: "8px" }}>รายได้รวม (บาท)</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: RG.primaryMid }}>{lead.revenue ? fmtNum(lead.revenue) : "-"}</div>
               </div>
-              <div style={{ flex: 1, background: "#f0f9ff", border: "1px solid #e0f2fe", borderRadius: "8px", padding: "16px", textAlign: "center" }}>
-                <div style={{ fontSize: 13, color: "#075985", marginBottom: "8px" }}>กำไรสุทธิ (บาท)</div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: "#0369a1" }}>{lead.profit ? fmtNum(lead.profit) : "-"}</div>
+              <div style={{ flex: 1, background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "8px", padding: "16px", textAlign: "center" }}>
+                <div style={{ fontSize: 13, color: RG.textMuted, marginBottom: "8px" }}>กำไรสุทธิ (บาท)</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: RG.primaryMid }}>{lead.profit ? fmtNum(lead.profit) : "-"}</div>
               </div>
             </div>
           </div>
@@ -261,6 +267,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                     { label: "ผู้ติดต่อ", key: "contactName" },
                     { label: "เบอร์โทรศัพท์", key: "contactPhone" },
                     { label: "อีเมล", key: "contactEmail" },
+                    { label: "จังหวัด", key: "province" },
                     { label: "รายละเอียด", key: "description" },
                   ].map((field) => (
                     <tr key={field.key}>
@@ -268,12 +275,25 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                       <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", width: "75%" }}>
                         {editing ? (
                           <>
-                            <input 
-                              value={form[field.key] || ""} 
-                              onChange={e => handleInputChange(field.key, e.target.value)} 
-                              style={{ ...inputStyle, width: "100%", borderColor: (field.key === "companyNumber" && taxIdError) ? "#ff4d4f" : inputStyle.border }} 
-                            />
-                            {field.key === "companyNumber" && taxIdError && <div style={{ color: "#ff4d4f", fontSize: 12, marginTop: 4 }}>{taxIdError}</div>}
+                            {field.key === "province" ? (
+                              <select
+                                value={form[field.key] || ""}
+                                onChange={e => handleInputChange(field.key, e.target.value)}
+                                style={{ ...inputStyle, width: "100%" }}
+                              >
+                                <option value="">-- เลือกจังหวัด --</option>
+                                {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                              </select>
+                            ) : (
+                              <>
+                                <input 
+                                  value={form[field.key] || ""} 
+                                  onChange={e => handleInputChange(field.key, e.target.value)} 
+                                  style={{ ...inputStyle, width: "100%", borderColor: (field.key === "companyNumber" && taxIdError) ? "#ff4d4f" : inputStyle.border }} 
+                                />
+                                {field.key === "companyNumber" && taxIdError && <div style={{ color: "#ff4d4f", fontSize: 12, marginTop: 4 }}>{taxIdError}</div>}
+                              </>
+                            )}
                           </>
                         ) : (
                           <span>{form[field.key] || "-"}</span>
@@ -331,7 +351,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
               <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20 }}>
                 <thead>
                   <tr style={{ background: RG.text }}>
-                    {["ครั้งที่", "วันที่", "รายละเอียด", "สถานะ", "ติดตามครั้งถัดไป"].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: "#fff", fontSize: 13, fontWeight: 600 }}>{h}</th>)}
+                    {["ครั้งที่", "วันที่", "รายละเอียด", "สถานะ", "ติดตามครั้งถัดไป", "ไฟล์แนบ"].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: "#fff", fontSize: 13, fontWeight: 600 }}>{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -342,6 +362,11 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                       <td style={{ padding: "10px 12px", fontSize: 13, color: RG.text, maxWidth: 200 }}>{f.detail}</td>
                       <td style={{ padding: "10px 12px" }}><StatusBadge status={f.status} /></td>
                       <td style={{ padding: "10px 12px", fontSize: 13, color: RG.text }}>{parseDateTH(f.nextFollowupDate)}</td>
+                      <td style={{ padding: "10px 12px", fontSize: 13 }}>
+                        {f.pdfFile && (
+                          <a href={`${API_BASE_URL}/uploads/pdfs/${f.pdfFile}`} target="_blank" rel="noopener noreferrer" style={{ color: RG.primary, textDecoration: "underline" }}>ดูไฟล์ PDF</a>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -363,8 +388,29 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                       <Field label="วันที่ติดตามครั้งถัดไป"><input type="date" value={fForm.nextFollowupDate} onChange={e => setFForm(f => ({ ...f, nextFollowupDate: e.target.value }))} style={inputStyle} /></Field>
                     </div>
                     <Field label="รายละเอียด"><textarea value={fForm.detail} onChange={e => setFForm(f => ({ ...f, detail: e.target.value }))} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></Field>
+                    <Field label="แนบไฟล์สรุป (PDF) (ถ้ามี)">
+                      <input 
+                        type="file" 
+                        accept="application/pdf" 
+                        onChange={e => setPdfFile(e.target.files[0])} 
+                        style={{ ...inputStyle, padding: "4px 8px" }} 
+                      />
+                    </Field>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <Btn onClick={() => { onSaveFollowup(lead.id, fForm); setShowFollowForm(false); setFForm({ sequence: nextSeq + 1, date: today(), detail: "", status: STATUSES[0], nextFollowupDate: "", completed: false }); }}>บันทึก</Btn>
+                      <Btn onClick={() => { 
+                        const formData = new FormData();
+                        formData.append("sequence", fForm.sequence);
+                        formData.append("date", fForm.date);
+                        formData.append("status", fForm.status);
+                        formData.append("detail", fForm.detail);
+                        if (fForm.nextFollowupDate) formData.append("nextFollowupDate", fForm.nextFollowupDate);
+                        if (pdfFile) formData.append("pdf_file", pdfFile);
+                        
+                        onSaveFollowup(lead.id, formData); 
+                        setShowFollowForm(false); 
+                        setFForm({ sequence: nextSeq + 1, date: today(), detail: "", status: STATUSES[0], nextFollowupDate: "", completed: false }); 
+                        setPdfFile(null);
+                      }}>บันทึก</Btn>
                       <Btn variant="Third" onClick={() => setShowFollowForm(false)}>ยกเลิก</Btn>
                     </div>
                   </div>

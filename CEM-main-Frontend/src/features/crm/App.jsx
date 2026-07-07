@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState, useRef } from "react";
 import { Toaster, toast } from 'react-hot-toast';
 import { STATUSES, STATUS_COLORS, STATUS_ENUM } from "./constants/status";
 import { RG } from "./constants/theme";
-import { createNewLead, parseDateTH, today, uuid } from "./crmHelpers/helpers";
+import { createNewLead, parseDateTH, today, uuid, PROVINCES } from "./crmHelpers/helpers";
 import LoginScreen from "./components/auth/LoginScreen";
 import Btn from "./components/common/Btn";
 import EditableCell from "./components/common/EditableCell";
@@ -31,6 +31,7 @@ import {
   hardDeleteLeadApi,
   fetchAllLeadsMaster
 } from "./services/apiService";
+import { API_BASE_URL } from "./services/api";
 import { printHTMLTable } from "../../utils/exportHelpers";
 
 // กำหนดน้ำหนักความสำคัญสำหรับการจัดเรียงข้อมูล
@@ -92,6 +93,7 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState([]);
   const [isModalReadOnly, setIsModalReadOnly] = useState(false);
+  const [filterProvince, setFilterProvince] = useState([]);
   
   // เพิ่ม State สำหรับตัวกรองและการจัดเรียง
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -500,6 +502,8 @@ export default function App() {
       if (search && !(l.companyName || "").toLowerCase().includes(search.toLowerCase()) && !(l.companyNumber || "").includes(search) && !(l.contactPhone || "").includes(search) && !(l.contactEmail || "").toLowerCase().includes(search.toLowerCase()) && !(l.description || "").toLowerCase().includes(search.toLowerCase())) return false;
       //คัดกรองสถานะ
       if (filterStatus.length > 0 && !filterStatus.includes(l.latestStatus)) return false;
+      //คัดกรองจังหวัด
+      if (filterProvince.length > 0 && (!l.province || !filterProvince.includes(l.province))) return false;
       //รายการโปรด
       if (showFavorites && !l.isStarred) return false; 
       //ตัวกรองการเงิน
@@ -674,19 +678,23 @@ export default function App() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: RG.background, fontFamily: RG.fontBody, color: RG.text, display: "flex", flexDirection: "row" }}>
+    <div style={{ minHeight: "100vh", width: "100%", margin: 0, padding: 0, fontFamily: RG.fontBody, color: RG.text, display: "flex", flexDirection: "row", position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: -20, left: -20, right: -20, bottom: -20, background: RG.background, filter: "blur(12px)", zIndex: 0 }} />
+      <div style={{ display: "flex", flexDirection: "row", width: "100%", zIndex: 1 }}>
       <Toaster position="top-right" />
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #E8FFFD; } ::-webkit-scrollbar-thumb { background: #03B5AA; border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; }`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; } body { margin: 0; padding: 0; height: 100vh; overflow-x: hidden; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #E8FFFD; } ::-webkit-scrollbar-thumb { background: #03B5AA; border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; }`}</style>
 
       {/* Left Sidebar (Hoverable) */}
       <aside 
         style={{ 
           width: isSidebarExpanded ? 240 : 80, 
-          background: "linear-gradient(180deg, #023436 0%, #0f766e 100%)", // Material Dashboard Dark Sidebar
+          background: "rgba(2, 52, 54, 0.6)", // Glassmorphism Dark Teal
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
           padding: isSidebarExpanded ? "32px 20px" : "32px 10px", 
           display: "flex", 
           flexDirection: "column", 
-          borderRight: `1px solid ${RG.border}`, 
+          borderRight: `1px solid rgba(156, 234, 239, 0.2)`, 
           position: "fixed", 
           top: 0, 
           left: 0,
@@ -733,16 +741,16 @@ export default function App() {
 
         {/* Logo Section */}
         <div style={{ display: "flex", alignItems: "center", gap: isSidebarExpanded ? 12 : 0, justifyContent: isSidebarExpanded ? "flex-start" : "center", marginBottom: 48, transition: "all 0.3s" }}>
-          <div style={{ minWidth: 40, width: 40, height: 40, background: "rgba(255,255,255,0.1)", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 20, boxShadow: RG.shadowSoft }}>S</div>
+          <div style={{ minWidth: 42, width: 42, height: 42, background: "linear-gradient(135deg, #07BEB8, #68D8D6)", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "#023436", fontSize: 22, boxShadow: "0 4px 15px rgba(104, 216, 214, 0.4)", textShadow: "0 1px 2px rgba(255,255,255,0.5)" }}>S</div>
           <div style={{ display: "flex", flexDirection: "column", opacity: isSidebarExpanded ? 1 : 0, width: isSidebarExpanded ? "auto" : 0, overflow: "hidden", transition: "all 0.2s", whiteSpace: "nowrap" }}>
-            <span style={{ color: "#fff", fontFamily: RG.fontHeading, fontWeight: 700, fontSize: 18, lineHeight: 1.2 }}>Sales CRM System</span>
-            <span style={{ color: "rgba(255,255,255,0.7)", fontFamily: RG.fontBody, fontSize: 11, lineHeight: 1.2 }}>Lead & Sales Management</span>
+            <span style={{ color: "#fff", fontFamily: RG.fontHeading, fontWeight: 700, fontSize: 18, lineHeight: 1.2, textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}>Sales CRM</span>
+            <span style={{ color: RG.primaryLight, fontFamily: RG.fontBody, fontSize: 11, lineHeight: 1.2, fontWeight: 600 }}>System Management</span>
           </div>
         </div>
 
         {/* Menu Navigation */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
-          {isSidebarExpanded && <div style={{ fontSize: 11, fontWeight: 700, fontFamily: RG.fontHeading, color: "rgba(255,255,255,0.5)", letterSpacing: 1, marginBottom: 8, paddingLeft: 20, textAlign: "left", opacity: isSidebarExpanded ? 1 : 0.5, transition: "all 0.3s" }}>MENU</div>}
+          {isSidebarExpanded && <div style={{ fontSize: 11, fontWeight: 700, fontFamily: RG.fontHeading, color: RG.primaryGhost, letterSpacing: 1, marginBottom: 8, paddingLeft: 20, textAlign: "left", opacity: isSidebarExpanded ? 1 : 0.5, transition: "all 0.3s" }}>MENU</div>}
           {navItems.map(n => (
             <button key={n.key} onClick={() => setPage(n.key)} style={{ position: "relative", padding: isSidebarExpanded ? "14px 20px" : "14px 0", borderRadius: 12, border: "none", background: page === n.key ? "linear-gradient(195deg, #07BEB8, #037971)" : "transparent", color: page === n.key ? "#fff" : "rgba(255,255,255,0.8)", cursor: "pointer", fontWeight: page === n.key ? 600 : 400, fontSize: 15, fontFamily: RG.fontHeading, transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: isSidebarExpanded ? "flex-start" : "center", gap: isSidebarExpanded ? 12 : 0, boxShadow: page === n.key ? "0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(3, 181, 170, 0.4)" : "none", whiteSpace: "nowrap", marginBottom: 4 }}>
               {page === n.key && <div style={{ position: "absolute", left: -10, top: "50%", transform: "translateY(-50%)", width: 4, height: 20, background: "#fff", borderRadius: "0 4px 4px 0" }} />}
@@ -757,7 +765,7 @@ export default function App() {
       <main style={{ flex: 1, marginLeft: isSidebarExpanded ? 240 : 80, height: "100vh", overflowY: "auto", position: "relative", transition: "margin-left 0.3s" }}>
         
         {/* Floating Top-Right Actions */}
-        <div style={{ position: "absolute", top: 24, right: 40, display: "flex", alignItems: "center", gap: 16, zIndex: 100, background: "rgba(255,255,255,0.8)", backdropFilter: "blur(12px)", padding: "10px 20px", borderRadius: "16px", boxShadow: "0 4px 20px 0 rgba(0,0,0,0.05)" }}>
+        <div style={{ position: "absolute", top: 16, right: 24, display: "flex", alignItems: "center", gap: 16, zIndex: 100, background: "rgba(255,255,255,0.8)", backdropFilter: "blur(12px)", padding: "10px 20px", borderRadius: "16px", boxShadow: "0 4px 20px 0 rgba(0,0,0,0.05)", border: `1px solid ${RG.border}` }}>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
             <button onClick={undo} disabled={histIdx < 0} style={{ padding: "8px 12px", borderRadius: "20px", border: "1px solid " + RG.border, background: histIdx < 0 ? "#f8f9fa" : "#fff", color: histIdx < 0 ? "#ccc" : RG.text, cursor: histIdx < 0 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "6px", fontWeight: "600", boxShadow: RG.shadowSoft }} title="Undo (ย้อนกลับ)">
               <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
@@ -766,11 +774,11 @@ export default function App() {
               <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6"></path></svg>
             </button>
           </div>
-          <span style={{ color: RG.warn, fontSize: 12, background: "rgba(245, 158, 11, 0.1)", borderRadius: 12, padding: "6px 16px", fontWeight: 600, border: `1px solid rgba(245, 158, 11, 0.2)` }}>☁ Cloud Synced</span>
+          <span style={{ color: RG.primaryMid, fontSize: 12, background: RG.primaryPale, borderRadius: 12, padding: "6px 16px", fontWeight: 700, border: `1px solid ${RG.primaryGhost}` }}>☁ Cloud Synced</span>
           
           <div style={{ display: "flex", gap: 8, background: RG.surface, padding: "6px 12px", borderRadius: 20, boxShadow: RG.shadowSoft, border: `1px solid ${RG.border}` }}>
             <button onClick={() => setShowNotif(true)} style={{ background: "transparent", border: "none", color: RG.textMuted, cursor: "pointer", fontSize: 20, position: "relative", padding: "4px" }}>
-              🔔 {dueTodayCount > 0 && <span style={{ position: "absolute", top: -2, right: -4, background: RG.primary, color: "#fff", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, border: "2px solid #fff" }}>{dueTodayCount}</span>}
+              🔔 {dueTodayCount > 0 && <span style={{ position: "absolute", top: -2, right: -4, background: RG.warn, color: "#fff", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, border: "2px solid #fff" }}>{dueTodayCount}</span>}
             </button>
           </div>
 
@@ -788,7 +796,7 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{ padding: "32px 40px", paddingTop: 90 }}>
+        <div style={{ padding: "24px", paddingTop: 80, width: "100%", maxWidth: "100%" }}>
         {page === "leads" && (
           <>
             <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
@@ -810,9 +818,9 @@ export default function App() {
                   onClick={() => setShowFavorites(!showFavorites)} 
                   style={{ 
                     padding: "4px 10px", borderRadius: 20, 
-                    border: `1.5px solid ${showFavorites ? "#faad14" : RG.border}`, 
-                    background: showFavorites ? "#fffbe6" : "#fff", 
-                    color: showFavorites ? "#d48806" : RG.textMuted, 
+                    border: `1.5px solid ${showFavorites ? RG.primary : RG.border}`, 
+                    background: showFavorites ? "#F0FDF4" : "#fff", 
+                    color: showFavorites ? RG.primaryMid : RG.textMuted, 
                     fontSize: 12, cursor: "pointer", fontWeight: showFavorites ? 700 : 400, 
                     fontFamily: "'Sarabun', sans-serif" 
                   }}
@@ -833,9 +841,9 @@ export default function App() {
                   <div style={{ position: "relative" }}>
                     <div 
                       onClick={() => setIsSellerDropdownOpen(!isSellerDropdownOpen)}
-                      style={{ ...inputStyle, width: "180px", cursor: "pointer", backgroundColor: filterSellers.length > 0 ? "#fffbeb" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", border: filterSellers.length > 0 ? "1px solid #fcd34d" : `1px solid ${RG.border}` }}
+                      style={{ ...inputStyle, width: "180px", cursor: "pointer", backgroundColor: filterSellers.length > 0 ? "#F0FDF4" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", border: filterSellers.length > 0 ? `1px solid ${RG.primaryLight}` : `1px solid ${RG.border}` }}
                     >
-                      <span style={{ color: filterSellers.length > 0 ? "#b45309" : RG.text }}>
+                      <span style={{ color: filterSellers.length > 0 ? RG.primaryMid : RG.text }}>
                         {filterSellers.length === 0 ? "👥 แสดงทุกเซลส์" : `👥 เลือกแล้ว ${filterSellers.length} เซลส์`}
                       </span>
                       <span style={{ fontSize: 10 }}>▼</span>
@@ -942,6 +950,7 @@ export default function App() {
                         { label: "ผู้ติดต่อ", key: "contactName" },
                         { label: "เบอร์", key: "contactPhone" },
                         { label: "อีเมล", key: "contactEmail" },
+                        { label: "จังหวัด", key: "province", sortable: true },
                         { label: "รายละเอียด", key: "description" },
                         ...(currentUser?.permissions?.leads?.view_owner || currentUser?.role === 'admin' || currentUser?.role === 'header_saler'
                           ? [{ label: "เซลผู้ดูแล", key: "owner", sortable: true }]
@@ -951,7 +960,8 @@ export default function App() {
                         { label: "กำไร", key: "profit", sortable: true },
                         { label: "สถานะ", key: "latestStatus", sortable: true },
                         { label: "ติดต่อล่าสุด", key: "latestContactDate", sortable: true },
-                        { label: "นัดถัดไป", key: "nextFollowupDate", sortable: true }
+                        { label: "นัดถัดไป", key: "nextFollowupDate", sortable: true },
+                        { label: "เอกสารล่าสุด", key: "latestPdfFile", sortable: false }
                       ].map(col => (
                         <th key={col.label} style={{ padding: "16px 10px", textAlign: "left", color: "#fff", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>
                           {col.sortable ? (
@@ -960,6 +970,7 @@ export default function App() {
                               <span style={{ fontSize: 10, color: sortConfig.key === col.key ? RG.primaryLight : "rgba(255, 255, 255, 0.4)" }}>
                                 {sortConfig.key === col.key ? (sortConfig.direction === 'asc' ? "▲" : "▼") : "▽"}
                               </span>
+                              {col.key === "province" && filterProvince.length > 0 && <span style={{ width: 6, height: 6, background: "#f87171", borderRadius: "50%" }}></span>}
                             </div>
                           ) : (
                             col.label
@@ -990,7 +1001,7 @@ export default function App() {
                       
                       // 3. กำหนดสีพื้นหลัง: ถ้าเคยมีตติ้งให้ไฮไลต์สีส้มให้เห็นชัดเจน ถ้าไม่เคย ให้สลับสีตามเดิม
                       const rowBackground = lead.latestStatus === "มีตติ้ง" ? "#FEF08A" : "#fff";
-                      const hoverBackground = lead.latestStatus === "มีตติ้ง" ? "#FDE047" : "#f9fafb";
+                      const hoverBackground = lead.latestStatus === "มีตติ้ง" ? "#FDE047" : "#e2e8f0";
                       return (
                         <tr 
                           key={lead.id} 
@@ -1025,6 +1036,7 @@ export default function App() {
                           <td style={{ padding: "16px 10px" }}><EditableCell value={lead.contactName} onSave={v => inlineEdit(lead.id, "contactName", v)} /></td>
                           <td style={{ padding: "16px 10px" }}><EditableCell value={lead.contactPhone} onSave={v => inlineEdit(lead.id, "contactPhone", v)} type="phone" /></td>
                           <td style={{ padding: "16px 10px" }}><EditableCell value={lead.contactEmail} onSave={v => inlineEdit(lead.id, "contactEmail", v)} /></td>
+                          <td style={{ padding: "16px 10px" }}><EditableCell value={lead.province} onSave={v => inlineEdit(lead.id, "province", v)} type="select" options={PROVINCES} /></td>
                           <td style={{ padding: "16px 10px" }}><EditableCell value={lead.description} onSave={v => inlineEdit(lead.id, "description", v)} /></td>
                           {(currentUser?.permissions?.leads?.view_owner || currentUser?.role === 'admin' || currentUser?.role === 'header_saler') && (
                             <td style={{ padding: "16px 10px", whiteSpace: "nowrap", color: RG.primaryMid, fontWeight: 600 }}>
@@ -1051,6 +1063,17 @@ export default function App() {
                               <EditableCell value={lead.nextFollowupDate} onSave={v => inlineEdit(lead.id, "nextFollowupDate", v)} type="date" />
                             )}
                           </td>
+                          <td style={{ padding: "16px 10px", textAlign: "center" }}>
+                            {(() => {
+                              const fups = followups[lead.id] || [];
+                              const latestWithPdf = [...fups].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).find(f => f.pdfFile);
+                              return latestWithPdf ? (
+                                <a href={`${API_BASE_URL}/uploads/pdfs/${latestWithPdf.pdfFile}`} target="_blank" rel="noopener noreferrer" style={{ color: RG.primary, textDecoration: "none", fontSize: 18, title: "ดูไฟล์สรุปการติดตามล่าสุด" }}>
+                                  📄
+                                </a>
+                              ) : <span style={{ color: "#ccc" }}>-</span>;
+                            })()}
+                          </td>
                         </tr>
                       );
                     })} 
@@ -1060,7 +1083,8 @@ export default function App() {
               <div style={{ padding: "10px 16px", background: "#ffffff", borderTop: `1px solid ${RG.border}`, fontSize: 12, color: RG.textMuted, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                   <span>แสดง {paginatedLeads.length} จาก {filtered.length} รายการ (ทั้งหมด {leads.length} รายการ)</span>
-                  {filterStatus.length > 0 && <span style={{ background: "#f1f5f9", padding: "2px 8px", borderRadius: 10 }}>กรอง: {filterStatus.join(", ")}</span>}
+                  {filterStatus.length > 0 && <span style={{ background: "#f1f5f9", padding: "2px 8px", borderRadius: 10 }}>สถานะ: {filterStatus.join(", ")}</span>}
+                  {filterProvince.length > 0 && <span style={{ background: "#f1f5f9", padding: "2px 8px", borderRadius: 10 }}>จังหวัด: {filterProvince.join(", ")}</span>}
                 </div>
                 {totalPages > 1 && (
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1151,7 +1175,7 @@ export default function App() {
 
       {showNotif && <NotificationsPanel currentUser={currentUser} leads={myLeads} onMarkDone={markDone} onViewLead={(lead) => { setSelectedLead(lead); setIsModalReadOnly(true); }} onClose={() => setShowNotif(false)} />}
       
-      {showFilterModal && <FilterModal filterStatus={filterStatus} setFilterStatus={setFilterStatus} finFilters={finFilters} setFinFilters={setFinFilters} dateFilters={dateFilters} setDateFilters={setDateFilters} onClose={() => setShowFilterModal(false)} />}
+      {showFilterModal && <FilterModal filterStatus={filterStatus} setFilterStatus={setFilterStatus} finFilters={finFilters} setFinFilters={setFinFilters} dateFilters={dateFilters} setDateFilters={setDateFilters} filterProvince={filterProvince} setFilterProvince={setFilterProvince} onClose={() => setShowFilterModal(false)} />}
 
       {markDoneLead && (
         <Modal title={`บันทึกการติดตาม — ${markDoneLead.companyName}`} onClose={() => setMarkDoneLead(null)}>
@@ -1239,7 +1263,7 @@ export default function App() {
           </div>
         </Modal>
       )}
+      </div>
     </div>
-    
   );
 }

@@ -348,7 +348,8 @@ const createFollowup = asyncHandler(async (req, res) => {
     contact_date: parseDateForDb(date),
     detail: detail || null,
     status: status || null,
-    next_followup_date: parseDateForDb(next_followup_date || nextFollowupDate)
+    next_followup_date: parseDateForDb(next_followup_date || nextFollowupDate),
+    pdf_file: req.file ? req.file.filename : null
   });
 
   res.status(201).json({ followup: formatFollowup(newFup) });

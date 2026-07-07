@@ -34,7 +34,7 @@ export default function NotificationsPanel({ currentUser, leads, onMarkDone, onV
   });
 
   const dueToday = sortLeads(leads.filter(l => l.ownerId === currentUser?.id && l.nextFollowupDate === filterDate && l.latestStatus !== "ปิดการขาย"));
-  const overdue = isDefaultDate ? sortLeads(leads.filter(l => l.ownerId === currentUser?.id && l.nextFollowupDate && l.nextFollowupDate < filterDate && l.latestStatus !== "ปิดการขาย")) : [];
+  const overdue = sortLeads(leads.filter(l => l.ownerId === currentUser?.id && l.nextFollowupDate && l.nextFollowupDate < filterDate && l.latestStatus !== "ปิดการขาย"));
   
   // General: 1. สร้างเอง (ฝากโปรไฟล์) 2. ได้รับมอบหมายใหม่ (isAcknowledged === 0)
   const general = sortLeads(leads.filter(l => {
@@ -163,31 +163,52 @@ export default function NotificationsPanel({ currentUser, leads, onMarkDone, onV
   return (
     <Modal title={titleText} onClose={onClose}>
       
-      <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 10, padding: "10px", background: RG.surface, borderRadius: 8, border: `1px solid ${RG.border}`, opacity: expandedSection ? 0.5 : 1, pointerEvents: expandedSection ? 'none' : 'auto' }}>
-        <span style={{ fontSize: 14, color: RG.text, fontWeight: 600 }}>เลือกวันที่:</span>
-        <input 
-          type="date" 
-          value={filterDate}
-          onChange={(e) => setFilterDate(e.target.value)}
-          style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${RG.border}`, fontFamily: "'Sarabun', sans-serif", color: RG.text, outline: "none" }}
-        />
-        {filterDate !== today() && (
-          <button onClick={() => setFilterDate(today())} style={{ background: "#fff", border: `1px solid ${RG.border}`, color: RG.textMuted, borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontFamily: "'Sarabun', sans-serif" }}>
-            กลับไปวันนี้
-          </button>
-        )}
-      </div>
-
       <div style={{ maxHeight: "65vh", overflowY: "auto", paddingRight: 8, paddingBottom: 10 }}>
-        {totalCount === 0 ? (
-          <p style={{ color: RG.textMuted, textAlign: "center", padding: "30px 0", fontSize: 16 }}>ไม่มีรายการแจ้งเตือน 🎉</p>
-        ) : expandedSection ? (
+        {expandedSection ? (
           renderExpandedView()
         ) : (
-          <div>
-            {renderSection("📅 การติดตาม ณ ปัจจุบัน (วันนี้)", dueToday, false, 'dueToday', RG.primary)}
-            {renderSection("⚠️ การติดตามที่ค้างอยู่ (ผ่านมาแล้ว)", overdue, true, 'overdue', "#dc2626")}
-            {renderSection("🔔 การแจ้งเตือนทั่วไป (ลีดใหม่/รอติดต่อ)", general, false, 'general', "#8b5cf6")}
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            
+            {/* ส่วนที่ 1: การติดตาม (Follow-ups) */}
+            <div style={{ background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "12px", padding: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+              <h3 style={{ margin: "0 0 16px 0", color: RG.text, fontSize: 15, borderBottom: `2px solid ${RG.primaryLight}`, paddingBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>📌 ส่วนที่ 1: การติดตาม (Follow-ups)</span>
+                <span style={{ fontSize: 12, fontWeight: "normal", color: RG.textMuted }}>รวม {dueToday.length + overdue.length} รายการ</span>
+              </h3>
+              
+              <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: RG.surface, borderRadius: 8, border: `1px solid ${RG.border}` }}>
+                <span style={{ fontSize: 13, color: RG.text, fontWeight: 600 }}>เลือกวันที่ติดตาม:</span>
+                <input 
+                  type="date" 
+                  value={filterDate}
+                  onChange={(e) => setFilterDate(e.target.value)}
+                  style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${RG.border}`, fontFamily: "'Sarabun', sans-serif", color: RG.text, outline: "none", fontSize: 13 }}
+                />
+                {filterDate !== today() && (
+                  <button onClick={() => setFilterDate(today())} style={{ background: "#fff", border: `1px solid ${RG.border}`, color: RG.textMuted, borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Sarabun', sans-serif" }}>
+                    กลับไปวันนี้
+                  </button>
+                )}
+              </div>
+
+              {dueToday.length === 0 && overdue.length === 0 && (
+                <p style={{ color: RG.textMuted, textAlign: "center", padding: "10px 0", fontSize: 13 }}>ไม่มีรายการติดตามในวันนี้ 🎉</p>
+              )}
+              {renderSection("📅 การติดตาม ณ ปัจจุบัน", dueToday, false, 'dueToday', RG.primary)}
+              {renderSection("⚠️ การติดตามที่ค้างอยู่ (ผ่านมาแล้ว)", overdue, true, 'overdue', "#dc2626")}
+            </div>
+
+            {/* ส่วนที่ 2: การแจ้งเตือนทั่วไป */}
+            {general.length > 0 && (
+              <div style={{ background: "#fff", border: "1px solid #ddd6fe", borderRadius: "12px", padding: "16px", boxShadow: "0 2px 8px rgba(139,92,246,0.08)" }}>
+                <h3 style={{ margin: "0 0 16px 0", color: "#6d28d9", fontSize: 15, borderBottom: "2px solid #c4b5fd", paddingBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>📌 ส่วนที่ 2: การแจ้งเตือนทั่วไป (General)</span>
+                  <span style={{ fontSize: 12, fontWeight: "normal", color: "#8b5cf6" }}>รวม {general.length} รายการ</span>
+                </h3>
+                {renderSection("🔔 การแจ้งเตือนทั่วไป (ลีดใหม่/รอติดต่อ)", general, false, 'general', "#8b5cf6")}
+              </div>
+            )}
+            
           </div>
         )}
       </div>

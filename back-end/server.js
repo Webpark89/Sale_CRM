@@ -19,6 +19,10 @@ app.use("/api/roles", require("./routes/roles"));
 app.use("/api/leads", require("./routes/leads"));
 app.use("/api/leads/:leadId/followups", require("./routes/followups"));
 app.use("/api/followups", require("./routes/followups"));
+
+// เสิร์ฟไฟล์ Static เพื่อให้เข้าถึงไฟล์ PDF ได้
+const path = require("path");
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // สร้าง Route พื้นฐาน เอาไว้ทดสอบว่าร้านเปิดหรือยัง
 app.get("/", (req, res) => {
   res.json({ message: "Hello CRM! Backend Started" });

@@ -71,8 +71,8 @@ const Lead = {
     const [result] = await db.execute(
       `INSERT INTO leads
         (owner_id, created_by, assigned_by, previous_owner_id, is_acknowledged, company_name, company_number, contact_name, contact_phone,
-         contact_email, description, revenue, registered_capital, profit)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+         contact_email, province, description, revenue, registered_capital, profit)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         data.owner_id, 
         data.created_by || data.owner_id,
@@ -84,6 +84,7 @@ const Lead = {
         data.contact_name || data.contactName || null, 
         data.contact_phone || data.contactPhone || null,
         data.contact_email || data.contactEmail || null, 
+        data.province || null,
         data.description || null,
         Number(data.revenue) || 0, 
         Number(data.registered_capital || data.registeredCapital) || 0, 
@@ -99,7 +100,7 @@ const Lead = {
     // We prioritize camelCase because the frontend merges old snake_case keys with new camelCase keys.
     const updates = [
       "company_name = ?", "company_number = ?", "contact_name = ?",
-      "contact_phone = ?", "contact_email = ?", "description = ?",
+      "contact_phone = ?", "contact_email = ?", "province = ?", "description = ?",
       "revenue = ?", "registered_capital = ?", "profit = ?",
       "is_starred = ?"
     ];
@@ -110,6 +111,7 @@ const Lead = {
       data.contactName !== undefined ? data.contactName : (data.contact_name || null),
       data.contactPhone !== undefined ? data.contactPhone : (data.contact_phone || null), 
       data.contactEmail !== undefined ? data.contactEmail : (data.contact_email || null), 
+      data.province || null,
       data.description || null,
       parseNum(data.revenue), 
       parseNum(data.registeredCapital !== undefined ? data.registeredCapital : data.registered_capital), 

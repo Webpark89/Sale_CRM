@@ -2,6 +2,7 @@ import axios from "axios";
 
 // กำหนด URL ของ Backend
 // ระหว่างพัฒนา (Dev) ใช้ http://localhost:3001
+export const API_BASE_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace("/api", "") : "http://localhost:3001";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 const api = axios.create({

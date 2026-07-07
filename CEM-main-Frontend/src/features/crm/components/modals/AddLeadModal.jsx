@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import toast from 'react-hot-toast';
 import { STATUSES } from "../../constants/status";
-import { today, formatNumberWithCommas, parseNumberFromCommas, formatPhoneNumber } from "../../crmHelpers/helpers";
+import { today, formatNumberWithCommas, parseNumberFromCommas, formatPhoneNumber, PROVINCES } from "../../crmHelpers/helpers";
 import Btn from "../common/Btn";
 import Field from "../common/Field";
 import Modal from "../common/Modal";
@@ -11,7 +11,7 @@ import { inputStyle, selectStyle } from "../common/styles";
 export default function AddLeadModal({ onClose, onSave, leads = [], currentUser, allSellers, fetchAllSellers }) {
   const [form, setForm] = useState({ 
     companyName: "", companyNumber: "", contactName: "", description: "", contactPhone: "", 
-    contactEmail: "", revenue: "", registeredCapital: "", profit: "", 
+    contactEmail: "", province: "", revenue: "", registeredCapital: "", profit: "", 
     latestStatus: "ฝากโปรไฟล์", latestContactDate: today(), nextFollowupDate: "",
     owner_id: "" // default to empty, backend will use creator if empty
   });
@@ -84,6 +84,12 @@ export default function AddLeadModal({ onClose, onSave, leads = [], currentUser,
         <Field label="รายละเอียด"><input value={form.description} onChange={e => up("description", e.target.value)} style={inputStyle} /></Field>
         <Field label="เบอร์โทร"><input value={formatPhoneNumber(form.contactPhone)} onChange={e => up("contactPhone", formatPhoneNumber(e.target.value))} style={inputStyle} /></Field>
         <Field label="อีเมล"><input value={form.contactEmail} onChange={e => up("contactEmail", e.target.value)} style={inputStyle} /></Field>
+        <Field label="จังหวัด">
+          <select value={form.province} onChange={e => up("province", e.target.value)} style={selectStyle}>
+            <option value="">-- เลือกจังหวัด --</option>
+            {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </Field>
         {canAssign && (
           <Field label="ผู้รับผิดชอบ (เซลส์)">
             <select value={form.owner_id} onChange={e => up("owner_id", e.target.value)} style={selectStyle}>

@@ -44,7 +44,8 @@ export default function EditableCell({ value, onSave, type = "text", options }) 
 
   if (type === "select") {
     return (
-      <select value={val} onChange={e => setVal(e.target.value)} onBlur={commit} autoFocus style={{ ...selectStyle, padding: "2px 6px", fontSize: 13, width: "auto" }}>
+      <select value={val || ""} onChange={e => setVal(e.target.value)} onBlur={commit} autoFocus style={{ ...selectStyle, padding: "2px 6px", fontSize: 13, width: "auto" }}>
+        <option value="">-- เลือก --</option>
         {options.map(o => (
           <option key={o} value={o}>
             {o}

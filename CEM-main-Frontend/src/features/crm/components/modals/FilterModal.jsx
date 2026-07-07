@@ -6,6 +6,17 @@ import Btn from "../common/Btn";
 import { inputStyle } from "../common/styles";
 import { formatNumberWithCommas, parseNumberFromCommas } from "../../crmHelpers/helpers";
 
+const PROVINCES = [
+  "กรุงเทพมหานคร", "กระบี่", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร", "ขอนแก่น", "จันทบุรี", "ฉะเชิงเทรา", "ชลบุรี", "ชัยนาท", 
+  "ชัยภูมิ", "ชุมพร", "เชียงราย", "เชียงใหม่", "ตรัง", "ตราด", "ตาก", "นครนายก", "นครปฐม", "นครพนม", "นครราชสีมา", 
+  "นครศรีธรรมราช", "นครสวรรค์", "นนทบุรี", "นราธิวาส", "น่าน", "บึงกาฬ", "บุรีรัมย์", "ปทุมธานี", "ประจวบคีรีขันธ์", "ปราจีนบุรี", 
+  "ปัตตานี", "พระนครศรีอยุธยา", "พะเยา", "พังงา", "พัทลุง", "พิจิตร", "พิษณุโลก", "เพชรบุรี", "เพชรบูรณ์", "แพร่", "ภูเก็ต", 
+  "มหาสารคาม", "มุกดาหาร", "แม่ฮ่องสอน", "ยโสธร", "ยะลา", "ร้อยเอ็ด", "ระนอง", "ระยอง", "ราชบุรี", "ลพบุรี", "ลำปาง", 
+  "ลำพูน", "เลย", "ศรีสะเกษ", "สกลนคร", "สงขลา", "สตูล", "สมุทรปราการ", "สมุทรสงคราม", "สมุทรสาคร", "สระแก้ว", "สระบุรี", 
+  "สิงห์บุรี", "สุโขทัย", "สุพรรณบุรี", "สุราษฎร์ธานี", "สุรินทร์", "หนองคาย", "หนองบัวลำภู", "อ่างทอง", "อำนาจเจริญ", 
+  "อุดรธานี", "อุตรดิตถ์", "อุทัยธานี", "อุบลราชธานี"
+];
+
 export default function FilterModal({ 
   onClose, 
   filterStatus, 
@@ -13,10 +24,13 @@ export default function FilterModal({
   finFilters, 
   setFinFilters,
   dateFilters,
-  setDateFilters
+  setDateFilters,
+  filterProvince,
+  setFilterProvince
 }) {
   const [localStatus, setLocalStatus] = React.useState([...filterStatus]);
   const [localFin, setLocalFin] = React.useState(finFilters);
+  const [localProvince, setLocalProvince] = React.useState(Array.isArray(filterProvince) ? [...filterProvince] : []);
   const [localDate, setLocalDate] = React.useState(dateFilters || {
     latestContactDate: { min: "", max: "" },
     nextFollowupDate: { min: "", max: "" }
@@ -24,6 +38,10 @@ export default function FilterModal({
 
   const toggleStatus = (s) => {
     setLocalStatus(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+  };
+
+  const toggleProvince = (p) => {
+    setLocalProvince(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
   };
 
   const handleFinChange = (field, type, value) => {
@@ -99,11 +117,13 @@ export default function FilterModal({
     setFilterStatus(localStatus);
     setFinFilters(localFin);
     if (setDateFilters) setDateFilters(localDate);
+    if (setFilterProvince) setFilterProvince(localProvince);
     onClose();
   };
 
   const handleClear = () => {
     setLocalStatus([]);
+    setLocalProvince([]);
     setLocalFin({
       revenue: { min: "", max: "" },
       registeredCapital: { min: "", max: "" },
@@ -192,6 +212,56 @@ export default function FilterModal({
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* Province Filter */}
+        <div>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 12 }}>กรองตามจังหวัด</label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value && !localProvince.includes(e.target.value)) {
+                  setLocalProvince([...localProvince, e.target.value]);
+                }
+              }}
+              style={{ ...inputStyle, width: "100%" }}
+            >
+              <option value="">-- เลือกจังหวัด --</option>
+              {PROVINCES.filter(p => !localProvince.includes(p)).map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+            
+            {localProvince.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+                {localProvince.map(p => (
+                  <div 
+                    key={p} 
+                    style={{ 
+                      background: RG.primary + "15", 
+                      color: RG.primary, 
+                      padding: "4px 10px", 
+                      borderRadius: 12, 
+                      fontSize: 12, 
+                      display: "flex", 
+                      alignItems: "center", 
+                      gap: 6,
+                      fontWeight: 600
+                    }}
+                  >
+                    {p}
+                    <span 
+                      onClick={() => toggleProvince(p)}
+                      style={{ cursor: "pointer", opacity: 0.6 }}
+                    >
+                      ✕
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

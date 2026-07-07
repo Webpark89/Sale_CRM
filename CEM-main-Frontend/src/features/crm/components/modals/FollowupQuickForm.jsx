@@ -8,7 +8,19 @@ import { inputStyle, selectStyle } from "../common/styles";
 
 export default function FollowupQuickForm({ leadId, nextSeq, onSave }) {
   const [f, setF] = useState({ sequence: nextSeq, date: today(), detail: "", status: STATUSES[0], nextFollowupDate: "" });
+  const [pdfFile, setPdfFile] = useState(null);
   const up = (k, v) => setF(x => ({ ...x, [k]: v }));
+
+  const handleSave = () => {
+    const formData = new FormData();
+    formData.append("sequence", f.sequence);
+    formData.append("date", f.date);
+    formData.append("status", f.status);
+    formData.append("detail", f.detail);
+    if (f.nextFollowupDate) formData.append("nextFollowupDate", f.nextFollowupDate);
+    if (pdfFile) formData.append("pdf_file", pdfFile);
+    onSave(leadId, formData);
+  };
 
   return (
     <div>
@@ -19,7 +31,15 @@ export default function FollowupQuickForm({ leadId, nextSeq, onSave }) {
         <Field label="วันที่ติดตามครั้งถัดไป"><input type="date" value={f.nextFollowupDate} onChange={e => up("nextFollowupDate", e.target.value)} style={inputStyle} /></Field>
       </div>
       <Field label="รายละเอียด"><textarea value={f.detail} onChange={e => up("detail", e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></Field>
-      <Btn onClick={() => onSave(leadId, f)}>บันทึก</Btn>
+      <Field label="แนบไฟล์สรุป (PDF) (ถ้ามี)">
+        <input 
+          type="file" 
+          accept="application/pdf" 
+          onChange={e => setPdfFile(e.target.files[0])} 
+          style={{ ...inputStyle, padding: "4px 8px" }} 
+        />
+      </Field>
+      <Btn onClick={handleSave}>บันทึก</Btn>
     </div>
   );
 }
