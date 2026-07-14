@@ -8,6 +8,7 @@ import { toJpeg, toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import { inputStyle } from "../components/common/styles";
 import Modal from "../components/common/Modal";
+import { MapPin, UsersRound } from "lucide-react";
 
 const getPresetRange = (preset) => {
   const d = new Date();
@@ -47,7 +48,7 @@ const Tip = ({ active, payload, label }) => {
   if (!active||!payload?.length) return null;
   return React.createElement('div',{style:{background:'rgba(2,52,54,0.95)',borderRadius:12,padding:'10px 16px',boxShadow:'0 8px 24px rgba(0,0,0,0.25)'}},
     React.createElement('p',{style:{color:'#9CEAEF',fontSize:12,margin:'0 0 6px',fontFamily:RG.fontHeading}},label),
-    payload.map((p,i)=>React.createElement('p',{key:i,style:{color:'#fff',fontSize:13,margin:'2px 0'}},
+    payload.map((p,i)=>React.createElement('p',{key:i,style:{color:RG.surface,fontSize:13,margin:'2px 0'}},
       React.createElement('span',{style:{display:'inline-block',width:10,height:10,borderRadius:'50%',background:p.color,marginRight:6}}),
       p.name+': ',React.createElement('strong',null,p.value)
     ))
@@ -142,9 +143,9 @@ export default function Dashboard({ leads, followups, currentUser }) {
     setIsExporting(true); await new Promise(r=>setTimeout(r,200));
     try {
       const fn='dashboard-'+(dr.min||'all')+'-'+new Date().toISOString().slice(0,10);
-      if(fmt==='png'){const u=await toPng(exportRef.current,{quality:1,backgroundColor:'#fff',pixelRatio:2});const a=document.createElement('a');a.href=u;a.download=fn+'.png';a.click();}
+      if(fmt==='png'){const u=await toPng(exportRef.current,{quality:1,backgroundColor:RG.surface,pixelRatio:2});const a=document.createElement('a');a.href=u;a.download=fn+'.png';a.click();}
       else if(fmt==='pdf'){
-        const u=await toJpeg(exportRef.current,{quality:0.8,backgroundColor:'#fff',pixelRatio:1.5});
+        const u=await toJpeg(exportRef.current,{quality:0.8,backgroundColor:RG.surface,pixelRatio:1.5});
         const pdf=new jsPDF('p','mm','a4');const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
         const ip=pdf.getImageProperties(u);const ratio=ip.width/ip.height;
         let fw=pw,fh=fw/ratio; if(fh>ph){fh=ph;fw=fh*ratio;}
@@ -160,7 +161,7 @@ export default function Dashboard({ leads, followups, currentUser }) {
   return React.createElement(React.Fragment,null,
     React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:28,flexWrap:'wrap',gap:12}},
       React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}},
-        React.createElement('button',{onClick:()=>setShowModal(true),style:{display:'flex',alignItems:'center',gap:8,padding:'9px 20px',borderRadius:50,border:'1.5px solid '+RG.primary,background:'#fff',color:RG.primary,cursor:'pointer',fontWeight:600,fontSize:13,fontFamily:RG.fontHeading,boxShadow:'0 2px 8px rgba(3,181,170,0.15)',whiteSpace:'nowrap'}},
+        React.createElement('button',{onClick:()=>setShowModal(true),style:{display:'flex',alignItems:'center',gap:8,padding:'9px 20px',borderRadius:50,border:'1.5px solid '+RG.primary,background:RG.surface,color:RG.primary,cursor:'pointer',fontWeight:600,fontSize:13,fontFamily:RG.fontHeading,boxShadow:'0 2px 8px rgba(3,181,170,0.15)',whiteSpace:'nowrap'}},
           React.createElement('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:'2.5'},
             React.createElement('rect',{x:3,y:4,width:18,height:18,rx:2}),
             React.createElement('line',{x1:16,y1:2,x2:16,y2:6}),React.createElement('line',{x1:8,y1:2,x2:8,y2:6}),React.createElement('line',{x1:3,y1:10,x2:21,y2:10})
@@ -171,11 +172,14 @@ export default function Dashboard({ leads, followups, currentUser }) {
       ),
       React.createElement('div',{style:{display:'flex',gap:10,alignItems:'center'}},
         React.createElement('div',{style:{position:'relative'}},
-          React.createElement('div',{onClick:()=>setProvinceOpen(!provinceOpen),style:{...inputStyle,width:'180px',cursor:'pointer',backgroundColor:filterProvince.length>0?'#F0FDF4':'#fff',display:'flex',justifyContent:'space-between',alignItems:'center',border:filterProvince.length>0?`1px solid ${RG.primaryLight}`:'1px solid '+RG.border,borderRadius:50,paddingLeft:14,paddingRight:10}},
-            React.createElement('span',{style:{color:filterProvince.length>0?RG.primaryMid:RG.text,fontSize:13,fontFamily:RG.fontHeading}},filterProvince.length===0?'📍 ทุกจังหวัด':'📍 '+filterProvince.length+' จังหวัด'),
+          React.createElement('div',{onClick:()=>setProvinceOpen(!provinceOpen),style:{...inputStyle,width:'180px',cursor:'pointer',backgroundColor:filterProvince.length>0?'#F0FDF4':RG.surface,display:'flex',justifyContent:'space-between',alignItems:'center',border:filterProvince.length>0?`1px solid ${RG.primaryLight}`:'1px solid '+RG.border,borderRadius:50,paddingLeft:14,paddingRight:10}},
+            React.createElement('span',{style:{color:filterProvince.length>0?RG.primaryMid:RG.text,fontSize:13,fontFamily:RG.fontHeading,display:'flex',alignItems:'center',gap:6}},
+              React.createElement(MapPin,{size:14}),
+              filterProvince.length===0?'แสดงทุกจังหวัด':`เลือกแล้ว ${filterProvince.length} จังหวัด`
+            ),
             React.createElement('span',{style:{fontSize:10}},'▼')
           ),
-          provinceOpen&&React.createElement('div',{style:{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1px solid '+RG.border,borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',zIndex:50,padding:'8px 0',marginTop:8,maxHeight:250,overflowY:'auto'}},
+          provinceOpen&&React.createElement('div',{style:{position:'absolute',top:'100%',left:0,right:0,background:RG.surface,border:'1px solid '+RG.border,borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',zIndex:50,padding:'8px 0',marginTop:8,maxHeight:250,overflowY:'auto'}},
             React.createElement('label',{style:{display:'flex',alignItems:'center',padding:'8px 16px',cursor:'pointer',fontSize:13,borderBottom:'1px solid #eee'}},
               React.createElement('input',{type:'checkbox',checked:filterProvince.length===0,onChange:()=>setFilterProvince([]),style:{marginRight:8}}),'แสดงทุกจังหวัด'
             ),
@@ -185,11 +189,14 @@ export default function Dashboard({ leads, followups, currentUser }) {
           )
         ),
         (canViewAll||canViewSelect)&&React.createElement('div',{style:{position:'relative'}},
-          React.createElement('div',{onClick:()=>setSellerOpen(!sellerOpen),style:{...inputStyle,width:'180px',cursor:'pointer',backgroundColor:filterSellers.length>0?'#F0FDF4':'#fff',display:'flex',justifyContent:'space-between',alignItems:'center',border:filterSellers.length>0?`1px solid ${RG.primaryLight}`:'1px solid '+RG.border,borderRadius:50,paddingLeft:14,paddingRight:10}},
-            React.createElement('span',{style:{color:filterSellers.length>0?RG.primaryMid:RG.text,fontSize:13,fontFamily:RG.fontHeading}},filterSellers.length===0?'👥 ทุกเซลส์':'👥 '+filterSellers.length+' เซลส์'),
+          React.createElement('div',{onClick:()=>setSellerOpen(!sellerOpen),style:{...inputStyle,width:'180px',cursor:'pointer',backgroundColor:filterSellers.length>0?'#F0FDF4':RG.surface,display:'flex',justifyContent:'space-between',alignItems:'center',border:filterSellers.length>0?`1px solid ${RG.primaryLight}`:'1px solid '+RG.border,borderRadius:50,paddingLeft:14,paddingRight:10}},
+            React.createElement('span',{style:{color:filterSellers.length>0?RG.primaryMid:RG.text,fontSize:13,fontFamily:RG.fontHeading,display:'flex',alignItems:'center',gap:6}},
+              React.createElement(UsersRound,{size:14}),
+              filterSellers.length===0?'แสดงทุกเซลส์':`เลือกแล้ว ${filterSellers.length} เซลส์`
+            ),
             React.createElement('span',{style:{fontSize:10}},'▼')
           ),
-          sellerOpen&&React.createElement('div',{style:{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1px solid '+RG.border,borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',zIndex:50,padding:'8px 0',marginTop:8,maxHeight:250,overflowY:'auto'}},
+          sellerOpen&&React.createElement('div',{style:{position:'absolute',top:'100%',left:0,right:0,background:RG.surface,border:'1px solid '+RG.border,borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',zIndex:50,padding:'8px 0',marginTop:8,maxHeight:250,overflowY:'auto'}},
             React.createElement('label',{style:{display:'flex',alignItems:'center',padding:'8px 16px',cursor:'pointer',fontSize:13,borderBottom:'1px solid #eee'}},
               React.createElement('input',{type:'checkbox',checked:filterSellers.length===0,onChange:()=>setFilterSellers([]),style:{marginRight:8}}),'แสดงทุกเซลส์'
             ),
@@ -198,24 +205,24 @@ export default function Dashboard({ leads, followups, currentUser }) {
             ))
           )
         ),
-        canExport&&React.createElement('select',{onChange:doExport,disabled:isExporting,value:'',style:{padding:'0 18px',borderRadius:50,border:'1.5px solid '+RG.primary,backgroundColor:RG.primary,color:'#fff',cursor:isExporting?'not-allowed':'pointer',fontSize:13,fontWeight:600,height:38,outline:'none',fontFamily:RG.fontHeading,boxShadow:'0 2px 8px rgba(3,181,170,0.3)'}},
-          React.createElement('option',{value:'',disabled:true},isExporting?'กำลังเซฟ...':'⬇ Export'),
+        canExport&&React.createElement('select',{onChange:doExport,disabled:isExporting,value:'',style:{padding:'0 18px',borderRadius:50,border:'1.5px solid '+RG.primary,backgroundColor:RG.primary,color:RG.surface,cursor:isExporting?'not-allowed':'pointer',fontSize:13,fontWeight:600,height:38,outline:'none',fontFamily:RG.fontHeading,boxShadow:'0 2px 8px rgba(3,181,170,0.3)'}},
+          React.createElement('option',{value:'',disabled:true},isExporting?'กำลังเซฟ...':'Export Reports'),
           React.createElement('optgroup',{label:'เฉพาะหน้าปัจจุบัน'},React.createElement('option',{value:'current_png'},'PNG Image'),React.createElement('option',{value:'current_pdf'},'PDF (Print)')),
           canExportAll&&React.createElement('optgroup',{label:'ทั้งหมด'},React.createElement('option',{value:'all_png'},'PNG Image'),React.createElement('option',{value:'all_pdf'},'PDF (Print All)'))
         )
       )
     ),
 
-    React.createElement('div',{ref:exportRef,style:{padding:isExporting?'40px 15px':'4px',background:isExporting?'#fff':'transparent',fontFamily:isExporting?'Sarabun,sans-serif':'inherit',width:isExporting?'1100px':'100%',boxSizing:'border-box',margin:0}},
+    React.createElement('div',{ref:exportRef,style:{padding:isExporting?'40px 15px':'4px',background:isExporting?RG.surface:'transparent',fontFamily:isExporting?'Sarabun,sans-serif':'inherit',width:isExporting?'1100px':'100%',boxSizing:'border-box',margin:0}},
 
       isExporting&&React.createElement('div',{style:{marginBottom:40,paddingBottom:24,borderBottom:'2px solid '+RG.border,display:'flex',justifyContent:'space-between',alignItems:'flex-end'}},
         React.createElement('div',null,React.createElement('div',{style:{fontSize:28,fontWeight:700,color:RG.text,marginBottom:8}},'รายงานสรุปภาพรวมการขาย'),React.createElement('div',{style:{fontSize:16,color:RG.textMuted}},'ช่วงเวลา: ',React.createElement('span',{style:{fontWeight:600,color:RG.primaryMid}},getLabel(dr)))),
         React.createElement('div',{style:{textAlign:'right'}},React.createElement('div',{style:{fontSize:20,fontWeight:700,color:RG.primaryMid}},'Sales_CRM'),React.createElement('div',{style:{fontSize:12,color:RG.textMuted,marginTop:8}},'ข้อมูล ณ '+new Date().toLocaleDateString('th-TH',{day:'2-digit',month:'short',year:'numeric'})+' เวลา '+new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})))
       ),
 
-      React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(8, 1fr)',gap:12,marginBottom:32}},
+      React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(120px, 1fr))',gap:12,marginBottom:32}},
         kpis.map(k=>React.createElement('div',{key:k.label,
-          style:{background:'#fff',borderRadius:12,padding:'12px 10px 10px',boxShadow:'0 2px 8px rgba(0,0,0,0.06)',position:'relative',overflow:'hidden',transition:'transform 0.25s,box-shadow 0.25s',cursor:'pointer',border:`1px solid #f1f5f9`, borderTop:`4px solid ${k.c}`},
+          style:{background:RG.surface,borderRadius:12,padding:'12px 10px 10px',boxShadow:'0 2px 8px rgba(0,0,0,0.06)',position:'relative',overflow:'hidden',transition:'transform 0.25s,box-shadow 0.25s',cursor:'pointer',border:`1px solid #f1f5f9`, borderTop:`4px solid ${k.c}`},
           onMouseOver:(e)=>{if(!isExporting){e.currentTarget.style.transform='translateY(-4px)';e.currentTarget.style.boxShadow='0 8px 16px rgba(0,0,0,0.1)';}},
           onMouseOut:(e)=>{if(!isExporting){e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)';}},
         },
@@ -244,7 +251,7 @@ export default function Dashboard({ leads, followups, currentUser }) {
                     pie.map(e=>React.createElement(Cell,{key:e.name,fill:STATUS_COLORS[e.name]||'#ccc',stroke:'none'}))
                   ),
                   React.createElement(Tooltip,{content:({active,payload})=>{
-                    if(active&&payload?.length){const d=payload[0];const pct=Math.round((d.value/total)*100);return React.createElement('div',{style:{background:'rgba(2,52,54,0.95)',borderRadius:10,padding:'10px 16px'}},React.createElement('p',{style:{color:'#9CEAEF',fontSize:12,margin:'0 0 4px',fontFamily:RG.fontHeading}},d.name),React.createElement('p',{style:{color:'#fff',fontSize:16,fontWeight:700,margin:0}},d.value+' ลีด ('+pct+'%)'));}return null;
+                    if(active&&payload?.length){const d=payload[0];const pct=Math.round((d.value/total)*100);return React.createElement('div',{style:{background:'rgba(2,52,54,0.95)',borderRadius:10,padding:'10px 16px'}},React.createElement('p',{style:{color:'#9CEAEF',fontSize:12,margin:'0 0 4px',fontFamily:RG.fontHeading}},d.name),React.createElement('p',{style:{color:RG.surface,fontSize:16,fontWeight:700,margin:0}},d.value+' ลีด ('+pct+'%)'));}return null;
                   }}),
                   React.createElement('text',{x:'50%',y:'43%',textAnchor:'middle',dominantBaseline:'middle',style:{fontSize:32,fontWeight:800,fill:RG.text,fontFamily:RG.fontHeading}},total),
                   React.createElement('text',{x:'50%',y:'57%',textAnchor:'middle',dominantBaseline:'middle',style:{fontSize:11,fill:RG.textMuted,fontFamily:RG.fontBody}},'ลีดทั้งหมด')
@@ -279,8 +286,8 @@ export default function Dashboard({ leads, followups, currentUser }) {
                 React.createElement(XAxis,{dataKey:'name',tick:{fontSize:12,fill:RG.textMuted},axisLine:false,tickLine:false}),
                 React.createElement(YAxis,{tick:{fontSize:12,fill:RG.textMuted},axisLine:false,tickLine:false}),
                 React.createElement(Tooltip,{content:React.createElement(Tip,null)}),
-                React.createElement(Area,{type:'monotone',dataKey:'ติดตาม',stroke:RG.primary,strokeWidth:2.5,fill:'url(#gT)',dot:{r:5,fill:RG.primary,strokeWidth:2,stroke:'#fff'},activeDot:{r:7},isAnimationActive:!isExporting}),
-                React.createElement(Area,{type:'monotone',dataKey:'ปิดการขาย',stroke:RG.success,strokeWidth:2.5,fill:'url(#gP)',dot:{r:5,fill:RG.success,strokeWidth:2,stroke:'#fff'},activeDot:{r:7},isAnimationActive:!isExporting})
+                React.createElement(Area,{type:'monotone',dataKey:'ติดตาม',stroke:RG.primary,strokeWidth:2.5,fill:'url(#gT)',dot:{r:5,fill:RG.primary,strokeWidth:2,stroke:RG.surface},activeDot:{r:7},isAnimationActive:!isExporting}),
+                React.createElement(Area,{type:'monotone',dataKey:'ปิดการขาย',stroke:RG.success,strokeWidth:2.5,fill:'url(#gP)',dot:{r:5,fill:RG.success,strokeWidth:2,stroke:RG.surface},activeDot:{r:7},isAnimationActive:!isExporting})
               )
             )
         )
@@ -307,17 +314,17 @@ export default function Dashboard({ leads, followups, currentUser }) {
           )
       ),
 
-      isExporting&&React.createElement('div',{style:{marginTop:50,borderTop:'2px solid #e2e8f0',paddingTop:20,display:'flex',justifyContent:'space-between',color:'#64748b',fontSize:13}},
+      isExporting&&React.createElement('div',{style:{marginTop:50,borderTop:'2px solid #e2e8f0',paddingTop:20,display:'flex',justifyContent:'space-between',color:RG.textMuted,fontSize:13}},
         React.createElement('div',null,'© 2026 Sales_CRM System. All rights reserved.'),
         React.createElement('div',null,'รายงานสำหรับใช้ภายในองค์กรเท่านั้น (Internal Use Only)')
       )
     ),
 
     showModal&&React.createElement(Modal,{title:'กรองข้อมูลตามช่วงเวลา',onClose:()=>setShowModal(false),width:450},
-      React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:16}},
-        React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12}},
-          React.createElement('div',{style:{width:120,fontSize:13,color:RG.textMuted}},'ติดต่อล่าสุด:'),
-          React.createElement('select',{value:dr.type||'all',onChange:(e)=>setDr({...getPresetRange(e.target.value),type:e.target.value}),style:{...inputStyle,flex:1}},
+      React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:16,padding:'8px 4px'}},
+        React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:6}},
+          React.createElement('label',{style:{fontSize:13,fontWeight:600,color:RG.text}},'ช่วงเวลาที่ต้องการกรอง:'),
+          React.createElement('select',{value:dr.type||'all',onChange:(e)=>setDr({...getPresetRange(e.target.value),type:e.target.value}),style:{...inputStyle,width:'100%',padding:'10px 12px'}},
             React.createElement('option',{value:'today'},'วันนี้'),
             React.createElement('option',{value:'thismonth'},'เดือนนี้'),
             React.createElement('option',{value:'lastmonth'},'เดือนที่แล้ว'),
@@ -326,17 +333,23 @@ export default function Dashboard({ leads, followups, currentUser }) {
             React.createElement('option',{value:'last6months'},'6 เดือนล่าสุด (ค่าเริ่มต้น)'),
             React.createElement('option',{value:'thisyear'},'ปีนี้'),
             React.createElement('option',{value:'all'},'ทั้งหมด (ไม่กรอง)'),
-            React.createElement('option',{value:'custom'},'กำหนดช่วงเวลาแทน (สูงสุด 1 ปี)')
+            React.createElement('option',{value:'custom'},'กำหนดช่วงเวลาเอง (ไม่เกิน 1 ปี)')
           )
         ),
-        dr.type==='custom'&&React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12,paddingLeft:132}},
-          React.createElement('input',{type:'date',value:dr.min||'',onChange:e=>{const next={...dr,min:e.target.value,type:'custom'};if(chkYear(next.min,next.max))setDr(next);},style:{...inputStyle,flex:1}}),
-          React.createElement('span',{style:{color:RG.textMuted}},'-'),
-          React.createElement('input',{type:'date',value:dr.max||'',onChange:e=>{const next={...dr,max:e.target.value,type:'custom'};if(chkYear(next.min,next.max))setDr(next);},style:{...inputStyle,flex:1}})
+        dr.type==='custom'&&React.createElement('div',{style:{display:'flex',gap:12,alignItems:'center',background:RG.background,padding:'12px',borderRadius:'8px',border:'1px solid '+RG.border}},
+          React.createElement('div',{style:{flex:1,display:'flex',flexDirection:'column',gap:4}},
+            React.createElement('span',{style:{fontSize:11,color:RG.textMuted,fontWeight:600}},'เริ่มต้น:'),
+            React.createElement('input',{type:'date',value:dr.min||'',onChange:e=>{const next={...dr,min:e.target.value,type:'custom'};if(chkYear(next.min,next.max))setDr(next);},style:{...inputStyle,width:'100%'}})
+          ),
+          React.createElement('span',{style:{color:RG.textMuted,marginTop:16}},'ถึง'),
+          React.createElement('div',{style:{flex:1,display:'flex',flexDirection:'column',gap:4}},
+            React.createElement('span',{style:{fontSize:11,color:RG.textMuted,fontWeight:600}},'สิ้นสุด:'),
+            React.createElement('input',{type:'date',value:dr.max||'',onChange:e=>{const next={...dr,max:e.target.value,type:'custom'};if(chkYear(next.min,next.max))setDr(next);},style:{...inputStyle,width:'100%'}})
+          )
         ),
-        React.createElement('div',{style:{display:'flex',justifyContent:'space-between',marginTop:12}},
-          React.createElement('button',{onClick:()=>setDr({...getPresetRange('last6months'),type:'last6months'}),style:{padding:'8px 16px',borderRadius:8,border:'1px solid '+RG.border,background:'#f5e6ea',color:RG.primary,cursor:'pointer',fontWeight:600,fontSize:13}},'กลับเป็นค่าเริ่มต้น'),
-          React.createElement('button',{onClick:()=>setShowModal(false),style:{padding:'8px 24px',borderRadius:8,border:'none',background:RG.gradient,color:'#fff',cursor:'pointer',fontWeight:600,fontSize:13}},'ตกลง')
+        React.createElement('div',{style:{display:'flex',justifyContent:'space-between',marginTop:16,paddingTop:12,borderTop:'1px solid '+RG.border}},
+          React.createElement('button',{onClick:()=>setDr({...getPresetRange('last6months'),type:'last6months'}),style:{padding:'8px 16px',borderRadius:8,border:'1px solid '+RG.border,background:RG.surface,color:RG.textMuted,cursor:'pointer',fontWeight:600,fontSize:13}},'รีเซ็ตเป็นค่าเริ่มต้น'),
+          React.createElement('button',{onClick:()=>setShowModal(false),style:{padding:'8px 24px',borderRadius:8,border:'none',background:RG.gradient,color:RG.surface,cursor:'pointer',fontWeight:600,fontSize:13}},'ตกลง')
         )
       )
     )

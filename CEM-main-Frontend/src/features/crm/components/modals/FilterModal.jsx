@@ -199,7 +199,7 @@ export default function FilterModal({
                     padding: "6px 12px", 
                     borderRadius: 20, 
                     border: `1.5px solid ${isActive ? STATUS_COLORS[s] : RG.border}`, 
-                    background: isActive ? STATUS_COLORS[s] + "22" : "#fff", 
+                    background: isActive ? STATUS_COLORS[s] + "22" : RG.surface, 
                     color: isActive ? STATUS_COLORS[s] : RG.textMuted, 
                     fontSize: 13, 
                     cursor: "pointer", 

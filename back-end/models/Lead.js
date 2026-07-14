@@ -67,7 +67,7 @@ const Lead = {
   },
 
   create: async (data) => {
-    const isAcknowledged = data.assigned_by ? 0 : 1;
+    const isAcknowledged = 0;
     const [result] = await db.execute(
       `INSERT INTO leads
         (owner_id, created_by, assigned_by, previous_owner_id, is_acknowledged, company_name, company_number, contact_name, contact_phone,

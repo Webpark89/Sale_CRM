@@ -1,5 +1,6 @@
 import React from "react";
 import { RG } from "../../constants/theme";
+import { Calendar, Bell, LogOut, UserRound } from "lucide-react";
 
 export default function TopHeader({ 
   undo, 
@@ -27,17 +28,17 @@ export default function TopHeader({
         
         <div style={{ display: "flex", gap: 12, background: RG.surface, padding: "6px 12px", borderRadius: 20, boxShadow: RG.shadowSoft, border: `1px solid ${RG.border}` }}>
           <button onClick={() => openNotifTab(1)} style={{ background: "transparent", border: "none", color: RG.textMuted, cursor: "pointer", fontSize: 20, position: "relative", padding: "4px" }} title="การติดตาม">
-            📅 {dueTodayCount > 0 && <span style={{ position: "absolute", top: -2, right: -4, background: RG.primary, color: "#fff", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, border: "2px solid #fff" }}>{dueTodayCount}</span>}
+            <Calendar size={22} strokeWidth={2.5} /> {dueTodayCount > 0 && <span style={{ position: "absolute", top: -2, right: -4, background: RG.primary, color: "#fff", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, border: "2px solid #fff" }}>{dueTodayCount}</span>}
           </button>
           <div style={{ width: 1, background: RG.border, height: 24, alignSelf: "center" }}></div>
           <button onClick={() => openNotifTab(2)} style={{ background: "transparent", border: "none", color: RG.textMuted, cursor: "pointer", fontSize: 20, position: "relative", padding: "4px" }} title="ลีดใหม่ & โอนย้าย">
-            🔔 {generalCount > 0 && <span style={{ position: "absolute", top: -2, right: -4, background: "#8b5cf6", color: "#fff", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, border: "2px solid #fff" }}>{generalCount}</span>}
+            <Bell size={22} strokeWidth={2.5} /> {generalCount > 0 && <span style={{ position: "absolute", top: -2, right: -4, background: "#8b5cf6", color: "#fff", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, border: "2px solid #fff" }}>{generalCount}</span>}
           </button>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, background: RG.surface, padding: "8px 16px 8px 8px", borderRadius: 24, boxShadow: RG.shadowSoft, border: `1px solid ${RG.border}` }}>
-          <div style={{ width: 36, height: 36, borderRadius: "50%", background: RG.primary, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700 }}>
-            {currentUser?.username?.substring(0, 2).toUpperCase() || "AD"}
+          <div style={{ width: 36, height: 36, borderRadius: "50%", background: RG.primaryGhost, color: RG.primary, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <UserRound size={20} strokeWidth={2.5} />
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
             <span style={{ color: RG.text, fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>{currentUser?.username || "admin"}</span>
@@ -45,7 +46,9 @@ export default function TopHeader({
               {{ admin: "ผู้ดูแลระบบ", header_saler: "หัวหน้าเซลส์", saler: "เซลส์" }[currentUser?.role] || "USER"}
             </span>
           </div>
-          <button onClick={() => { localStorage.removeItem("crm_session"); setAuthenticated(false); }} title="ออกจากระบบ" style={{ background: "transparent", border: "none", color: RG.primary, cursor: "pointer", fontSize: 20, padding: "4px", marginLeft: 8 }}>🚪</button>
+          <button onClick={() => { localStorage.removeItem("crm_session"); setAuthenticated(false); }} title="ออกจากระบบ" style={{ background: "transparent", border: "none", color: RG.danger, cursor: "pointer", display: "flex", alignItems: "center", padding: "4px", marginLeft: 8 }}>
+            <LogOut size={20} strokeWidth={2.5} />
+          </button>
         </div>
       </div>
     </div>

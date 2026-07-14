@@ -9,6 +9,7 @@ import StatusBadge from "../components/common/StatusBadge";
 import { inputStyle } from "../components/common/styles";
 import Modal from "../components/common/Modal";
 import { fetchAllLeadsMaster } from "../services/apiService";
+import { MapPin, UsersRound, Calendar, Download } from "lucide-react";
 
 const getPresetRange = (preset) => {
   const d = new Date();
@@ -353,7 +354,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
           <div style={{ color: "#b45309", fontWeight: 600, fontSize: 14 }}>
             ⚠️ โหมดรายงานรวม (All Leads Report) - แสดงข้อมูลลูกค้าของพนักงานทุกคนในระบบ
           </div>
-          <button onClick={onExitMaster} style={{ background: "#f59e0b", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+          <button onClick={onExitMaster} style={{ background: RG.warn, color: RG.surface, border: "none", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
             ปิดโหมดรายงานรวม
           </button>
         </div>
@@ -362,7 +363,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
           <button 
             onClick={() => { setMode("all"); setReportDateRange({ ...getPresetRange("last6months"), type: "last6months" }); }} 
-            style={{ padding: "8px 20px", borderRadius: 8, border: `2px solid ${mode === "all" ? RG.primary : RG.border}`, background: mode === "all" ? RG.gradient : "#fff", color: mode === "all" ? "#fff" : RG.textMuted, cursor: "pointer", fontWeight: 600, fontSize: 13, transition: "all 0.2s" }}
+            style={{ padding: "8px 20px", borderRadius: 8, border: `2px solid ${mode === "all" ? RG.primary : RG.border}`, background: mode === "all" ? RG.gradient : RG.surface, color: mode === "all" ? RG.surface : RG.textMuted, cursor: "pointer", fontWeight: 600, fontSize: 13, transition: "all 0.2s" }}
           >
             ทั้งหมด
           </button>
@@ -370,14 +371,14 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
           <div style={{ position: "relative" }}>
             <div 
               onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-              style={{ ...inputStyle, width: "160px", cursor: "pointer", backgroundColor: filterStatuses.length > 0 ? "#f0f8ff" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+              style={{ ...inputStyle, width: "160px", cursor: "pointer", backgroundColor: filterStatuses.length > 0 ? "#f0f8ff" : RG.surface, display: "flex", justifyContent: "space-between", alignItems: "center" }}
             >
               <span>{filterStatuses.length === 0 ? "แสดงทุกสถานะ" : `เลือกแล้ว ${filterStatuses.length} สถานะ`}</span>
               <span style={{ fontSize: 10 }}>▼</span>
             </div>
             {isStatusDropdownOpen && (
-              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 10, padding: "8px 0", marginTop: "4px" }}>
-                <label style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13, borderBottom: "1px solid #eee" }}>
+              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: RG.surface, border: `1px solid ${RG.border}`, borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 10, padding: "8px 0", marginTop: "4px" }}>
+                <label style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13, borderBottom: `1px solid ${RG.border}` }}>
                   <input type="checkbox" checked={filterStatuses.length === 0} onChange={() => handleToggleStatus("all")} style={{ marginRight: 8 }} />
                   แสดงทุกสถานะ
                 </label>
@@ -394,22 +395,11 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
           <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
             <button 
               onClick={() => setShowDateModal(true)} 
-              style={{ 
-                padding: "8px 16px", 
-                borderRadius: 8, 
-                border: `2px solid ${RG.primary}`, 
-                background: "#fff", 
-                color: RG.primary, 
-                cursor: "pointer", 
-                fontWeight: 600, 
-                fontSize: 13, 
-                transition: "all 0.2s",
-                whiteSpace: "nowrap"
-              }}
+              style={{ ...inputStyle, width: "auto", cursor: "pointer", backgroundColor: RG.surface, display: "flex", alignItems: "center", gap: 6, border: `1px solid ${RG.border}`, borderRadius: "6px", fontWeight: 600 }}
             >
-              📅 เลือกช่วงเวลา
+              <Calendar size={15} /> เลือกช่วงเวลา
             </button>
-            <div style={{ fontSize: 14, color: RG.textMuted, background: "#f8fafc", padding: "6px 12px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+            <div style={{ fontSize: 14, color: RG.textMuted, background: RG.background, padding: "6px 12px", borderRadius: "6px", border: `1px solid ${RG.border}` }}>
               แสดงข้อมูล: <span style={{ fontWeight: 600, color: RG.primaryMid }}>{getDateRangeLabel(reportDateRange)}</span>
             </div>
           </div>
@@ -420,16 +410,17 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
           <div style={{ position: "relative" }}>
             <div 
               onClick={() => setIsProvinceDropdownOpen(!isProvinceDropdownOpen)}
-              style={{ ...inputStyle, width: "180px", cursor: "pointer", backgroundColor: filterProvince.length > 0 ? "#F0FDF4" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", border: filterProvince.length > 0 ? `1px solid ${RG.primaryLight}` : `1px solid ${RG.border}` }}
+              style={{ ...inputStyle, width: "180px", cursor: "pointer", backgroundColor: filterProvince.length > 0 ? "#F0FDF4" : RG.surface, display: "flex", justifyContent: "space-between", alignItems: "center", border: filterProvince.length > 0 ? `1px solid ${RG.primaryLight}` : `1px solid ${RG.border}` }}
             >
-              <span style={{ color: filterProvince.length > 0 ? RG.primaryMid : RG.text }}>
-                {filterProvince.length === 0 ? "📍 แสดงทุกจังหวัด" : `📍 เลือกแล้ว ${filterProvince.length} จังหวัด`}
+              <span style={{ color: filterProvince.length > 0 ? RG.primaryMid : RG.text, display: "flex", alignItems: "center", gap: 6 }}>
+                <MapPin size={14} />
+                {filterProvince.length === 0 ? "แสดงทุกจังหวัด" : `เลือกแล้ว ${filterProvince.length} จังหวัด`}
               </span>
               <span style={{ fontSize: 10 }}>▼</span>
             </div>
             {isProvinceDropdownOpen && (
-              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 50, padding: "8px 0", marginTop: "4px", maxHeight: "250px", overflowY: "auto" }}>
-                <label style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13, borderBottom: "1px solid #eee" }}>
+              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: RG.surface, border: `1px solid ${RG.border}`, borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 50, padding: "8px 0", marginTop: "4px", maxHeight: "250px", overflowY: "auto" }}>
+                <label style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13, borderBottom: `1px solid ${RG.border}` }}>
                   <input type="checkbox" checked={filterProvince.length === 0} onChange={() => setFilterProvince([])} style={{ marginRight: 8 }} />
                   แสดงทุกจังหวัด
                 </label>
@@ -457,16 +448,17 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
             <div style={{ position: "relative" }}>
               <div 
                 onClick={() => setIsSellerDropdownOpen(!isSellerDropdownOpen)}
-                style={{ ...inputStyle, width: "180px", cursor: "pointer", backgroundColor: filterSellers.length > 0 ? "#F0FDF4" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", border: filterSellers.length > 0 ? `1px solid ${RG.primaryLight}` : `1px solid ${RG.border}` }}
+                style={{ ...inputStyle, width: "180px", cursor: "pointer", backgroundColor: filterSellers.length > 0 ? "#F0FDF4" : RG.surface, display: "flex", justifyContent: "space-between", alignItems: "center", border: filterSellers.length > 0 ? `1px solid ${RG.primaryLight}` : `1px solid ${RG.border}` }}
               >
-                <span style={{ color: filterSellers.length > 0 ? RG.primaryMid : RG.text }}>
-                  {filterSellers.length === 0 ? "👥 แสดงทุกเซลส์" : `👥 เลือกแล้ว ${filterSellers.length} เซลส์`}
+                <span style={{ color: filterSellers.length > 0 ? RG.primaryMid : RG.text, display: "flex", alignItems: "center", gap: 6 }}>
+                  <UsersRound size={14} />
+                  {filterSellers.length === 0 ? "แสดงทุกเซลส์" : `เลือกแล้ว ${filterSellers.length} เซลส์`}
                 </span>
                 <span style={{ fontSize: 10 }}>▼</span>
               </div>
               {isSellerDropdownOpen && (
-                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 50, padding: "8px 0", marginTop: "4px", maxHeight: "250px", overflowY: "auto" }}>
-                  <label style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13, borderBottom: "1px solid #eee" }}>
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: RG.surface, border: `1px solid ${RG.border}`, borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 50, padding: "8px 0", marginTop: "4px", maxHeight: "250px", overflowY: "auto" }}>
+                  <label style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13, borderBottom: `1px solid ${RG.border}` }}>
                     <input type="checkbox" checked={filterSellers.length === 0} onChange={() => setFilterSellers([])} style={{ marginRight: 8 }} />
                     แสดงทุกเซลส์
                   </label>
@@ -499,7 +491,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
                 padding: "0 14px",
                 borderRadius: "8px",
                 border: `1px solid ${RG.primary}`,
-                backgroundColor: "#ffffff",
+                backgroundColor: RG.surface,
                 color: RG.primary,
                 cursor: "pointer",
                 fontSize: "13px",
@@ -510,7 +502,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
                 boxSizing: "border-box"
               }}
             >
-              <option value="" disabled>⬇ Export Reports</option>
+              <option value="" disabled>Export Reports</option>
               <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)">
                 <option value="current_csv">.CSV (Excel)</option>
                 <option value="current_pdf">.PDF (Print)</option>
@@ -527,12 +519,12 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
       </div>
 
       {/* Cards สรุปตัวเลขสำหรับหน้าจอหลัก */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 8, marginBottom: 32 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8, marginBottom: 32 }}>
         
         {/* การ์ด: โทรทั้งหมด */}
         <div 
           onClick={() => handleToggleStatus("all")} 
-          style={{ background: "#fff", opacity: filterStatuses.length === 0 ? 1 : 0.4, borderRadius: 12, padding: "12px 10px 10px", position: "relative", overflow: "hidden", border: `1px solid #f1f5f9`, borderTop: `4px solid ${RG.primary}`, boxShadow: filterStatuses.length === 0 ? "0 4px 12px rgba(0,0,0,0.1)" : "0 2px 8px rgba(0,0,0,0.06)", cursor: "pointer", transition: "all 0.25s" }}
+          style={{ background: RG.surface, opacity: filterStatuses.length === 0 ? 1 : 0.4, borderRadius: 12, padding: "12px 10px 10px", position: "relative", overflow: "hidden", border: `1px solid #f1f5f9`, borderTop: `4px solid ${RG.primary}`, boxShadow: filterStatuses.length === 0 ? "0 4px 12px rgba(0,0,0,0.1)" : "0 2px 8px rgba(0,0,0,0.06)", cursor: "pointer", transition: "all 0.25s" }}
           onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; }}
           onMouseOut={(e) => { e.currentTarget.style.transform = "none"; }}
         >
@@ -545,7 +537,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
         {/* การ์ด: ต้องติดตามวันนี้ */}
         <div 
           onClick={() => handleToggleStatus("followup_today")} 
-          style={{ background: "#fff", opacity: filterStatuses.length === 0 || filterStatuses.includes("followup_today") ? 1 : 0.4, borderRadius: 12, padding: "12px 10px 10px", position: "relative", overflow: "hidden", border: `1px solid #f1f5f9`, borderTop: `4px solid #C62828`, boxShadow: filterStatuses.length === 0 || filterStatuses.includes("followup_today") ? "0 4px 12px rgba(0,0,0,0.1)" : "0 2px 8px rgba(0,0,0,0.06)", cursor: "pointer", transition: "all 0.25s" }}
+          style={{ background: RG.surface, opacity: filterStatuses.length === 0 || filterStatuses.includes("followup_today") ? 1 : 0.4, borderRadius: 12, padding: "12px 10px 10px", position: "relative", overflow: "hidden", border: `1px solid #f1f5f9`, borderTop: `4px solid #C62828`, boxShadow: filterStatuses.length === 0 || filterStatuses.includes("followup_today") ? "0 4px 12px rgba(0,0,0,0.1)" : "0 2px 8px rgba(0,0,0,0.06)", cursor: "pointer", transition: "all 0.25s" }}
           onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; }}
           onMouseOut={(e) => { e.currentTarget.style.transform = "none"; }}
         >
@@ -564,7 +556,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
             <div 
               key={s} 
               onClick={() => handleToggleStatus(s)} 
-              style={{ background: "#fff", opacity: isActive ? 1 : 0.4, borderRadius: 12, padding: "12px 10px 10px", position: "relative", overflow: "hidden", border: `1px solid #f1f5f9`, borderTop: `4px solid ${c}`, boxShadow: isActive ? `0 4px 12px rgba(0,0,0,0.1)` : "0 2px 8px rgba(0,0,0,0.06)", cursor: "pointer", transition: "all 0.25s" }}
+              style={{ background: RG.surface, opacity: isActive ? 1 : 0.4, borderRadius: 12, padding: "12px 10px 10px", position: "relative", overflow: "hidden", border: `1px solid #f1f5f9`, borderTop: `4px solid ${c}`, boxShadow: isActive ? `0 4px 12px rgba(0,0,0,0.1)` : "0 2px 8px rgba(0,0,0,0.06)", cursor: "pointer", transition: "all 0.25s" }}
               onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; }}
               onMouseOut={(e) => { e.currentTarget.style.transform = "none"; }}
             >
@@ -580,7 +572,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
       </div>
 
       {/* ตารางแสดงผลสำหรับหน้าจอหลัก */}
-      <div style={{ background: "#fff", padding: "20px", borderRadius: "12px", border: `1px solid ${RG.border}` }}>
+      <div style={{ background: RG.surface, padding: "20px", borderRadius: "12px", border: `1px solid ${RG.border}` }}>
         {statGroups.length === 0 ? (
            <div style={{ textAlign: "center", padding: "40px 0", color: RG.textMuted }}>ไม่พบข้อมูล</div>
         ) : (
@@ -592,7 +584,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
               </div>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, border: `1px solid ${RG.border}`, borderRadius: 8, overflow: "hidden" }}>
                 <thead>
-                  <tr style={{ background: RG.text, borderBottom: `1px solid ${RG.border}`, color: "#fff" }}>
+                  <tr style={{ background: RG.text, borderBottom: `1px solid ${RG.border}`, color: RG.surface }}>
                     <th style={{ padding: "12px 16px", textAlign: "left", width: "50%" }}>ชื่อบริษัท</th>
                     <th style={{ padding: "12px 16px", textAlign: "center", width: "30%" }}>สถานะล่าสุด</th>
                     <th style={{ padding: "12px 16px", textAlign: "center", width: "20%" }}>รายละเอียด</th>
@@ -600,7 +592,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
                 </thead>
                 <tbody>
                   {g.items.map((l, i) => (
-                    <tr key={l.id} style={{ background: i % 2 === 0 ? "#fff" : RG.surface, borderBottom: `1px solid ${RG.border}` }}>
+                    <tr key={l.id} style={{ background: i % 2 === 0 ? RG.surface : RG.surface, borderBottom: `1px solid ${RG.border}` }}>
                       <td style={{ padding: "12px 16px", fontWeight: 500 }}>{l.companyName}</td>
                       <td style={{ padding: "12px 16px", textAlign: "center" }}>
                         <StatusBadge status={l.latestStatus || g.status} />
@@ -611,7 +603,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
                           style={{ 
                             background: RG.gradient || "#e8b4b8", 
                             border: "none", 
-                            color: "#fff", 
+                            color: RG.surface, 
                             width: 26, 
                             height: 26, 
                             borderRadius: 6, 
@@ -643,7 +635,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
               style={{ 
                 width: "800px", 
                 height: "1131px", // A4 Ratio (800 * 1.414)
-                backgroundColor: "#fff", 
+                backgroundColor: RG.surface, 
                 color: "#000", 
                 fontFamily: "'Sarabun', 'Segoe UI', sans-serif",
                 padding: "40px",
@@ -658,7 +650,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
                 {/* HEADER (แสดงทุกหน้า) */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px", borderBottom: `2px solid ${RG.primary}`, paddingBottom: "24px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                    <div style={{ width: 50, height: 50, background: RG.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 24 }}>Q</div>
+                    <div style={{ width: 50, height: 50, background: RG.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: RG.surface, fontSize: 24 }}>Q</div>
                     <div>
                       <div style={{ fontSize: 22, fontWeight: 700, color: RG.primary, lineHeight: 1.2 }}>Sales_CRM</div>
                       <div style={{ fontSize: 13, color: RG.textMuted }}>Sales & Lead Management System</div>
@@ -685,11 +677,11 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
                     <div style={{ marginBottom: "32px" }}>
                       <div style={{ fontSize: 16, fontWeight: 700, color: RG.text, marginBottom: "16px", borderLeft: `4px solid ${RG.primary}`, paddingLeft: "8px" }}>สรุปภาพรวม (Executive Summary)</div>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: "8px" }}>
-                        <div style={{ background: "#fff", borderRadius: "8px", padding: "12px 8px", textAlign: "center", border: `1px solid ${RG.border}`, borderTop: `4px solid ${RG.primary}` }}>
+                        <div style={{ background: RG.surface, borderRadius: "8px", padding: "12px 8px", textAlign: "center", border: `1px solid ${RG.border}`, borderTop: `4px solid ${RG.primary}` }}>
                           <div style={{ fontSize: 10, fontWeight: 600, color: RG.textMuted, marginBottom: "4px" }}>ทั้งหมด</div>
                           <div style={{ fontSize: 20, fontWeight: 700, fontFamily: RG.fontHeading, color: RG.primary }}>{totalCalls}</div>
                         </div>
-                        <div style={{ background: "#fff", borderRadius: "8px", padding: "12px 8px", textAlign: "center", border: `1px solid ${RG.border}`, borderTop: `4px solid #C62828` }}>
+                        <div style={{ background: RG.surface, borderRadius: "8px", padding: "12px 8px", textAlign: "center", border: `1px solid ${RG.border}`, borderTop: `4px solid #C62828` }}>
                           <div style={{ fontSize: 10, fontWeight: 600, color: RG.textMuted, marginBottom: "4px" }}>ติดตามวันนี้</div>
                           <div style={{ fontSize: 20, fontWeight: 700, fontFamily: RG.fontHeading, color: "#C62828" }}>{followupToday}</div>
                         </div>
@@ -697,7 +689,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
                            const c = STATUS_COLORS[s] || RG.primary;
                            
                            return (
-                              <div key={s} style={{ background: "#fff", borderRadius: "8px", padding: "12px 8px", textAlign: "center", border: `1px solid ${RG.border}`, borderTop: `4px solid ${c}` }}>
+                              <div key={s} style={{ background: RG.surface, borderRadius: "8px", padding: "12px 8px", textAlign: "center", border: `1px solid ${RG.border}`, borderTop: `4px solid ${c}` }}>
                                 <div style={{ fontSize: 10, fontWeight: 600, color: RG.textMuted, marginBottom: "4px" }}>{s}</div>
                                 <div style={{ fontSize: 20, fontWeight: 700, fontFamily: RG.fontHeading, color: c }}>{reportLeads.filter(l => l.latestStatus === s).length}</div>
                               </div>
@@ -713,12 +705,12 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                       <thead>
                         <tr style={{ background: RG.text, borderBottom: "2px solid #cbd5e1" }}>
-                          <th style={{ padding: "10px", textAlign: "center", width: "5%", color: "#fff" }}>#</th>
-                          <th style={{ padding: "10px", textAlign: "left", width: "30%", color: "#fff" }}>ชื่อบริษัท</th>
-                          <th style={{ padding: "10px", textAlign: "left", width: "20%", color: "#fff" }}>ผู้ติดต่อ</th>
-                          <th style={{ padding: "10px", textAlign: "left", width: "15%", color: "#fff" }}>เบอร์โทรศัพท์</th>
-                          <th style={{ padding: "10px", textAlign: "right", width: "15%", color: "#fff" }}>รายได้/ปี (บาท)</th>
-                          <th style={{ padding: "10px", textAlign: "center", width: "15%", color: "#fff" }}>สถานะ</th>
+                          <th style={{ padding: "10px", textAlign: "center", width: "5%", color: RG.surface }}>#</th>
+                          <th style={{ padding: "10px", textAlign: "left", width: "30%", color: RG.surface }}>ชื่อบริษัท</th>
+                          <th style={{ padding: "10px", textAlign: "left", width: "20%", color: RG.surface }}>ผู้ติดต่อ</th>
+                          <th style={{ padding: "10px", textAlign: "left", width: "15%", color: RG.surface }}>เบอร์โทรศัพท์</th>
+                          <th style={{ padding: "10px", textAlign: "right", width: "15%", color: RG.surface }}>รายได้/ปี (บาท)</th>
+                          <th style={{ padding: "10px", textAlign: "center", width: "15%", color: RG.surface }}>สถานะ</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -726,14 +718,14 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
                           <tr><td colSpan={6} style={{ textAlign: "center", padding: "20px", color: RG.textMuted }}>ไม่พบข้อมูล</td></tr>
                         ) : (
                           chunk.map((l, i) => (
-                            <tr key={l.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                            <tr key={l.id} style={{ borderBottom: `1px solid ${RG.border}` }}>
                               <td style={{ padding: "10px", textAlign: "center", color: RG.textMuted }}>{(pageIndex === 0 ? 0 : FIRST_PAGE_LIMIT + (pageIndex - 1) * OTHER_PAGE_LIMIT) + i + 1}</td>
                               <td style={{ padding: "10px", fontWeight: 600, color: RG.text }}>{l.companyName || "-"}</td>
                               <td style={{ padding: "10px", color: RG.text }}>{l.contactName || "-"}</td>
                               <td style={{ padding: "10px", color: RG.text }}>{formatPhoneNumber(l.contactPhone) || "-"}</td>
                               <td style={{ padding: "10px", textAlign: "right", color: RG.text }}>{l.revenue ? fmtNum(l.revenue) : "-"}</td>
                               <td style={{ padding: "10px", textAlign: "center" }}>
-                                <span style={{ display: "inline-block", padding: "4px 8px", borderRadius: "12px", fontSize: 11, fontWeight: 600, background: STATUS_COLORS[l.latestStatus] ? STATUS_COLORS[l.latestStatus] + "22" : "#eee", color: STATUS_COLORS[l.latestStatus] || "#666" }}>
+                                <span style={{ display: "inline-block", padding: "4px 8px", borderRadius: "12px", fontSize: 11, fontWeight: 600, background: STATUS_COLORS[l.latestStatus] ? STATUS_COLORS[l.latestStatus] + "22" : RG.border, color: STATUS_COLORS[l.latestStatus] || RG.textMuted }}>
                                   {l.latestStatus || "-"}
                                 </span>
                               </td>
@@ -747,7 +739,7 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
               </div>
 
               {/* FOOTER (ผลักลงมาด้านล่างสุดเสมอเพราะ justifyContent: space-between) */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px", paddingTop: "20px", borderTop: "1px solid #e2e8f0", fontSize: 11, color: RG.textMuted }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px", paddingTop: "20px", borderTop: `1px solid ${RG.border}`, fontSize: 11, color: RG.textMuted }}>
                 <div>พิมพ์เมื่อ: {new Date().toLocaleString("th-TH")}</div>
                 <div style={{ fontWeight: 600, letterSpacing: "0.5px" }}>CONFIDENTIAL - SALES_CRM</div>
               </div>
@@ -759,14 +751,14 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
 
       {showDateModal && (
         <Modal title="กรองข้อมูลวันที่" onClose={() => setShowDateModal(false)} width={450}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "8px 4px" }}>
             
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 120, fontSize: 13, color: RG.textMuted }}>ติดต่อล่าสุด:</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: RG.text }}>ช่วงเวลาที่ต้องการสรุป:</label>
               <select 
                 value={reportDateRange.type || "all"}
                 onChange={(e) => handleDatePreset(e.target.value)}
-                style={{ ...inputStyle, flex: 1 }}
+                style={{ ...inputStyle, width: "100%", padding: "10px 12px" }}
               >
                 <option value="today">วันนี้</option>
                 <option value="thismonth">เดือนนี้</option>
@@ -776,38 +768,44 @@ export default function Reports({ leads, onViewLead, isMaster, onExitMaster, cur
                 <option value="last6months">6 เดือนล่าสุด (ค่าเริ่มต้น)</option>
                 <option value="thisyear">ปีนี้</option>
                 <option value="all">ทั้งหมด (ไม่กรอง)</option>
-                <option value="custom">กำหนดช่วงเวลาแทน (สูงสุด 1 ปี)</option>
+                <option value="custom">กำหนดช่วงเวลาเอง (ไม่เกิน 1 ปี)</option>
               </select>
             </div>
 
-            {(reportDateRange.type === "custom") && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, paddingLeft: 132 }}>
-                <input 
-                  type="date" 
-                  value={reportDateRange.min} 
-                  onChange={e => handleCustomDateChange("min", e.target.value)} 
-                  style={{ ...inputStyle, flex: 1 }} 
-                />
-                <span style={{ color: RG.textMuted }}>-</span>
-                <input 
-                  type="date" 
-                  value={reportDateRange.max} 
-                  onChange={e => handleCustomDateChange("max", e.target.value)} 
-                  style={{ ...inputStyle, flex: 1 }} 
-                />
+            {reportDateRange.type === "custom" && (
+              <div style={{ display: "flex", gap: 12, alignItems: "center", background: RG.background, padding: "12px", borderRadius: "8px", border: `1px solid ${RG.border}` }}>
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <span style={{ fontSize: 11, color: RG.textMuted, fontWeight: 600 }}>เริ่มต้น:</span>
+                  <input 
+                    type="date" 
+                    value={reportDateRange.min} 
+                    onChange={e => handleCustomDateChange("min", e.target.value)} 
+                    style={{ ...inputStyle, width: "100%" }} 
+                  />
+                </div>
+                <span style={{ color: RG.textMuted, marginTop: 16 }}>ถึง</span>
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <span style={{ fontSize: 11, color: RG.textMuted, fontWeight: 600 }}>สิ้นสุด:</span>
+                  <input 
+                    type="date" 
+                    value={reportDateRange.max} 
+                    onChange={e => handleCustomDateChange("max", e.target.value)} 
+                    style={{ ...inputStyle, width: "100%" }} 
+                  />
+                </div>
               </div>
             )}
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 16, paddingTop: 12, borderTop: `1px solid ${RG.border}` }}>
               <button 
                 onClick={() => setReportDateRange({ ...getPresetRange("last6months"), type: "last6months" })}
-                style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${RG.border}`, background: "#f5e6ea", color: RG.primary, cursor: "pointer", fontWeight: 600, fontSize: 13 }}
+                style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${RG.border}`, background: RG.surface, color: RG.textMuted, cursor: "pointer", fontWeight: 600, fontSize: 13 }}
               >
-                กลับเป็นค่าเริ่มต้น
+                รีเซ็ตเป็นค่าเริ่มต้น
               </button>
               <button 
                 onClick={() => setShowDateModal(false)}
-                style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: RG.gradient, color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 13 }}
+                style={{ padding: "8px 24px", borderRadius: 8, border: "none", background: RG.gradient, color: RG.surface, cursor: "pointer", fontWeight: 600, fontSize: 13 }}
               >
                 ตกลง
               </button>

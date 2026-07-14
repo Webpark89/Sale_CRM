@@ -1,5 +1,6 @@
 import React from "react";
 import { RG } from "../../constants/theme";
+import { UsersRound, Settings, Download } from "lucide-react";
 
 export default function LeadsHeader({
   search, setSearch,
@@ -18,8 +19,8 @@ export default function LeadsHeader({
   return (
     <>
       <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #0f766e, #14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", boxShadow: "0 4px 6px rgba(15, 118, 110, 0.2)" }}>
-          👥
+        <div style={{ width: 48, height: 48, borderRadius: 12, background: RG.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: RG.surface, boxShadow: RG.shadowGlow }}>
+          <UsersRound size={24} strokeWidth={2.5} />
         </div>
         <div>
           <h2 style={{ margin: 0, color: RG.text, fontFamily: RG.fontHeading, fontSize: 24, fontWeight: 700 }}>จัดการข้อมูลลูกค้า (Leads)</h2>
@@ -27,7 +28,7 @@ export default function LeadsHeader({
         </div>
       </div>
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <button onClick={() => setShowAddLead(true)} style={{ background: RG.primary, color: "#fff", border: "none", padding: "8px 16px", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontFamily: "'Sarabun', sans-serif" }}>
+        <button onClick={() => setShowAddLead(true)} style={{ background: RG.primary, color: RG.surface, border: "none", padding: "8px 16px", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontFamily: "'Sarabun', sans-serif" }}>
           + เพิ่มลีดใหม่
         </button>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 ค้นหาบริษัท, เลขนิติบุคคล, เบอร์..." style={{ ...inputStyle, width: 280 }} />
@@ -38,7 +39,7 @@ export default function LeadsHeader({
             style={{ 
               padding: "4px 10px", borderRadius: 20, 
               border: `1.5px solid ${showFavorites ? RG.primary : RG.border}`, 
-              background: showFavorites ? "#F0FDF4" : "#fff", 
+              background: showFavorites ? "#F0FDF4" : RG.surface, 
               color: showFavorites ? RG.primaryMid : RG.textMuted, 
               fontSize: 12, cursor: "pointer", fontWeight: showFavorites ? 700 : 400, 
               fontFamily: "'Sarabun', sans-serif" 
@@ -49,9 +50,15 @@ export default function LeadsHeader({
 
           <button 
             onClick={() => setShowFilterModal(true)} 
-            style={{ padding: "4px 10px", borderRadius: 20, border: `1.5px solid ${RG.primary}`, background: (filterStatus.length > 0 || Object.values(finFilters).some(f => f.min || f.max)) ? RG.primary : "#fff", color: (filterStatus.length > 0 || Object.values(finFilters).some(f => f.min || f.max)) ? "#fff" : RG.primary, fontSize: 12, cursor: "pointer", fontWeight: 700, fontFamily: "'Sarabun', sans-serif", display: "flex", alignItems: "center", gap: 4 }}
-          >
-            ⚙️ ตัวกรอง {(filterStatus.length > 0 || Object.values(finFilters).some(f => f.min || f.max)) && "(เปิดใช้งาน)"}
+            style={{ 
+              padding: "4px 10px", borderRadius: 20, 
+              border: `1.5px solid ${(filterStatus.length > 0 || Object.values(finFilters).some(f => f.min || f.max)) ? RG.primary : RG.border}`, 
+              background: (filterStatus.length > 0 || Object.values(finFilters).some(f => f.min || f.max)) ? RG.surface : "transparent", 
+              color: (filterStatus.length > 0 || Object.values(finFilters).some(f => f.min || f.max)) ? RG.primaryMid : RG.textMuted, 
+              cursor: "pointer", fontSize: 12, fontWeight: 600,
+              display: "flex", alignItems: "center", gap: 4 
+            }}>
+            <Settings size={14} /> ตัวกรอง {(filterStatus.length > 0 || Object.values(finFilters).some(f => f.min || f.max)) && "(เปิดใช้งาน)"}
           </button>
         </div>
 
@@ -60,16 +67,17 @@ export default function LeadsHeader({
             <div style={{ position: "relative" }}>
               <div 
                 onClick={() => setIsSellerDropdownOpen(!isSellerDropdownOpen)}
-                style={{ ...inputStyle, width: "180px", cursor: "pointer", backgroundColor: filterSellers.length > 0 ? "#F0FDF4" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", border: filterSellers.length > 0 ? `1px solid ${RG.primaryLight}` : `1px solid ${RG.border}` }}
+                style={{ ...inputStyle, width: "180px", cursor: "pointer", backgroundColor: filterSellers.length > 0 ? "#F0FDF4" : RG.surface, display: "flex", justifyContent: "space-between", alignItems: "center", border: filterSellers.length > 0 ? `1px solid ${RG.primaryLight}` : `1px solid ${RG.border}` }}
               >
-                <span style={{ color: filterSellers.length > 0 ? RG.primaryMid : RG.text }}>
-                  {filterSellers.length === 0 ? "👥 แสดงทุกเซลส์" : `👥 เลือกแล้ว ${filterSellers.length} เซลส์`}
+                <span style={{ color: filterSellers.length > 0 ? RG.primaryMid : RG.text, display: "flex", alignItems: "center", gap: 6 }}>
+                  <UsersRound size={14} />
+                  {filterSellers.length === 0 ? "แสดงทุกเซลส์" : `เลือกแล้ว ${filterSellers.length} เซลส์`}
                 </span>
                 <span style={{ fontSize: 10 }}>▼</span>
               </div>
               {isSellerDropdownOpen && (
-                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 50, padding: "8px 0", marginTop: "4px", maxHeight: "250px", overflowY: "auto" }}>
-                  <label style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13, borderBottom: "1px solid #eee" }}>
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: RG.surface, border: `1px solid ${RG.border}`, borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 50, padding: "8px 0", marginTop: "4px", maxHeight: "250px", overflowY: "auto" }}>
+                  <label style={{ display: "flex", alignItems: "center", padding: "8px 16px", cursor: "pointer", fontSize: 13, borderBottom: `1px solid ${RG.border}` }}>
                     <input type="checkbox" checked={filterSellers.length === 0} onChange={() => setFilterSellers([])} style={{ marginRight: 8 }} />
                     แสดงทุกเซลส์
                   </label>
@@ -100,7 +108,7 @@ export default function LeadsHeader({
                 padding: "0 14px",
                 borderRadius: "8px",
                 border: `1px solid ${RG.primary}`,
-                backgroundColor: "#ffffff",
+                backgroundColor: RG.surface,
                 color: RG.primary,
                 cursor: "pointer",
                 fontSize: "13px",
@@ -111,7 +119,7 @@ export default function LeadsHeader({
                 boxSizing: "border-box"
               }}
             >
-              <option value="">⬇ Export</option>
+              <option value="">Export</option>
               <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)">
                 <option value="current_csv">Excel / CSV</option>
                 <option value="current_json">JSON</option>

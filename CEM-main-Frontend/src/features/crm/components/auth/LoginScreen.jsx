@@ -72,7 +72,7 @@ export default function LoginScreen({ onLogin }) {
           outline: none;
           padding: 12px 14px 12px 0;
           font-size: 14px;
-          color: ${RG.text || "#333"};
+          color: ${RG.text || RG.text};
           font-family: 'Sarabun', sans-serif;
         }
         .btn-submit {
@@ -86,22 +86,22 @@ export default function LoginScreen({ onLogin }) {
         }
       `}</style>
 
-      <div className="login-card" style={{ background: RG.surface || "#fff", borderRadius: 24, boxShadow: "0 20px 40px rgba(192,132,151,0.15)", padding: "48px 40px", width: 380, border: `1px solid ${RG.border || "#e2d8dc"}` }}>
+      <div className="login-card" style={{ background: RG.surface || RG.surface, borderRadius: 24, boxShadow: "0 20px 40px rgba(192,132,151,0.15)", padding: "48px 40px", width: 380, border: `1px solid ${RG.border || "#e2d8dc"}` }}>
         
         {/* Logo & Header */}
         <div style={{ textAlign: "center", marginBottom: 36 }}>
           <div style={{ width: 72, height: 72, background: RG.gradient || "linear-gradient(135deg, #d6406e 0%, #a42c54 100%)", borderRadius: 20, margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 16px rgba(160, 160, 160, 0.3)" }}>
-            <span style={{ fontSize: 32, color: "#fff", fontWeight: 700 }}>Q</span>
+            <span style={{ fontSize: 32, color: RG.surface, fontWeight: 700 }}>Q</span>
           </div>
-          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: RG.text || "#333", letterSpacing: "-0.5px" }}>Sales_CRM</h1>
-          <p style={{ margin: "6px 0 0", color: RG.textMuted || "#777", fontSize: 14 }}>ระบบจัดการลีดและการขายครบวงจร</p>
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: RG.text || RG.text, letterSpacing: "-0.5px" }}>Sales_CRM</h1>
+          <p style={{ margin: "6px 0 0", color: RG.textMuted || RG.textMuted, fontSize: 14 }}>ระบบจัดการลีดและการขายครบวงจร</p>
         </div>
 
         {/* Username Input */}
         <div style={{ marginBottom: 20 }}>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: RG.textMuted || "#777", marginBottom: 8 }}>ชื่อผู้ใช้งาน (Username)</label>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: RG.textMuted || RG.textMuted, marginBottom: 8 }}>ชื่อผู้ใช้งาน (Username)</label>
           <div className="input-group">
-            <div style={{ padding: "0 14px", color: "#aaa", display: "flex" }}>
+            <div style={{ padding: "0 14px", color: RG.textMuted, display: "flex" }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </div>
             <input 
@@ -116,9 +116,9 @@ export default function LoginScreen({ onLogin }) {
 
         {/* Password Input */}
         <div style={{ marginBottom: 24 }}>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: RG.textMuted || "#777", marginBottom: 8 }}>รหัสผ่าน (Password)</label>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: RG.textMuted || RG.textMuted, marginBottom: 8 }}>รหัสผ่าน (Password)</label>
           <div className="input-group">
-            <div style={{ padding: "0 14px", color: "#aaa", display: "flex" }}>
+            <div style={{ padding: "0 14px", color: RG.textMuted, display: "flex" }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
             </div>
             <input 
@@ -133,7 +133,7 @@ export default function LoginScreen({ onLogin }) {
             <button 
               onClick={() => setShowPass(!showPass)} 
               type="button"
-              style={{ background: "none", border: "none", padding: "0 14px", color: showPass ? (RG.primary || "#d6406e") : "#aaa", cursor: "pointer", display: "flex", outline: "none" }}
+              style={{ background: "none", border: "none", padding: "0 14px", color: showPass ? (RG.primary || "#d6406e") : RG.textMuted, cursor: "pointer", display: "flex", outline: "none" }}
             >
               {showPass ? (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
@@ -146,9 +146,9 @@ export default function LoginScreen({ onLogin }) {
 
         {/* Error Message Box */}
         {err && (
-          <div style={{ background: "#fdf2f2", borderLeft: `4px solid ${RG.danger || "#e74c3c"}`, padding: "10px 14px", borderRadius: "0 8px 8px 0", display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={RG.danger || "#e74c3c"} strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-            <span style={{ color: RG.danger || "#e74c3c", fontSize: 13, fontWeight: 500 }}>{err}</span>
+          <div style={{ background: "#fdf2f2", borderLeft: `4px solid ${RG.danger || RG.danger}`, padding: "10px 14px", borderRadius: "0 8px 8px 0", display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={RG.danger || RG.danger} strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span style={{ color: RG.danger || RG.danger, fontSize: 13, fontWeight: 500 }}>{err}</span>
           </div>
         )}
 
@@ -161,9 +161,9 @@ export default function LoginScreen({ onLogin }) {
             width: "100%", 
             padding: "14px", 
             borderRadius: 10, 
-            background: isLoading ? "#ccc" : (RG.gradient || "linear-gradient(135deg, #D3D3D3 0%, #F5F5F5 100%)"), 
+            background: isLoading ? RG.border : (RG.gradient || "linear-gradient(135deg, #D3D3D3 0%, #F5F5F5 100%)"), 
             border: "none", 
-            color: "#fff", 
+            color: RG.surface, 
             fontWeight: 600, 
             fontSize: 15, 
             cursor: isLoading ? "not-allowed" : "pointer", 
@@ -185,7 +185,7 @@ export default function LoginScreen({ onLogin }) {
 
         {/* Footer info */}
         <div style={{ textAlign: "center", marginTop: 24 }}>
-          <p style={{ margin: 0, fontSize: 12, color: "#aaa" }}>กรณีลืมรหัสผ่าน กรุณาติดต่อผู้ดูแลระบบ</p>
+          <p style={{ margin: 0, fontSize: 12, color: RG.textMuted }}>กรณีลืมรหัสผ่าน กรุณาติดต่อผู้ดูแลระบบ</p>
         </div>
       </div>
     </div>

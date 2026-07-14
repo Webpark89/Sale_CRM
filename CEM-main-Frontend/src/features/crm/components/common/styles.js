@@ -14,5 +14,5 @@ export const inputStyle = {
 
 export const selectStyle = {
   ...inputStyle,
-  background: "#fff",
+  background: RG.surface,
 };

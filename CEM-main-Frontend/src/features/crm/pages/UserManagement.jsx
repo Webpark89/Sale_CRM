@@ -16,9 +16,9 @@ const getRoleBadgeStyle = () => {
     borderRadius: 20, 
     fontSize: 13, 
     fontWeight: 700,
-    background: '#f3f4f6',
-    color: '#374151',
-    border: '1px solid #d1d5db',
+    background: RG.background,
+    color: RG.text,
+    border: `1px solid ${RG.border}`,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis'
@@ -42,6 +42,7 @@ export default function UserManagement({ currentUser }) {
 
   const [showStatusModal, setShowStatusModal] = useState(null); // stores user object
   const [adminPassword, setAdminPassword] = useState("");
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   const [deletedUserToast, setDeletedUserToast] = useState(null); // { id, username, adminPassword }
   const [toastTimeoutId, setToastTimeoutId] = useState(null);
@@ -131,10 +132,10 @@ export default function UserManagement({ currentUser }) {
 
   const handleDeleteUser = async (user) => {
     if (!adminPassword) return toast.error("กรุณากรอกรหัสผ่าน Admin");
-    if (!window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้งานนี้?")) return;
     try {
       await deleteUserApi(user.id, adminPassword);
       setShowStatusModal(null);
+      setIsConfirmingDelete(false);
       loadData();
       
       // Show Undo Toast
@@ -289,7 +290,7 @@ export default function UserManagement({ currentUser }) {
       )}
 
       {showStatusModal && (
-        <Modal title={`จัดการสถานะผู้ใช้: ${showStatusModal.username}`} onClose={() => { setShowStatusModal(null); setAdminPassword(""); }}>
+        <Modal title={`จัดการสถานะผู้ใช้: ${showStatusModal.username}`} onClose={() => { setShowStatusModal(null); setAdminPassword(""); setIsConfirmingDelete(false); }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <p style={{ margin: 0 }}>โปรดยืนยันรหัสผ่าน <strong>Admin ของคุณ</strong> ก่อนดำเนินการ</p>
             <input 
@@ -299,22 +300,32 @@ export default function UserManagement({ currentUser }) {
               value={adminPassword} 
               onChange={e => setAdminPassword(e.target.value)} 
             />
-            <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-              <Btn 
-                style={{ flex: 1 }} 
-                variant={showStatusModal.is_active ? "warning" : "success"}
-                onClick={() => handleToggleActive(showStatusModal)}
-              >
-                {showStatusModal.is_active ? "ระงับบัญชี" : "เปิดใช้งานบัญชี"}
-              </Btn>
-              <Btn 
-                style={{ flex: 1 }} 
-                variant="danger"
-                onClick={() => handleDeleteUser(showStatusModal)}
-              >
-                ลบบัญชีถาวร
-              </Btn>
-            </div>
+            {isConfirmingDelete ? (
+              <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, marginTop: 10 }}>
+                <p style={{ margin: "0 0 10px 0", color: RG.danger, fontWeight: "bold" }}>⚠️ คุณแน่ใจหรือไม่ที่จะลบผู้ใช้ {showStatusModal.username} ถาวร?</p>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <Btn style={{ flex: 1 }} variant="danger" onClick={() => handleDeleteUser(showStatusModal)}>ยืนยันการลบถาวร</Btn>
+                  <Btn style={{ flex: 1 }} variant="secondary" onClick={() => setIsConfirmingDelete(false)}>ยกเลิก</Btn>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+                <Btn 
+                  style={{ flex: 1 }} 
+                  variant={showStatusModal.is_active ? "warning" : "success"}
+                  onClick={() => handleToggleActive(showStatusModal)}
+                >
+                  {showStatusModal.is_active ? "ระงับบัญชี" : "เปิดใช้งานบัญชี"}
+                </Btn>
+                <Btn 
+                  style={{ flex: 1 }} 
+                  variant="danger"
+                  onClick={() => setIsConfirmingDelete(true)}
+                >
+                  ลบบัญชีถาวร
+                </Btn>
+              </div>
+            )}
           </div>
         </Modal>
       )}
@@ -326,7 +337,7 @@ export default function UserManagement({ currentUser }) {
       {deletedUserToast && (
         <div style={{
           position: 'fixed', bottom: 30, right: 30,
-          background: '#333', color: '#fff', padding: '12px 20px',
+          background: '#333', color: RG.surface, padding: '12px 20px',
           borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
           display: 'flex', alignItems: 'center', gap: 16, zIndex: 1000,
           fontFamily: "'Sarabun', sans-serif"

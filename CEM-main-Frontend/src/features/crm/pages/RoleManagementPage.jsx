@@ -14,7 +14,7 @@ const styles = {
   title: { margin: 0 },
   subtitle: { margin: '4px 0 0', fontSize: 13, color: RG.textMuted },
   btnCreate: {
-    padding: '10px 20px', background: '#6366f1', color: '#fff',
+    padding: '10px 20px', background: RG.primary, color: RG.surface,
     border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer',
     fontSize: 14, display: 'flex', alignItems: 'center', gap: 6
   },
@@ -32,9 +32,9 @@ const styles = {
     background: '#fef3c7', color: '#92400e',
     borderRadius: 12, fontSize: 11, fontWeight: 600
   },
-  roleName: { fontWeight: 600, color: '#1e293b' },
-  roleKey: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
-  userCount: { fontWeight: 600, color: '#6366f1' },
+  roleName: { fontWeight: 600, color: RG.text },
+  roleKey: { fontSize: 11, color: RG.textMuted, marginTop: 2 },
+  userCount: { fontWeight: 600, color: RG.primary },
   btnEdit: {
     padding: '6px 14px', background: '#e0e7ff', color: '#4338ca',
     border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12
@@ -44,8 +44,8 @@ const styles = {
     border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12
   },
   actions: { display: 'flex', gap: 8 },
-  empty: { padding: 40, textAlign: 'center', color: '#94a3b8' },
-  loading: { padding: 40, textAlign: 'center', color: '#94a3b8' },
+  empty: { padding: 40, textAlign: 'center', color: RG.textMuted },
+  loading: { padding: 40, textAlign: 'center', color: RG.textMuted },
   errorMsg: {
     margin: '0 0 16px', padding: '12px 16px',
     background: '#fee2e2', color: '#b91c1c', borderRadius: 8,
@@ -166,7 +166,7 @@ const RoleManagementPage = ({ currentUser }) => {
                   {role.is_system ? (
                     <span style={styles.systemBadge}>⭐ System</span>
                   ) : (
-                    <span style={{ color: '#64748b', fontSize: 12 }}>Custom</span>
+                    <span style={{ color: RG.textMuted, fontSize: 12 }}>Custom</span>
                   )}
                 </td>
                 <td style={styles.td}>

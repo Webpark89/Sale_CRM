@@ -54,7 +54,7 @@ export default function NotificationsPanel({ notifTab = 1, currentUser, leads, o
 
     if (l.latestStatus === "ปิดการขาย") return false;
     
-    const isNewlyCreatedByMe = l.latestStatus === "ฝากโปรไฟล์" && (Number(l.createdBy) === Number(currentUser?.id) || l.createdBy === null);
+    const isNewlyCreatedByMe = Number(l.isAcknowledged) === 0 && (Number(l.createdBy) === Number(currentUser?.id) || l.createdBy === null);
     
     return isNewlyCreatedByMe;
   }), true);
@@ -64,8 +64,8 @@ export default function NotificationsPanel({ notifTab = 1, currentUser, leads, o
 
   const getNoteText = (l) => {
     const timeStr = l.createdAt ? ` | 🕒 ${parseDateTimeTH(l.createdAt)}` : "";
-    if (Number(l.isAcknowledged) === 0 && Number(l.ownerId) === Number(currentUser?.id)) {
-      return `🔄 โอนย้ายมาจาก: ${l.prevOwnerUsername || 'ไม่มี'} | 🔄 โอนย้ายมาโดย: ${l.assignerUsername || l.creatorUsername || 'ระบบ'}${timeStr}`;
+    if (l.prevOwnerUsername) {
+      return `🔄 โอนย้ายมาจาก: ${l.prevOwnerUsername} | 🔄 โอนย้ายมาโดย: ${l.assignerUsername || l.creatorUsername || 'ระบบ'}${timeStr}`;
     }
     return `✨ ลีดใหม่ที่สร้างสำเร็จ${timeStr}`;
   };
@@ -75,15 +75,15 @@ export default function NotificationsPanel({ notifTab = 1, currentUser, leads, o
     if (sectionType === 'general') noteText = getNoteText(l);
 
     return (
-      <div key={l.id} style={{ border: `1px solid ${isOverdue ? "#fca5a5" : RG.border}`, borderRadius: 10, padding: "14px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 16, background: isOverdue ? "#fff5f5" : RG.rowOdd }}>
+      <div key={l.id} style={{ border: `1px solid ${isOverdue ? RG.danger : RG.border}`, borderRadius: 10, padding: "14px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 16, background: isOverdue ? "#fff5f5" : RG.rowOdd }}>
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
             <p style={{ margin: 0, fontWeight: 600, color: RG.text, fontSize: 14 }}>{l.companyName}</p>
-            {isOverdue && <span style={{ fontSize: 11, background: "#fee2e2", color: "#dc2626", padding: "2px 8px", borderRadius: 12, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>ค้าง!</span>}
+            {isOverdue && <span style={{ fontSize: 11, background: "#fee2e2", color: RG.danger, padding: "2px 8px", borderRadius: 12, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>ค้าง!</span>}
           </div>
           {sectionType === "general" ? (
             <>
-              {Number(l.isAcknowledged) === 0 ? (
+              {l.prevOwnerUsername ? (
                 <p style={{ margin: "4px 0 0", fontSize: 12, color: RG.primary }}>
                   🔄 โอนย้ายโดย: {l.assignerUsername || "ระบบ"}
                 </p>
@@ -98,7 +98,7 @@ export default function NotificationsPanel({ notifTab = 1, currentUser, leads, o
             </>
           ) : (
             <>
-              <p style={{ margin: "2px 0 0", fontSize: 12, color: isOverdue ? "#dc2626" : RG.textMuted }}>
+              <p style={{ margin: "2px 0 0", fontSize: 12, color: isOverdue ? RG.danger : RG.textMuted }}>
                 กำหนดติดตาม: {l.nextFollowupDate ? parseDateTH(l.nextFollowupDate) : "ยังไม่ได้กำหนด"}
               </p>
               {noteText && <p style={{ margin: "4px 0 0", fontSize: 11, color: RG.primary, fontWeight: 600 }}>{noteText}</p>}
@@ -134,9 +134,9 @@ export default function NotificationsPanel({ notifTab = 1, currentUser, leads, o
             onClick={() => setExpandedSection(sectionType)}
           >
             {/* Stack background 2 */}
-            <div style={{ position: 'absolute', top: 10, left: 8, right: 8, height: "100%", border: `1px solid ${isOverdue ? "#fca5a5" : RG.border}`, borderRadius: 10, background: isOverdue ? "#fff5f5" : RG.rowOdd, opacity: 0.4, zIndex: 1 }} />
+            <div style={{ position: 'absolute', top: 10, left: 8, right: 8, height: "100%", border: `1px solid ${isOverdue ? RG.danger : RG.border}`, borderRadius: 10, background: isOverdue ? "#fff5f5" : RG.rowOdd, opacity: 0.4, zIndex: 1 }} />
             {/* Stack background 1 */}
-            <div style={{ position: 'absolute', top: 5, left: 4, right: 4, height: "100%", border: `1px solid ${isOverdue ? "#fca5a5" : RG.border}`, borderRadius: 10, background: isOverdue ? "#fff5f5" : RG.rowOdd, opacity: 0.7, zIndex: 2 }} />
+            <div style={{ position: 'absolute', top: 5, left: 4, right: 4, height: "100%", border: `1px solid ${isOverdue ? RG.danger : RG.border}`, borderRadius: 10, background: isOverdue ? "#fff5f5" : RG.rowOdd, opacity: 0.7, zIndex: 2 }} />
             
             {/* Main Card Wrapper (disabled interactions so clicking anywhere goes to the list) */}
             <div style={{ position: 'relative', zIndex: 3, pointerEvents: 'none' }}>
@@ -166,12 +166,12 @@ export default function NotificationsPanel({ notifTab = 1, currentUser, leads, o
     } else if (expandedSection === 'overdue') {
       list = overdue;
       title = "⚠️ การติดตามที่ค้างอยู่ (ผ่านมาแล้ว)";
-      color = "#dc2626";
+      color = RG.danger;
       isOverdue = true;
     } else if (expandedSection === 'general') {
       list = general;
       title = "🔔 การแจ้งเตือนทั่วไป (ลีดใหม่/รอติดต่อ)";
-      color = "#8b5cf6";
+      color = RG.warn;
     }
 
     return (
@@ -179,7 +179,7 @@ export default function NotificationsPanel({ notifTab = 1, currentUser, leads, o
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <button 
             onClick={() => setExpandedSection(null)} 
-            style={{ background: "#fff", border: `1px solid ${RG.border}`, color: RG.text, borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontFamily: "'Sarabun', sans-serif", display: "flex", alignItems: "center", gap: 6 }}
+            style={{ background: RG.surface, border: `1px solid ${RG.border}`, color: RG.text, borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontFamily: "'Sarabun', sans-serif", display: "flex", alignItems: "center", gap: 6 }}
           >
             <span>&larr;</span> ย้อนกลับ
           </button>
@@ -211,12 +211,12 @@ export default function NotificationsPanel({ notifTab = 1, currentUser, leads, o
                   flex: 1, padding: "10px", borderRadius: "8px", border: "none", cursor: "pointer",
                   fontWeight: 600, fontSize: "14px", fontFamily: "'Sarabun', sans-serif", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px",
                   background: activeTab === 1 ? RG.primary : "transparent",
-                  color: activeTab === 1 ? "#fff" : RG.textMuted,
+                  color: activeTab === 1 ? RG.surface : RG.textMuted,
                   transition: "all 0.2s"
                 }}
               >
                 <span>📅 การติดตาม</span>
-                <span style={{ background: activeTab === 1 ? "#fff" : RG.border, color: activeTab === 1 ? RG.primary : RG.text, padding: "2px 8px", borderRadius: "12px", fontSize: "12px" }}>
+                <span style={{ background: activeTab === 1 ? RG.surface : RG.border, color: activeTab === 1 ? RG.primary : RG.text, padding: "2px 8px", borderRadius: "12px", fontSize: "12px" }}>
                   {dueToday.length + overdue.length}
                 </span>
               </button>
@@ -225,13 +225,13 @@ export default function NotificationsPanel({ notifTab = 1, currentUser, leads, o
                 style={{
                   flex: 1, padding: "10px", borderRadius: "8px", border: "none", cursor: "pointer",
                   fontWeight: 600, fontSize: "14px", fontFamily: "'Sarabun', sans-serif", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px",
-                  background: activeTab === 2 ? "#8b5cf6" : "transparent",
-                  color: activeTab === 2 ? "#fff" : RG.textMuted,
+                  background: activeTab === 2 ? RG.warn : "transparent",
+                  color: activeTab === 2 ? RG.surface : RG.textMuted,
                   transition: "all 0.2s"
                 }}
               >
                 <span>🔔 ลีดใหม่ & โอนย้าย</span>
-                <span style={{ background: activeTab === 2 ? "#fff" : RG.border, color: activeTab === 2 ? "#8b5cf6" : RG.text, padding: "2px 8px", borderRadius: "12px", fontSize: "12px" }}>
+                <span style={{ background: activeTab === 2 ? RG.surface : RG.border, color: activeTab === 2 ? RG.warn : RG.text, padding: "2px 8px", borderRadius: "12px", fontSize: "12px" }}>
                   {general.length}
                 </span>
               </button>
@@ -239,7 +239,7 @@ export default function NotificationsPanel({ notifTab = 1, currentUser, leads, o
             
             {/* ส่วนที่ 1: การติดตาม (Follow-ups) */}
             {activeTab === 1 && (
-              <div style={{ background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "12px", padding: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+              <div style={{ background: RG.surface, border: `1px solid ${RG.border}`, borderRadius: "12px", padding: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
               <h3 style={{ margin: "0 0 16px 0", color: RG.text, fontSize: 15, borderBottom: `2px solid ${RG.primaryLight}`, paddingBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span>📌 ส่วนที่ 1: การติดตาม (Follow-ups)</span>
                 <span style={{ fontSize: 12, fontWeight: "normal", color: RG.textMuted }}>รวม {dueToday.length + overdue.length} รายการ</span>
@@ -254,7 +254,7 @@ export default function NotificationsPanel({ notifTab = 1, currentUser, leads, o
                   style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${RG.border}`, fontFamily: "'Sarabun', sans-serif", color: RG.text, outline: "none", fontSize: 13 }}
                 />
                 {filterDate !== today() && (
-                  <button onClick={() => setFilterDate(today())} style={{ background: "#fff", border: `1px solid ${RG.border}`, color: RG.textMuted, borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Sarabun', sans-serif" }}>
+                  <button onClick={() => setFilterDate(today())} style={{ background: RG.surface, border: `1px solid ${RG.border}`, color: RG.textMuted, borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Sarabun', sans-serif" }}>
                     กลับไปวันนี้
                   </button>
                 )}
@@ -264,19 +264,19 @@ export default function NotificationsPanel({ notifTab = 1, currentUser, leads, o
                 <p style={{ color: RG.textMuted, textAlign: "center", padding: "10px 0", fontSize: 13 }}>ไม่มีรายการติดตามในวันนี้ 🎉</p>
               )}
               {renderSection("📅 การติดตาม ณ ปัจจุบัน", dueToday, false, 'dueToday', RG.primary)}
-              {renderSection("⚠️ การติดตามที่ค้างอยู่ (ผ่านมาแล้ว)", overdue, true, 'overdue', "#dc2626")}
+              {renderSection("⚠️ การติดตามที่ค้างอยู่ (ผ่านมาแล้ว)", overdue, true, 'overdue', RG.danger)}
               </div>
             )}
 
             {/* ส่วนที่ 2: การแจ้งเตือนทั่วไป */}
             {activeTab === 2 && (
-              <div style={{ background: "#fff", border: "1px solid #ddd6fe", borderRadius: "12px", padding: "16px", boxShadow: "0 2px 8px rgba(139,92,246,0.08)" }}>
+              <div style={{ background: RG.surface, border: "1px solid #ddd6fe", borderRadius: "12px", padding: "16px", boxShadow: "0 2px 8px rgba(139,92,246,0.08)" }}>
                 <div style={{ marginBottom: 16 }}>
                   {general.length === 0 ? (
                     <p style={{ color: RG.textMuted, textAlign: "center", padding: "10px 0", fontSize: 13 }}>ไม่มีรายการแจ้งเตือนใหม่ 🎉</p>
                   ) : (
                     <>
-                      <h4 style={{ margin: "0 0 12px 0", color: "#8b5cf6" }}>
+                      <h4 style={{ margin: "0 0 12px 0", color: RG.warn }}>
                         🔔 การแจ้งเตือนลีดใหม่และรับโอนย้าย <span style={{ color: RG.textMuted, fontSize: 14, fontWeight: "normal" }}>({general.length} รายการ)</span>
                       </h4>
                       {general.map(l => renderLeadCard(l, false, 'general'))}

@@ -5,6 +5,7 @@ import EditableCell from "../common/EditableCell";
 import StatusBadge from "../common/StatusBadge";
 import { parseDateTH, today, PROVINCES } from "../../crmHelpers/helpers";
 import { API_BASE_URL } from "../../services/api";
+import { FileText, Search } from "lucide-react";
 
 const PRIORITY_WEIGHT = {
   [STATUS_ENUM.CLOSED]: 7,
@@ -23,6 +24,8 @@ export default function LeadsTable({
   dupNumbers, followups, currentUser, setReassignConfirm, fetchAllSellers,
   topScrollRef, handleTopScroll, handleBottomScroll, bottomScrollRef, syncTableWidth
 }) {
+  const canEdit = currentUser?.role === 'admin' || currentUser?.role_is_system || currentUser?.permissions?.leads?.edit;
+
   const getSortIcon = (key) => {
     if (sortConfig.key === key) return sortConfig.direction === 'asc' ? ' 🔼' : ' 🔽';
     return '';
@@ -39,7 +42,7 @@ export default function LeadsTable({
     userSelect: "none",
     fontWeight: 600,
     letterSpacing: 0.3,
-    background: "#f8fafc",
+    background: RG.background,
     position: "sticky",
     top: 0,
     zIndex: 5
@@ -58,13 +61,13 @@ export default function LeadsTable({
       <div 
         ref={bottomScrollRef} 
         onScroll={handleBottomScroll} 
-        style={{ overflowX: "auto", width: "100%", background: "#fff", maxHeight: "70vh" }}
+        style={{ overflowX: "auto", width: "100%", background: RG.surface, maxHeight: "70vh" }}
       >
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1600 }}>
           <thead>
             <tr>
               <th style={{ ...thStyle, width: 40, textAlign: "center", cursor: "default" }}>
-                <input type="checkbox" onChange={e => setChecked(e.target.checked ? paginatedLeads.map(l => l.id) : [])} checked={paginatedLeads.length > 0 && checked.length === paginatedLeads.length} />
+                <input type="checkbox" style={{ accentColor: RG.primary, transform: "scale(1.25)", cursor: "pointer" }} onChange={e => setChecked(e.target.checked ? paginatedLeads.map(l => l.id) : [])} checked={paginatedLeads.length > 0 && checked.length === paginatedLeads.length} />
               </th>
               <th style={{ ...thStyle, width: 40, textAlign: "center", cursor: "default" }}>⭐</th>
               <th style={{ ...thStyle, width: 40, textAlign: "center", cursor: "default" }}>👁</th>
@@ -93,8 +96,8 @@ export default function LeadsTable({
               const isDup = dupNumbers.includes(lead.companyNumber);
               const leadFollowups = followups[lead.id] || [];
               const hasMeetingHistory = lead.latestStatus === "มีตติ้ง" || lead.everHadMeeting === true || leadFollowups.some(f => f.status === "มีตติ้ง");
-              const rowBackground = lead.latestStatus === "มีตติ้ง" ? "#FEF08A" : "#fff";
-              const hoverBackground = lead.latestStatus === "มีตติ้ง" ? "#FDE047" : "#e2e8f0";
+              const rowBackground = lead.latestStatus === "มีตติ้ง" ? "#FEF08A" : RG.surface;
+              const hoverBackground = lead.latestStatus === "มีตติ้ง" ? "#FDE047" : RG.border;
               
               return (
                 <tr 
@@ -104,7 +107,7 @@ export default function LeadsTable({
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = rowBackground}
                 >
                   <td style={{ padding: "16px 10px", textAlign: "center" }}>
-                    <input type="checkbox" checked={checked.includes(lead.id)} onChange={e => setChecked(c => (e.target.checked ? [...c, lead.id] : c.filter(x => x !== lead.id)))} />
+                    <input type="checkbox" style={{ accentColor: RG.primary, transform: "scale(1.25)", cursor: "pointer" }} checked={checked.includes(lead.id)} onChange={e => setChecked(c => (e.target.checked ? [...c, lead.id] : c.filter(x => x !== lead.id)))} />
                   </td>
                   <td style={{ padding: "16px 6px", textAlign: "center" }}>
                     <button onClick={() => toggleStar(lead.id)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 16 }}>
@@ -112,25 +115,25 @@ export default function LeadsTable({
                     </button>
                   </td>
                   <td style={{ padding: "16px 6px" }}>
-                    <button onClick={() => setSelectedLead(lead)} style={{ background: "#f3f4f6", border: "1px solid #e5e7eb", color: "#4b5563", width: 28, height: 28, borderRadius: 6, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }} onMouseEnter={e => {e.currentTarget.style.background = RG.primary; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = RG.primary;}} onMouseLeave={e => {e.currentTarget.style.background = "#f3f4f6"; e.currentTarget.style.color = "#4b5563"; e.currentTarget.style.borderColor = "#e5e7eb";}}>👁</button>
+                    <button onClick={() => setSelectedLead(lead)} style={{ background: RG.background, border: `1px solid ${RG.border}`, color: RG.textMuted, width: 28, height: 28, borderRadius: 6, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }} onMouseEnter={e => {e.currentTarget.style.background = RG.primary; e.currentTarget.style.color = RG.surface; e.currentTarget.style.borderColor = RG.primary;}} onMouseLeave={e => {e.currentTarget.style.background = RG.background; e.currentTarget.style.color = RG.textMuted; e.currentTarget.style.borderColor = RG.border;}}>👁</button>
                   </td>
                   <td style={{ padding: "16px 10px", textAlign: "center", fontSize: 13, color: RG.textMuted, fontWeight: 600 }}>
                     {(actualPage - 1) * itemsPerPage + i + 1}
                   </td>
                   <td style={{ padding: "16px 10px", fontWeight: lead.isStarred ? 600 : 400 }}>
-                    <EditableCell value={lead.companyName} onSave={v => inlineEdit(lead.id, "companyName", v)} />
+                    <EditableCell value={lead.companyName} onSave={v => inlineEdit(lead.id, "companyName", v)} disabled={!canEdit} />
                   </td>
                   <td style={{ padding: "16px 10px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <EditableCell value={lead.companyNumber} onSave={v => inlineEdit(lead.id, "companyNumber", v)} />
+                      <EditableCell value={lead.companyNumber} onSave={v => inlineEdit(lead.id, "companyNumber", v)} disabled={!canEdit} />
                       {isDup && <span style={{ background: "#ffeeee", color: RG.danger, fontSize: 10, padding: "2px 8px", borderRadius: 12, border: "1px solid #ffcccc", whiteSpace: "nowrap", fontWeight: 600 }}>ซ้ำ!</span>}
                     </div>
                   </td>
-                  <td style={{ padding: "16px 10px" }}><EditableCell value={lead.contactName} onSave={v => inlineEdit(lead.id, "contactName", v)} /></td>
-                  <td style={{ padding: "16px 10px" }}><EditableCell value={lead.contactPhone} onSave={v => inlineEdit(lead.id, "contactPhone", v)} type="phone" /></td>
-                  <td style={{ padding: "16px 10px" }}><EditableCell value={lead.contactEmail} onSave={v => inlineEdit(lead.id, "contactEmail", v)} /></td>
-                  <td style={{ padding: "16px 10px" }}><EditableCell value={lead.province} onSave={v => inlineEdit(lead.id, "province", v)} type="select" options={PROVINCES} /></td>
-                  <td style={{ padding: "16px 10px" }}><EditableCell value={lead.description} onSave={v => inlineEdit(lead.id, "description", v)} /></td>
+                  <td style={{ padding: "16px 10px" }}><EditableCell value={lead.contactName} onSave={v => inlineEdit(lead.id, "contactName", v)} disabled={!canEdit} /></td>
+                  <td style={{ padding: "16px 10px" }}><EditableCell value={lead.contactPhone} onSave={v => inlineEdit(lead.id, "contactPhone", v)} type="phone" disabled={!canEdit} /></td>
+                  <td style={{ padding: "16px 10px" }}><EditableCell value={lead.contactEmail} onSave={v => inlineEdit(lead.id, "contactEmail", v)} disabled={!canEdit} /></td>
+                  <td style={{ padding: "16px 10px" }}><EditableCell value={lead.province} onSave={v => inlineEdit(lead.id, "province", v)} type="select" options={PROVINCES} disabled={!canEdit} /></td>
+                  <td style={{ padding: "16px 10px" }}><EditableCell value={lead.description} onSave={v => inlineEdit(lead.id, "description", v)} disabled={!canEdit} /></td>
                   {(currentUser?.permissions?.leads?.view_owner || currentUser?.role === 'admin' || currentUser?.role === 'header_saler') && (
                     <td style={{ padding: "16px 10px", whiteSpace: "nowrap", color: RG.primaryMid, fontWeight: 600 }}>
                       {currentUser?.role === 'admin' || currentUser?.role === 'header_saler' || currentUser?.permissions?.leads?.reassign ? (
@@ -140,17 +143,17 @@ export default function LeadsTable({
                       )}
                     </td>
                   )}
-                  <td style={{ padding: "16px 10px" }}><EditableCell value={lead.revenue} onSave={v => inlineEdit(lead.id, "revenue", Number(v))} type="number" /></td>
-                  <td style={{ padding: "16px 10px" }}><EditableCell value={lead.registeredCapital} onSave={v => inlineEdit(lead.id, "registeredCapital", Number(v))} type="number" /></td>
-                  <td style={{ padding: "16px 10px" }}><EditableCell value={lead.profit} onSave={v => inlineEdit(lead.id, "profit", Number(v))} type="number" /></td>
+                  <td style={{ padding: "16px 10px" }}><EditableCell value={lead.revenue} onSave={v => inlineEdit(lead.id, "revenue", Number(v))} type="number" disabled={!canEdit} /></td>
+                  <td style={{ padding: "16px 10px" }}><EditableCell value={lead.registeredCapital} onSave={v => inlineEdit(lead.id, "registeredCapital", Number(v))} type="number" disabled={!canEdit} /></td>
+                  <td style={{ padding: "16px 10px" }}><EditableCell value={lead.profit} onSave={v => inlineEdit(lead.id, "profit", Number(v))} type="number" disabled={!canEdit} /></td>
                   <td style={{ padding: "16px 10px" }}><StatusBadge status={lead.latestStatus} /></td>
-                  <td style={{ padding: "16px 10px", whiteSpace: "nowrap" }}><EditableCell value={lead.latestContactDate} onSave={v => inlineEdit(lead.id, "latestContactDate", v)} type="date" /></td>
+                  <td style={{ padding: "16px 10px", whiteSpace: "nowrap" }}><EditableCell value={lead.latestContactDate} onSave={v => inlineEdit(lead.id, "latestContactDate", v)} type="date" disabled={!canEdit} /></td>
                   <td style={{ padding: "16px 10px", whiteSpace: "nowrap" }}>{lead.nextFollowupDate && lead.nextFollowupDate === today() ? (
                       <span style={{ color: "#000000", fontSize: 12, fontWeight: 700 }}>🔔 ถึงกำหนดแล้ว</span>
                     ) : lead.nextFollowupDate && lead.nextFollowupDate < today() ? (
                       <span style={{ color: RG.danger, fontSize: 12, fontWeight: 700 }}>🔔 {parseDateTH(lead.nextFollowupDate)}</span>
                     ) : (
-                      <EditableCell value={lead.nextFollowupDate} onSave={v => inlineEdit(lead.id, "nextFollowupDate", v)} type="date" />
+                      <EditableCell value={lead.nextFollowupDate} onSave={v => inlineEdit(lead.id, "nextFollowupDate", v)} type="date" disabled={!canEdit} />
                     )}
                   </td>
                   <td style={{ padding: "16px 10px", textAlign: "center" }}>
@@ -158,10 +161,10 @@ export default function LeadsTable({
                       const fups = followups[lead.id] || [];
                       const latestWithPdf = [...fups].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).find(f => f.pdfFile);
                       return latestWithPdf ? (
-                        <a href={`${API_BASE_URL}/uploads/pdfs/${latestWithPdf.pdfFile}`} target="_blank" rel="noopener noreferrer" style={{ color: RG.primary, textDecoration: "none", fontSize: 18, title: "ดูไฟล์สรุปการติดตามล่าสุด" }}>
-                          📄
+                        <a href={`${API_BASE_URL}/uploads/pdfs/${latestWithPdf.pdfFile}`} target="_blank" rel="noopener noreferrer" style={{ color: RG.primary, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }} title="ดูไฟล์สรุปการติดตามล่าสุด">
+                          <FileText size={18} />
                         </a>
-                      ) : <span style={{ color: "#ccc" }}>-</span>;
+                      ) : <span style={{ color: RG.border }}>-</span>;
                     })()}
                   </td>
                 </tr>
@@ -170,7 +173,9 @@ export default function LeadsTable({
             {paginatedLeads.length === 0 && (
               <tr>
                 <td colSpan={19} style={{ padding: "60px 20px", textAlign: "center", color: RG.textMuted }}>
-                  <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
+                  <div style={{ fontSize: 36, marginBottom: 12, display: "flex", justifyContent: "center" }}>
+                    <Search size={36} strokeWidth={1.5} />
+                  </div>
                   <div style={{ fontSize: 16, fontWeight: 600 }}>ไม่พบข้อมูลลีด</div>
                   <p style={{ margin: "4px 0 0 0", fontSize: 14 }}>ลองปรับการค้นหาหรือตัวกรองดูอีกครั้ง</p>
                 </td>

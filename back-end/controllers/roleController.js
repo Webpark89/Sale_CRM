@@ -44,6 +44,14 @@ const updateRole = asyncHandler(async (req, res) => {
   const role = await Role.findById(id);
   if (!role) return res.status(404).json({ error: 'ไม่พบ Role นี้' });
 
+  const noNameChange = !name || name === role.name;
+  const noDisplayChange = !display_name || display_name === role.display_name;
+  const noPermissionsChange = permissions === undefined || JSON.stringify(permissions) === JSON.stringify(role.permissions);
+
+  if (noNameChange && noDisplayChange && noPermissionsChange) {
+    return res.status(400).json({ error: 'ไม่มีการเปลี่ยนแปลงข้อมูล' });
+  }
+
   // ตรวจชื่อซ้ำกับ Role อื่น
   if (name && name !== role.name) {
     const existing = await Role.findByName(name);

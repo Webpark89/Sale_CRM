@@ -1,0 +1,75 @@
+:root {
+  /* === PRIMARY PALETTE (สีหลักของระบบ) === */
+  --color-primary: #6C5CE7;
+  /* สีหลัก (ใช้กับปุ่มหลัก, แท็บที่เลือก) */
+  --color-primary-mid: #5142C7;
+  /* สีหลักโทนเข้ม (ใช้ตอน Hover ปุ่ม) */
+  --color-primary-light: #C9C3F7;
+  /* สีหลักโทนสว่าง (ใช้เป็นพื้นหลังจางๆ) */
+  --color-primary-pale: #E8E5FC;
+  /* สีหลักโทนอ่อนมาก (ใช้กับพื้นหลังทั่วไป) */
+  --color-primary-ghost: #F5F4FE;
+  /* สีหลักโทนเกือบขาว */
+  /* === GRADIENTS (การไล่สี) === */
+  --gradient-primary: linear-gradient(135deg, #7A6DF5 0%, #5142C7 100%);
+  --gradient-soft: linear-gradient(135deg, #E8E5FC 0%, #F5F4FE 100%);
+  --gradient-hero: linear-gradient(160deg, #7A6DF5 0%, #A79DF2 50%, #E8E5FC 100%);
+  /* === NEUTRAL / TEXT (สีข้อความและสีกลาง) === */
+  --color-text: #14163A;
+  /* สีข้อความหลัก (กรมท่าเข้ม อ่านชัดแบบตัวหนา) */
+  --color-text-muted: #6E7191;
+  /* สีข้อความรอง */
+  /* === SURFACES / BACKGROUNDS (สีพื้นหลัง) === */
+  --color-surface: #FFFFFF;
+  /* สีพื้นหลังของการ์ด, กล่องต่างๆ */
+  --color-background: #EEF0F7;
+  /* สีพื้นหลังของทั้งเว็บไซต์ (ม่วงเทาอ่อน) */
+  --color-navbar-bg: #FFFFFF;
+  /* สีพื้นหลังของแถบเมนูด้านบน (TopHeader) */
+  --color-row-odd: #FFFFFF;
+  /* สีพื้นหลังตาราง แถวคี่ */
+  --color-row-even: #F7F7FC;
+  /* สีพื้นหลังตาราง แถวคู่ */
+  /* === BORDERS (สีเส้นขอบ) === */
+  --color-border: #E6E5F5;
+  /* สีเส้นขอบทั่วไป */
+  /* === SIDEBAR (PANEL MENU) === */
+  --color-sidebar-bg: #FFFFFF;
+  /* พื้นหลังเมนูซ้ายสุด สีขาว */
+  --color-sidebar-border: #E6E5F5;
+  /* สีเส้นขอบในเมนูซ้ายสุด */
+  --color-sidebar-logo-bg: linear-gradient(135deg, #7A6DF5 0%, #5142C7 100%);
+  /* สีโลโก้ (พื้นหลังเข้ม) */
+  --color-sidebar-logo-text: #FFFFFF;
+  /* สีตัวอักษรโลโก้ (สีอ่อน/ขาว) */
+  --color-sidebar-active-bg: #6C5CE7;
+  /* ไฮไลต์หลังไอคอนที่ถูกเลือก (สีโทนมืด) */
+  --color-sidebar-active-shadow: 0 4px 16px rgba(108, 92, 231, 0.25);
+  /* เงาเมนูซ้ายตอนถูกเลือก */
+  --color-sidebar-text: #6E7191;
+  /* สีไอคอน/ตัวอักษรเมนูซ้ายปกติ (โทนมืด เพราะพื้นสว่าง) */
+  --color-sidebar-text-active: #FFFFFF;
+  /* สีไอคอน/ตัวอักษรเมนูซ้ายตอนถูกเลือก (โทนสว่าง เพราะพื้นมืด) */
+  --color-sidebar-toggle-bg: #FFFFFF;
+  /* สีปุ่ม Toggle หน้าต่าง */
+  --color-sidebar-toggle-border: #E6E5F5;
+  /* สีเส้นขอบปุ่ม Toggle หน้าต่าง */
+  --color-sidebar-toggle-text: #6E7191;
+  /* สีลูกศรของปุ่ม Toggle */
+  /* === SHADOWS (เงา) === */
+  --shadow-soft: 0 4px 12px rgba(81, 66, 199, 0.06);
+  --shadow-glow: 0 8px 24px rgba(81, 66, 199, 0.18);
+  /* === SEMANTIC COLORS (สีสถานะ) === */
+  --color-success: #1D9A5D;
+  /* สีสำเร็จ (เขียว) เข้มพอให้อ่านออกบนพื้น pale */
+  --color-success-pale: rgba(29, 154, 93, 0.14);
+  --color-warn: #D6A24B;
+  /* สีเตือน (เหลือง/ส้ม) */
+  --color-warn-pale: rgba(214, 162, 75, 0.14);
+  --color-danger: #E2555A;
+  /* สีอันตราย/ลบ (แดงอมชมพู ตามป้าย +2.7% ในภาพ) */
+  --color-danger-pale: rgba(226, 85, 90, 0.14);
+  --color-info: #6C5CE7;
+  /* สีข้อมูล (ม่วง ใช้โทนเดียวกับ primary) */
+  --color-info-pale: rgba(108, 92, 231, 0.14);
+}

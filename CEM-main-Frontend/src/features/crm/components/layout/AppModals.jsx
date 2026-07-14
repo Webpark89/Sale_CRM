@@ -21,6 +21,12 @@ export default function AppModals({
   alertModal, setAlertModal,
   showDeleteConfirm, setShowDeleteConfirm, checked, deleteSelected
 }) {
+  React.useEffect(() => {
+    if (reassignConfirm || showAddLead || selectedLead) {
+      fetchAllSellers();
+    }
+  }, [reassignConfirm, showAddLead, selectedLead]);
+
   return (
     <>
       {showNotif && <NotificationsPanel notifTab={notifTab} currentUser={currentUser} leads={myLeads} onMarkDone={markDone} onViewLead={(lead) => { setSelectedLead(lead); setIsModalReadOnly(true); }} onClose={() => setShowNotif(false)} />}
@@ -63,8 +69,8 @@ export default function AppModals({
               </select>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-              <button onClick={() => { setReassignConfirm(null); setSelectedNewOwner(""); }} style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid #ccc", background: "#fff", cursor: "pointer" }}>ยกเลิก</button>
-              <button onClick={handleReassignClick} disabled={isReassigning} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: RG.primary, color: "#fff", cursor: isReassigning ? "not-allowed" : "pointer" }}>
+              <button onClick={() => { setReassignConfirm(null); setSelectedNewOwner(""); }} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${RG.border}`, background: RG.surface, cursor: "pointer" }}>ยกเลิก</button>
+              <button onClick={handleReassignClick} disabled={isReassigning} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: RG.primary, color: RG.surface, cursor: isReassigning ? "not-allowed" : "pointer" }}>
                 ยืนยันการโอนย้าย
               </button>
             </div>
@@ -77,8 +83,8 @@ export default function AppModals({
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <p style={{ margin: 0 }}>แน่ใจว่าจะเปลี่ยนใช่มั้ย?</p>
             <div style={{ display: "flex", gap: 10, marginTop: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => setConfirmFinalReassign(false)} style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid #ccc", background: "#fff", cursor: "pointer" }}>ยกเลิก</button>
-              <button onClick={handleFinalReassign} disabled={isReassigning} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: RG.danger, color: "#fff", cursor: isReassigning ? "not-allowed" : "pointer" }}>
+              <button onClick={() => setConfirmFinalReassign(false)} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${RG.border}`, background: RG.surface, cursor: "pointer" }}>ยกเลิก</button>
+              <button onClick={handleFinalReassign} disabled={isReassigning} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: RG.danger, color: RG.surface, cursor: isReassigning ? "not-allowed" : "pointer" }}>
                 {isReassigning ? "กำลังบันทึก..." : "ยืนยัน"}
               </button>
             </div>
@@ -95,7 +101,7 @@ export default function AppModals({
             <p style={{ color: RG.text, fontSize: 16, textAlign: "center", margin: 0 }}>
               {alertModal.message}
             </p>
-            <button onClick={() => setAlertModal(null)} style={{ padding: "8px 24px", borderRadius: 6, border: "none", background: RG.primary, color: "#fff", cursor: "pointer", marginTop: 16, fontSize: 14, fontWeight: 600 }}>
+            <button onClick={() => setAlertModal(null)} style={{ padding: "8px 24px", borderRadius: 6, border: "none", background: RG.primary, color: RG.surface, cursor: "pointer", marginTop: 16, fontSize: 14, fontWeight: 600 }}>
               ตกลง
             </button>
           </div>

@@ -9,9 +9,10 @@ const User     = require("../models/User");
 const Lead     = require("../models/Lead");
 const Followup = require("../models/Followup");
 const AuditLog = require("../models/AuditLog");
+const { sendLineGroupNotify } = require("../services/lineService");
 
 // นำเข้าเครื่องมือ (Utils & Middleware) เพื่อช่วยให้โค้ดสะอาด
-const { formatLead, formatFollowup, parseDateForDb, cleanAuditData, getChangesDiff } = require("../utils/formatters");
+const { formatLead, formatFollowup, parseDateForDb, cleanAuditData, getChangesDiff, formatDateLocal } = require("../utils/formatters");
 const asyncHandler = require("../middleware/asyncHandler");
 
 // ==========================================
@@ -106,14 +107,10 @@ const createLead = asyncHandler(async (req, res) => {
 
   if (contact_email) {
     if (/[ก-๙]/.test(contact_email)) {
-      const err = new Error("ห้ามใส่อีเมลเป็นภาษาไทย");
-      err.name = "ValidationError";
-      throw err;
+      return res.status(400).json({ error: "ห้ามใส่อีเมลเป็นภาษาไทย" });
     }
     if (!/^\S+@\S+\.\S+$/.test(contact_email)) {
-      const err = new Error("รูปแบบอีเมลไม่ถูกต้อง");
-      err.name = "ValidationError";
-      throw err;
+      return res.status(400).json({ error: "รูปแบบอีเมลไม่ถูกต้อง" });
     }
   }
 
@@ -141,6 +138,17 @@ const createLead = asyncHandler(async (req, res) => {
   });
 
   const latestRow = await Lead.findByIdWithDetails(insertId);
+
+  // ส่งแจ้งเตือน LINE Group (ทำงานเบื้องหลัง)
+  try {
+    const ownerName = latestRow.owner_username || "ไม่ระบุ";
+    const compName = latestRow.company_name || "-";
+    const contName = latestRow.contact_name || "-";
+    sendLineGroupNotify(`👤 มีลีดใหม่เข้าระบบ: ${compName} (ผู้ติดต่อ: ${contName}, ผู้ดูแล: ${ownerName})`);
+  } catch (err) {
+    console.error("LINE Notification Trigger Error:", err.message);
+  }
+
   res.status(201).json(formatLead(latestRow));
 });
 
@@ -152,7 +160,7 @@ const updateLead = asyncHandler(async (req, res) => {
   if (!existing) return res.status(404).json({ error: "ไม่พบข้อมูลลีด" });
   
   const perms = req.user.permissions || {};
-  const canUpdate = req.user.role_is_system || (perms.leads && perms.leads.update === true) || existing.owner_id === userId;
+  const canUpdate = req.user.role_is_system || req.user.role === 'admin' || (perms.leads && perms.leads.edit === true) || existing.owner_id === userId;
   if (!canUpdate) return res.status(403).json({ error: "ไม่มีสิทธิ์แก้ไขลีดนี้" });
 
   const company_number = req.body.company_number || req.body.companyNumber;
@@ -179,14 +187,10 @@ const updateLead = asyncHandler(async (req, res) => {
 
   if (contact_email) {
     if (/[ก-๙]/.test(contact_email)) {
-      const err = new Error("ห้ามใส่อีเมลเป็นภาษาไทย");
-      err.name = "ValidationError";
-      throw err;
+      return res.status(400).json({ error: "ห้ามใส่อีเมลเป็นภาษาไทย" });
     }
     if (!/^\S+@\S+\.\S+$/.test(contact_email)) {
-      const err = new Error("รูปแบบอีเมลไม่ถูกต้อง");
-      err.name = "ValidationError";
-      throw err;
+      return res.status(400).json({ error: "รูปแบบอีเมลไม่ถูกต้อง" });
     }
   }
 
@@ -211,8 +215,8 @@ const updateLead = asyncHandler(async (req, res) => {
   const newNextDate = req.body.nextFollowupDate || req.body.next_followup_date;
   
   const existingStatus = existing.latest_status || "ฝากโปรไฟล์";
-  const existingDate = existing.latest_contact_date ? new Date(existing.latest_contact_date).toISOString().slice(0,10) : "";
-  const existingNextDate = existing.next_followup_date ? new Date(existing.next_followup_date).toISOString().slice(0,10) : "";
+  const existingDate = formatDateLocal(existing.latest_contact_date) || "";
+  const existingNextDate = formatDateLocal(existing.next_followup_date) || "";
 
   let newFollowup = null;
   if (
@@ -232,6 +236,14 @@ const updateLead = asyncHandler(async (req, res) => {
       status: newStatus || existingStatus,
       next_followup_date: newNextDate || existingNextDate || null
     });
+
+    // ส่งแจ้งเตือน LINE Group (ทำงานเบื้องหลัง)
+    try {
+      const compName = existing.company_name || "-";
+      sendLineGroupNotify(`📞 มีอัปเดตการติดตามลูกค้า: ${compName} | สถานะ: ${newStatus || existingStatus} | รายละเอียด: ${noteText}`);
+    } catch (err) {
+      console.error("LINE Notification Follow-up Update Error:", err.message);
+    }
   }
 
   const updated = await Lead.findByIdWithDetails(id);
@@ -338,7 +350,8 @@ const createFollowup = asyncHandler(async (req, res) => {
 
   const lead = await Lead.findById(leadId);
   if (!lead) return res.status(404).json({ error: "ไม่พบข้อมูลลีด" });
-  if (!req.user.role_is_system && lead.owner_id !== req.user.id) {
+  const hasEditPerm = req.user.role_is_system || req.user.role === 'admin' || (req.user.permissions && req.user.permissions.leads && req.user.permissions.leads.edit === true);
+  if (!hasEditPerm && Number(lead.owner_id) !== Number(req.user.id)) {
     return res.status(403).json({ error: "ไม่มีสิทธิ์ดูการติดตามลีดนี้" });
   }
 
@@ -352,13 +365,24 @@ const createFollowup = asyncHandler(async (req, res) => {
     pdf_file: req.file ? req.file.filename : null
   });
 
+  // ส่งแจ้งเตือน LINE Group (ทำงานเบื้องหลัง)
+  try {
+    const compName = lead.company_name || "-";
+    const fStatus = status || "ไม่ระบุ";
+    const fDetail = detail || "-";
+    sendLineGroupNotify(`📞 มีอัปเดตการติดตามลูกค้า: ${compName} | สถานะ: ${fStatus} | รายละเอียด: ${fDetail}`);
+  } catch (err) {
+    console.error("LINE Notification Follow-up Error:", err.message);
+  }
+
   res.status(201).json({ followup: formatFollowup(newFup) });
 });
 
 const markDone = asyncHandler(async (req, res) => {
   const fup = await Followup.findByIdWithLead(req.params.id);
   if (!fup) return res.status(404).json({ error: "ไม่พบการติดตามนี้" });
-  if (!req.user.role_is_system && fup.owner_id !== req.user.id) {
+  const hasEditPerm = req.user.role_is_system || req.user.role === 'admin' || (req.user.permissions && req.user.permissions.leads && req.user.permissions.leads.edit === true);
+  if (!hasEditPerm && Number(fup.owner_id) !== Number(req.user.id)) {
     return res.status(403).json({ error: "ไม่มีสิทธิ์แก้ไขการติดตามนี้" });
   }
 
@@ -371,7 +395,8 @@ const markDone = asyncHandler(async (req, res) => {
 const deleteFollowup = asyncHandler(async (req, res) => {
   const fup = await Followup.findByIdWithLead(req.params.id);
   if (!fup) return res.status(404).json({ error: "ไม่พบการติดตามนี้" });
-  if (!req.user.role_is_system && fup.owner_id !== req.user.id) {
+  const hasDeletePerm = req.user.role_is_system || req.user.role === 'admin' || (req.user.permissions && req.user.permissions.leads && req.user.permissions.leads.delete === true);
+  if (!hasDeletePerm && Number(fup.owner_id) !== Number(req.user.id)) {
     return res.status(403).json({ error: "ไม่มีสิทธิ์ลบการติดตามนี้" });
   }
 
@@ -403,6 +428,11 @@ const createUser = asyncHandler(async (req, res) => {
   const existing = await User.findByUsername(username);
   if (existing) return res.status(409).json({ error: "Username นี้มีอยู่ในระบบแล้ว" });
 
+  if (display_name) {
+    const existingDisplay = await User.findByDisplayName(display_name);
+    if (existingDisplay) return res.status(409).json({ error: "Display Name นี้มีอยู่ในระบบแล้ว" });
+  }
+
   const Role = require('../models/Role');
   const roleData = await Role.findById(role_id);
   if (!roleData) return res.status(400).json({ error: 'Role ที่เลือกไม่พบในระบบ' });
@@ -422,7 +452,7 @@ const updateUserPassword = asyncHandler(async (req, res) => {
   if (!user) return res.status(404).json({ error: "ไม่พบผู้ใช้งาน" });
 
   let hashedPassword = null;
-  if (password !== undefined) {
+  if (password !== undefined && password !== null && password !== "") {
     if (!password.trim()) return res.status(400).json({ error: "Password ห้ามเป็นช่องว่าง" });
     hashedPassword = await bcrypt.hash(password, 10);
   }
@@ -439,6 +469,12 @@ const updateUserPassword = asyncHandler(async (req, res) => {
   }
 
   const finalDisplayName = display_name !== undefined ? display_name : user.display_name;
+  if (finalDisplayName && finalDisplayName !== user.display_name) {
+    const existingDisplay = await User.findByDisplayName(finalDisplayName);
+    if (existingDisplay && existingDisplay.id !== parseInt(id)) {
+      return res.status(400).json({ error: "Display Name นี้มีผู้ใช้งานแล้ว" });
+    }
+  }
 
   await User.updateCredentials(id, finalUsername, hashedPassword, finalDisplayName);
   res.json({ message: "อัปเดตข้อมูลสำเร็จ", username: finalUsername });
@@ -530,7 +566,8 @@ const acknowledgeLead = asyncHandler(async (req, res) => {
   const lead = await Lead.findById(id);
   if (!lead) return res.status(404).json({ error: 'ไม่พบข้อมูลลีด' });
   
-  if (lead.owner_id !== req.user.id) {
+  const canAck = req.user.role_is_system || req.user.role === 'admin' || Number(lead.owner_id) === Number(req.user.id) || Number(lead.created_by) === Number(req.user.id);
+  if (!canAck) {
     return res.status(403).json({ error: 'ไม่มีสิทธิ์รับทราบลีดนี้' });
   }
 
@@ -552,6 +589,18 @@ const reassignLead = asyncHandler(async (req, res) => {
   if (existing.owner_id == owner_id) return res.status(400).json({ error: "ไม่สามารถโอนย้ายให้เซลส์คนเดิมได้" });
 
   await Lead.reassign(id, owner_id, req.user.id);
+
+  // ส่งแจ้งเตือน LINE Group (ทำงานเบื้องหลัง)
+  try {
+    const newOwner = await User.findById(owner_id);
+    const newOwnerName = newOwner ? (newOwner.display_name || newOwner.username) : "ไม่ระบุ";
+    const compName = existing.company_name || "-";
+    const assignerName = req.user.display_name || req.user.username;
+    sendLineGroupNotify(`🔄 โอนย้ายสิทธิ์ดูแลลีด: ${compName} -> เซลส์คนใหม่: ${newOwnerName} (โอนย้ายโดย: ${assignerName})`);
+  } catch (err) {
+    console.error("LINE Notification Reassign Error:", err.message);
+  }
+
   res.json({ message: "โอนย้ายลีดสำเร็จ" });
 });
 
@@ -565,6 +614,9 @@ const bulkReassignLeads = asyncHandler(async (req, res) => {
   if (from_owner_id == to_owner_id) return res.status(400).json({ error: "ไม่สามารถโอนย้ายให้เซลส์คนเดิมได้" });
 
   await Lead.bulkReassign(from_owner_id, to_owner_id, req.user.id);
+
+  // Bulk reassign line notification removed as requested
+
   res.json({ message: "โอนย้ายลีดทั้งหมดสำเร็จ" });
 });
 

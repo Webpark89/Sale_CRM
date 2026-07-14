@@ -16,11 +16,12 @@ export default function Btn({ onClick, children, variant = "primary", small, sty
   };
 
   const styles = {
-    primary: { background: RG.gradient, color: "#fff" },
-    secondary: { background: "#f5e6ea", color: RG.primary, border: `1px solid ${RG.border}` },
-    danger: { background: "#ffecec", color: RG.danger, border: "1px solid #ffcccc" },
-    success: { background: "#e8f7ef", color: RG.success, border: "1px solid #b2e4cb" },
-    Third: { background: "#ffffff", color: RG.primary, border: `1px solid ${RG.border}` },
+    primary: { background: RG.gradient, color: RG.surface },
+    secondary: { background: RG.primaryGhost, color: RG.primary, border: `1px solid ${RG.border}` },
+    danger: { background: RG.dangerPale, color: RG.danger, border: `1px solid ${RG.danger}44` },
+    success: { background: RG.successPale, color: RG.success, border: `1px solid ${RG.success}44` },
+    Third: { background: RG.surface, color: RG.primary, border: `1px solid ${RG.border}` },
+
   };
 
   return (

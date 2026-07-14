@@ -40,13 +40,17 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
     }
   };
 
-  const handleSaveInfo = () => {
+  const handleSaveInfo = async () => {
     if (taxIdError) {
       toast.error("ไม่สามารถบันทึกได้ เนื่องจากเลขนิติบุคคลซ้ำในระบบ");
       return;
     }
-    onSave(form);
-    setEditing(false);
+    try {
+      await onSave(form);
+      setEditing(false);
+    } catch (e) {
+      // Error is already alerted by saveLead toast
+    }
   };
 
   // 2. ฟังก์ชัน Export JPG
@@ -56,7 +60,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
       const canvas = await html2canvas(exportRef.current, {
         useCORS: true,
         scale: 2, // เพิ่มความคมชัด
-        backgroundColor: "#ffffff"
+        backgroundColor: RG.surface
       });
       const image = canvas.toDataURL("image/jpeg", 0.9);
       const link = document.createElement("a");
@@ -79,7 +83,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
         <div 
           ref={exportRef} 
           style={{ 
-            background: "#fff", 
+            background: RG.surface, 
             padding: "50px", 
             width: "800px", 
             boxSizing: "border-box", 
@@ -89,7 +93,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
           {/* Header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px", borderBottom: `2px solid ${RG.primary}`, paddingBottom: "24px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-              <div style={{ width: 50, height: 50, background: RG.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 24 }}>Q</div>
+              <div style={{ width: 50, height: 50, background: RG.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: RG.surface, fontSize: 24 }}>Q</div>
               <div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: RG.primary, lineHeight: 1.2 }}>Sales_CRM</div>
                 <div style={{ fontSize: 13, color: RG.textMuted }}>Customer Profile Report</div>
@@ -104,36 +108,36 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
           {/* Company Info */}
           <div style={{ marginBottom: "32px" }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: RG.text, marginBottom: "16px", borderLeft: `4px solid ${RG.primary}`, paddingLeft: "8px" }}>ข้อมูลองค์กร (Company Information)</div>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, border: "1px solid #e2e8f0" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, border: `1px solid ${RG.border}` }}>
               <tbody>
                 <tr>
-                  <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, width: "25%", borderBottom: "1px solid #e2e8f0" }}>ชื่อบริษัท</td>
-                  <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", width: "75%" }}>{lead.companyName || "-"}</td>
+                  <td style={{ padding: "12px 16px", background: RG.background, fontWeight: 600, width: "25%", borderBottom: `1px solid ${RG.border}` }}>ชื่อบริษัท</td>
+                  <td style={{ padding: "12px 16px", borderBottom: `1px solid ${RG.border}`, width: "75%" }}>{lead.companyName || "-"}</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>เลขนิติบุคคล</td>
-                  <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>{lead.companyNumber || "-"}</td>
+                  <td style={{ padding: "12px 16px", background: RG.background, fontWeight: 600, borderBottom: `1px solid ${RG.border}` }}>เลขนิติบุคคล</td>
+                  <td style={{ padding: "12px 16px", borderBottom: `1px solid ${RG.border}` }}>{lead.companyNumber || "-"}</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>ผู้ติดต่อ</td>
-                  <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>{lead.contactName || "-"}</td>
+                  <td style={{ padding: "12px 16px", background: RG.background, fontWeight: 600, borderBottom: `1px solid ${RG.border}` }}>ผู้ติดต่อ</td>
+                  <td style={{ padding: "12px 16px", borderBottom: `1px solid ${RG.border}` }}>{lead.contactName || "-"}</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>เบอร์โทรศัพท์</td>
-                  <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>{formatPhoneNumber(lead.contactPhone) || "-"}</td>
+                  <td style={{ padding: "12px 16px", background: RG.background, fontWeight: 600, borderBottom: `1px solid ${RG.border}` }}>เบอร์โทรศัพท์</td>
+                  <td style={{ padding: "12px 16px", borderBottom: `1px solid ${RG.border}` }}>{formatPhoneNumber(lead.contactPhone) || "-"}</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>อีเมล</td>
-                  <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>{lead.contactEmail || "-"}</td>
+                  <td style={{ padding: "12px 16px", background: RG.background, fontWeight: 600, borderBottom: `1px solid ${RG.border}` }}>อีเมล</td>
+                  <td style={{ padding: "12px 16px", borderBottom: `1px solid ${RG.border}` }}>{lead.contactEmail || "-"}</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>จังหวัด</td>
-                  <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>{lead.province || "-"}</td>
+                  <td style={{ padding: "12px 16px", background: RG.background, fontWeight: 600, borderBottom: `1px solid ${RG.border}` }}>จังหวัด</td>
+                  <td style={{ padding: "12px 16px", borderBottom: `1px solid ${RG.border}` }}>{lead.province || "-"}</td>
                 </tr>
                 {(currentUser?.permissions?.leads?.view_owner || currentUser?.role === 'admin' || currentUser?.role === 'header_saler') && (
                   <tr>
-                    <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>เซลผู้ดูแล</td>
-                    <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", color: RG.primaryMid, fontWeight: 600 }}>
+                    <td style={{ padding: "12px 16px", background: RG.background, fontWeight: 600, borderBottom: `1px solid ${RG.border}` }}>เซลผู้ดูแล</td>
+                    <td style={{ padding: "12px 16px", borderBottom: `1px solid ${RG.border}`, color: RG.primaryMid, fontWeight: 600 }}>
                       {currentUser?.role === 'admin' || currentUser?.role === 'header_saler' || currentUser?.permissions?.leads?.reassign ? (
                         <span 
                           onClick={() => { 
@@ -151,7 +155,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                   </tr>
                 )}
                 <tr>
-                  <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600 }}>รายละเอียด</td>
+                  <td style={{ padding: "12px 16px", background: RG.background, fontWeight: 600 }}>รายละเอียด</td>
                   <td style={{ padding: "12px 16px" }}>{lead.description || "-"}</td>
                 </tr>
               </tbody>
@@ -162,15 +166,15 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
           <div style={{ marginBottom: "32px" }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: RG.text, marginBottom: "16px", borderLeft: `4px solid ${RG.primary}`, paddingLeft: "8px" }}>ข้อมูลทางการเงิน (Financial Information)</div>
             <div style={{ display: "flex", gap: "16px" }}>
-              <div style={{ flex: 1, background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "8px", padding: "16px", textAlign: "center" }}>
+              <div style={{ flex: 1, background: RG.surface, border: `1px solid ${RG.border}`, borderRadius: "8px", padding: "16px", textAlign: "center" }}>
                 <div style={{ fontSize: 13, color: RG.textMuted, marginBottom: "8px" }}>ทุนจดทะเบียน (บาท)</div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: RG.text }}>{lead.registeredCapital ? fmtNum(lead.registeredCapital) : "-"}</div>
               </div>
-              <div style={{ flex: 1, background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "8px", padding: "16px", textAlign: "center" }}>
+              <div style={{ flex: 1, background: RG.surface, border: `1px solid ${RG.border}`, borderRadius: "8px", padding: "16px", textAlign: "center" }}>
                 <div style={{ fontSize: 13, color: RG.textMuted, marginBottom: "8px" }}>รายได้รวม (บาท)</div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: RG.primaryMid }}>{lead.revenue ? fmtNum(lead.revenue) : "-"}</div>
               </div>
-              <div style={{ flex: 1, background: "#fff", border: `1px solid ${RG.border}`, borderRadius: "8px", padding: "16px", textAlign: "center" }}>
+              <div style={{ flex: 1, background: RG.surface, border: `1px solid ${RG.border}`, borderRadius: "8px", padding: "16px", textAlign: "center" }}>
                 <div style={{ fontSize: 13, color: RG.textMuted, marginBottom: "8px" }}>กำไรสุทธิ (บาท)</div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: RG.primaryMid }}>{lead.profit ? fmtNum(lead.profit) : "-"}</div>
               </div>
@@ -184,20 +188,20 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: RG.text, borderBottom: "2px solid #cbd5e1" }}>
-                    <th style={{ padding: "10px", textAlign: "center", width: "10%", color: "#fff" }}>ครั้งที่</th>
-                    <th style={{ padding: "10px", textAlign: "left", width: "20%", color: "#fff" }}>วันที่</th>
-                    <th style={{ padding: "10px", textAlign: "left", width: "40%", color: "#fff" }}>รายละเอียด</th>
-                    <th style={{ padding: "10px", textAlign: "center", width: "30%", color: "#fff" }}>สถานะ</th>
+                    <th style={{ padding: "10px", textAlign: "center", width: "10%", color: RG.surface }}>ครั้งที่</th>
+                    <th style={{ padding: "10px", textAlign: "left", width: "20%", color: RG.surface }}>วันที่</th>
+                    <th style={{ padding: "10px", textAlign: "left", width: "40%", color: RG.surface }}>รายละเอียด</th>
+                    <th style={{ padding: "10px", textAlign: "center", width: "30%", color: RG.surface }}>สถานะ</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[...fups].sort((a, b) => b.sequence - a.sequence).map(f => (
-                    <tr key={f.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                    <tr key={f.id} style={{ borderBottom: `1px solid ${RG.border}` }}>
                       <td style={{ padding: "10px", textAlign: "center", color: RG.textMuted }}>{f.sequence}</td>
                       <td style={{ padding: "10px", color: RG.text }}>{parseDateTH(f.date)}</td>
                       <td style={{ padding: "10px", color: RG.text }}>{f.detail || "-"}</td>
                       <td style={{ padding: "10px", textAlign: "center", color: RG.text }}>
-                        <span style={{ display: "inline-block", padding: "4px 8px", borderRadius: "12px", fontSize: 11, fontWeight: 600, background: "#eee", color: "#666" }}>
+                        <span style={{ display: "inline-block", padding: "4px 8px", borderRadius: "12px", fontSize: 11, fontWeight: 600, background: RG.border, color: RG.textMuted }}>
                           {f.status}
                         </span>
                       </td>
@@ -209,7 +213,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
           )}
 
           {/* Footer */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "60px", paddingTop: "20px", borderTop: "1px solid #e2e8f0", fontSize: 11, color: RG.textMuted }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "60px", paddingTop: "20px", borderTop: `1px solid ${RG.border}`, fontSize: 11, color: RG.textMuted }}>
             <div>ระบบบริหารจัดการการขาย Sales_CRM</div>
             <div style={{ fontWeight: 600, letterSpacing: "0.5px" }}>CONFIDENTIAL</div>
           </div>
@@ -217,13 +221,13 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
       </div>
 
       {/* Main UI */}
-      <div style={{ background: "#fff", padding: "10px", borderRadius: "8px" }}>
+      <div style={{ background: RG.surface, padding: "10px", borderRadius: "8px" }}>
         
         {/* ส่วน Header ของ Modal (ปุ่ม Tabs และปุ่ม Export) */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div style={{ display: "flex", gap: 8 }}>
             {["info", "followup"].map(t => (
-              <button key={t} onClick={() => setTab(t)} style={{ padding: "8px 20px", borderRadius: 8, border: `2px solid ${tab === t ? RG.primary : RG.border}`, background: tab === t ? RG.gradient : "#fff", color: tab === t ? "#fff" : RG.textMuted, cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "'Sarabun', sans-serif" }}>
+              <button key={t} onClick={() => setTab(t)} style={{ padding: "8px 20px", borderRadius: 8, border: `2px solid ${tab === t ? RG.primary : RG.border}`, background: tab === t ? RG.gradient : RG.surface, color: tab === t ? RG.surface : RG.textMuted, cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "'Sarabun', sans-serif" }}>
                 {t === "info" ? "ข้อมูลบริษัท" : `ประวัติการติดตาม (${fups.length})`}
               </button>
             ))}
@@ -245,7 +249,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
             {/* Header Report Style */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px", borderBottom: `2px solid ${RG.primary}`, paddingBottom: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                <div style={{ width: 50, height: 50, background: RG.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 24 }}>Q</div>
+                <div style={{ width: 50, height: 50, background: RG.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: RG.surface, fontSize: 24 }}>Q</div>
                 <div>
                   <div style={{ fontSize: 22, fontWeight: 700, color: RG.primary, lineHeight: 1.2 }}>Sales_CRM</div>
                   <div style={{ fontSize: 13, color: RG.textMuted }}>Customer Profile Report</div>
@@ -259,7 +263,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
             {/* Company Info */}
             <div style={{ marginBottom: "24px" }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: RG.text, marginBottom: "16px", borderLeft: `4px solid ${RG.primary}`, paddingLeft: "8px" }}>ข้อมูลองค์กร (Company Information)</div>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, border: "1px solid #e2e8f0" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, border: `1px solid ${RG.border}` }}>
                 <tbody>
                   {[
                     { label: "ชื่อบริษัท", key: "companyName" },
@@ -271,8 +275,8 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                     { label: "รายละเอียด", key: "description" },
                   ].map((field) => (
                     <tr key={field.key}>
-                      <td style={{ padding: "12px 16px", background: "#f8f9fa", fontWeight: 600, width: "25%", borderBottom: "1px solid #e2e8f0" }}>{field.label}</td>
-                      <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", width: "75%" }}>
+                      <td style={{ padding: "12px 16px", background: RG.background, fontWeight: 600, width: "25%", borderBottom: `1px solid ${RG.border}` }}>{field.label}</td>
+                      <td style={{ padding: "12px 16px", borderBottom: `1px solid ${RG.border}`, width: "75%" }}>
                         {editing ? (
                           <>
                             {field.key === "province" ? (
@@ -310,9 +314,9 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
               <div style={{ fontSize: 16, fontWeight: 700, color: RG.text, marginBottom: "16px", borderLeft: `4px solid ${RG.primary}`, paddingLeft: "8px" }}>ข้อมูลทางการเงิน (Financial Information)</div>
               <div style={{ display: "flex", gap: "16px" }}>
                 {[
-                  { label: "ทุนจดทะเบียน (บาท)", key: "registeredCapital", bg: "#f8f9fa", border: "#e9ecef", textBg: RG.textMuted, textVal: RG.text },
-                  { label: "รายได้รวม (บาท)", key: "revenue", bg: "#f0fdf4", border: "#dcfce7", textBg: "#166534", textVal: "#15803d" },
-                  { label: "กำไรสุทธิ (บาท)", key: "profit", bg: "#f0f9ff", border: "#e0f2fe", textBg: "#075985", textVal: "#0369a1" },
+                  { label: "ทุนจดทะเบียน (บาท)", key: "registeredCapital", bg: RG.background, border: "#e9ecef", textBg: RG.textMuted, textVal: RG.text },
+                  { label: "รายได้รวม (บาท)", key: "revenue", bg: "#f0fdf4", border: "#dcfce7", textBg: "#166534", textVal: RG.success },
+                  { label: "กำไรสุทธิ (บาท)", key: "profit", bg: "#f0f9ff", border: "#e0f2fe", textBg: "#075985", textVal: RG.primary },
                 ].map(item => (
                   <div key={item.key} style={{ flex: 1, background: item.bg, border: `1px solid ${item.border}`, borderRadius: "8px", padding: "16px", textAlign: "center" }}>
                     <div style={{ fontSize: 13, color: item.textBg, marginBottom: "8px" }}>{item.label}</div>
@@ -351,7 +355,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
               <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20 }}>
                 <thead>
                   <tr style={{ background: RG.text }}>
-                    {["ครั้งที่", "วันที่", "รายละเอียด", "สถานะ", "ติดตามครั้งถัดไป", "ไฟล์แนบ"].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: "#fff", fontSize: 13, fontWeight: 600 }}>{h}</th>)}
+                    {["ครั้งที่", "วันที่", "รายละเอียด", "สถานะ", "ติดตามครั้งถัดไป", "ไฟล์แนบ"].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: RG.surface, fontSize: 13, fontWeight: 600 }}>{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -379,7 +383,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                 {!showFollowForm ? (
                   <Btn onClick={() => setShowFollowForm(true)}>+ เพิ่มการติดตาม</Btn>
                 ) : (
-                  <div style={{ background: "#ffffff", border: `1px solid ${RG.border}`, borderRadius: 12, padding: 20 }}>
+                  <div style={{ background: RG.surface, border: `1px solid ${RG.border}`, borderRadius: 12, padding: 20 }}>
                     <h4 style={{ margin: "0 0 16px", color: RG.text, fontSize: 14 }}>บันทึกการติดตามใหม่</h4>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
                       <Field label="ครั้งที่"><select value={fForm.sequence} onChange={e => setFForm(f => ({ ...f, sequence: Number(e.target.value) }))} style={selectStyle}>{Array.from({ length: 50 }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}</select></Field>
@@ -398,6 +402,9 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                     </Field>
                     <div style={{ display: "flex", gap: 8 }}>
                       <Btn onClick={() => { 
+                        if (fForm.nextFollowupDate && fForm.date && fForm.nextFollowupDate < fForm.date) {
+                          return toast.error("วันที่ติดตามครั้งถัดไป ห้ามอยู่ก่อน วันที่ติดต่อ");
+                        }
                         const formData = new FormData();
                         formData.append("sequence", fForm.sequence);
                         formData.append("date", fForm.date);

@@ -1,40 +1,62 @@
+// =====================================================================
+// theme.js — ตัวแปรสีทั้งหมด (อ้างอิง CSS Variables จาก src/theme.css)
+// =====================================================================
+// ⚠️  ต้องการเปลี่ยนสี → แก้ที่ไฟล์  src/theme.css  ไฟล์เดียวพอครับ!
+// =====================================================================
 export const RG = {
-  // === PRIMARY PALETTE (Turquoise & Deep Sea) ===
-  primary:       "#03B5AA",   // Teal (from Deep Sea)
-  primaryMid:    "#037971",   // Darker Teal
-  primaryLight:  "#68D8D6",   // Lighter Turquoise
-  primaryPale:   "#C4FFF9",   // Very Pale Mint (from Turquoise Waters)
-  primaryGhost:  "#9CEAEF",   // Pale Blue/Turquoise
-  
-  navbarBg:      "#FFFFFF",   // Clean white navbar
- 
+  // === PRIMARY PALETTE ===
+  primary:       "var(--color-primary)",
+  primaryMid:    "var(--color-primary-mid)",
+  primaryLight:  "var(--color-primary-light)",
+  primaryPale:   "var(--color-primary-pale)",
+  primaryGhost:  "var(--color-primary-ghost)",
+
+  navbarBg:      "var(--color-navbar-bg)",
+
   // === FONTS ===
-  fontHeading:   "'Kanit', sans-serif",
-  fontBody:      "'Kanit', sans-serif",
+  fontHeading:   "var(--font-heading)",
+  fontBody:      "var(--font-body)",
 
   // === GRADIENTS ===
-  gradient:      "linear-gradient(135deg, #07BEB8 0%, #037971 100%)", // Turquoise to Dark Teal
-  gradientSoft:  "linear-gradient(135deg, #C4FFF9 0%, #9CEAEF 100%)",
-  gradientHero:  "linear-gradient(160deg, #07BEB8 0%, #3DCCC7 50%, #C4FFF9 100%)",
- 
+  gradient:      "var(--gradient-primary)",
+  gradientSoft:  "var(--gradient-soft)",
+  gradientHero:  "var(--gradient-hero)",
+
   // === NEUTRALS & EFFECTS ===
-  text:          "#023436",   // Dark Navy/Teal for high contrast text
-  textMuted:     "#049A8F",   // Medium Teal for muted text
-  surface:       "#FFFFFF",   
-  surfaceSolid:  "#FFFFFF",
-  background:    "url('/bg-fluid.jpg') center/cover fixed",   // AI Generated Fluid Background
-  border:        "#9CEAEF",   // Pale turquoise border
-  shadowSoft:    "0 4px 12px rgba(3, 181, 170, 0.15)", // Teal shadow
-  shadowGlow:    "0 4px 15px rgba(3, 181, 170, 0.3)",
-  glassFilter:   "none",      
- 
+  text:          "var(--color-text)",
+  textMuted:     "var(--color-text-muted)",
+  surface:       "var(--color-surface)",
+  surfaceSolid:  "var(--color-surface)",
+  background:    "var(--color-background)",
+  border:        "var(--color-border)",
+  shadowSoft:    "var(--shadow-soft)",
+  shadowGlow:    "var(--shadow-glow)",
+  glassFilter:   "none",
+
   // === TABLE ROW ALTERNATING ===
-  rowOdd:        "#FFFFFF",
-  rowEven:       "#F0FEFC",   // Made much lighter to ensure highlights stand out
- 
+  rowOdd:        "var(--color-row-odd)",
+  rowEven:       "var(--color-row-even)",
+
+  // === SIDEBAR (PANEL MENU) ===
+  sidebarBg:           "var(--color-sidebar-bg)",
+  sidebarBorder:       "var(--color-sidebar-border)",
+  sidebarLogoBg:       "var(--color-sidebar-logo-bg)",
+  sidebarLogoText:     "var(--color-sidebar-logo-text)",
+  sidebarActiveBg:     "var(--color-sidebar-active-bg)",
+  sidebarActiveShadow: "var(--color-sidebar-active-shadow)",
+  sidebarText:         "var(--color-sidebar-text)",
+  sidebarTextActive:   "var(--color-sidebar-text-active)",
+  sidebarToggleBg:     "var(--color-sidebar-toggle-bg)",
+  sidebarToggleBorder: "var(--color-sidebar-toggle-border)",
+  sidebarToggleText:   "var(--color-sidebar-toggle-text)",
+
   // === SEMANTIC ===
-  success:       "#22C55E",   
-  warn:          "#F59E0B",   
-  danger:        "#EF4444",   
-  info:          "#3B82F6",   
+  success:       "var(--color-success)",
+  successPale:   "var(--color-success-pale)",
+  warn:          "var(--color-warn)",
+  warnPale:      "var(--color-warn-pale)",
+  danger:        "var(--color-danger)",
+  dangerPale:    "var(--color-danger-pale)",
+  info:          "var(--color-info)",
+  infoPale:      "var(--color-info-pale)",
 };

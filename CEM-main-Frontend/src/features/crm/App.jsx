@@ -21,6 +21,7 @@ import { fetchLeads, fetchAllFollowups, addLeadToApi, updateLeadToApi, deleteLea
 import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { API_BASE_URL } from "./services/api";
 import { printHTMLTable } from "../../utils/exportHelpers";
+import { UsersRound, LayoutDashboard, FileText, Shield, UserRound } from "lucide-react";
 
 // กำหนดน้ำหนักความสำคัญสำหรับการจัดเรียงข้อมูล
 const PRIORITY_WEIGHT = {
@@ -115,8 +116,16 @@ export default function App() {
     }
   }, []);
 
-  const handleTopScroll = (e) => { if (bottomScrollRef.current) bottomScrollRef.current.scrollLeft = e.target.scrollLeft; };
-  const handleBottomScroll = (e) => { if (topScrollRef.current) topScrollRef.current.scrollLeft = e.target.scrollLeft; };
+  const handleTopScroll = (e) => {
+    if (bottomScrollRef.current && bottomScrollRef.current.scrollLeft !== e.target.scrollLeft) {
+      bottomScrollRef.current.scrollLeft = e.target.scrollLeft;
+    }
+  };
+  const handleBottomScroll = (e) => {
+    if (topScrollRef.current && topScrollRef.current.scrollLeft !== e.target.scrollLeft) {
+      topScrollRef.current.scrollLeft = e.target.scrollLeft;
+    }
+  };
 
   const [showFavorites, setShowFavorites] = useState(false);
   // Fetch fresh user data on load
@@ -143,6 +152,11 @@ export default function App() {
   }, [authenticated]);
 
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  useEffect(() => {
+    if (page === "role_management") {
+      setIsSidebarExpanded(false);
+    }
+  }, [page]);
   const [notifTab, setNotifTab] = useState(1);
   const [filterSellers, setFilterSellers] = useState([]); // [] means all sellers
   const [isSellerDropdownOpen, setIsSellerDropdownOpen] = useState(false);
@@ -157,7 +171,7 @@ export default function App() {
     if (isNewlyAssigned) return true;
 
     if (l.latestStatus === "ปิดการขาย") return false;
-    const isNewlyCreatedByMe = l.latestStatus === "ฝากโปรไฟล์" && (l.createdBy === currentUser?.id || l.createdBy === null);
+    const isNewlyCreatedByMe = Number(l.isAcknowledged) === 0 && (Number(l.createdBy) === Number(currentUser?.id) || l.createdBy === null);
     
     return isNewlyCreatedByMe;
   }).length;
@@ -271,7 +285,49 @@ export default function App() {
     }
   };
 
+  const validateLeadData = (lead) => {
+    if (!lead.companyName || !lead.companyName.trim()) {
+      return "กรุณากรอกชื่อบริษัท";
+    }
+    const phone = lead.contactPhone;
+    if (phone && !/^[\d\s\-\+\(\)]+$/.test(phone)) {
+      return "เบอร์โทรศัพท์ต้องเป็นตัวเลข (อนุญาตให้ใช้ -, space, +, ( ))";
+    }
+    const email = lead.contactEmail;
+    if (email) {
+      if (/[ก-๙]/.test(email)) {
+        return "ห้ามใส่อีเมลเป็นภาษาไทย";
+      }
+      if (!/^\S+@\S+\.\S+$/.test(email)) {
+        return "รูปแบบอีเมลไม่ถูกต้อง";
+      }
+    }
+    const regCap = Number(lead.registeredCapital);
+    const rev = Number(lead.revenue);
+    const prof = Number(lead.profit);
+    if (!isNaN(regCap) && regCap < 0) {
+      return "ทุนจดทะเบียนไม่สามารถติดลบได้";
+    }
+    if (!isNaN(regCap) && regCap === 0 && lead.registeredCapital !== "" && lead.registeredCapital !== undefined && lead.registeredCapital !== null) {
+      return "ทุนจดทะเบียนต้องมากกว่า 0 บาท";
+    }
+    if ((!isNaN(rev) && rev < 0) || (!isNaN(prof) && prof < 0)) {
+      return "รายได้และกำไรไม่สามารถติดลบได้";
+    }
+    if (lead.latestContactDate && lead.nextFollowupDate) {
+      if (new Date(lead.latestContactDate) > new Date(lead.nextFollowupDate)) {
+        return "วันที่ติดต่อต้องไม่ช้ากว่าวันที่นัดหมายถัดไป";
+      }
+    }
+    return null;
+  };
+
   const addLead = async form => {
+    const err = validateLeadData(form);
+    if (err) {
+      toast.error(err);
+      return;
+    }
     try {
       const newLead = await addLeadToApi(form);
       setLeads([newLead, ...leads]);
@@ -283,6 +339,11 @@ export default function App() {
   };
 
   const saveLead = async updated => {
+    const err = validateLeadData(updated);
+    if (err) {
+      toast.error(err);
+      throw new Error(err);
+    }
     const oldLead = leads.find(l => l.id === updated.id);
     try {
       const response = await updateLeadToApi(updated.id, updated);
@@ -306,6 +367,7 @@ export default function App() {
       pushAction({ type: "EDIT_LEAD", payload: { id: updated.id, oldData: oldLead, newData: savedLead } });
     } catch (e) {
       toast.error(e.response?.data?.error || "บันทึกไม่สำเร็จ");
+      throw e;
     }
   };
   
@@ -344,27 +406,11 @@ export default function App() {
       let currentLeads = leads;
       
       if (sectionType === "general") {
-        let updated = false;
-        const isNewlyAssigned = Number(lead.isAcknowledged) === 0 && Number(lead.ownerId) === Number(currentUser?.id);
-        const isNewlyCreatedByMe = lead.latestStatus === "ฝากโปรไฟล์" && (Number(lead.createdBy) === Number(currentUser?.id) || lead.createdBy === null);
-
-        if (isNewlyAssigned) {
-          await acknowledgeLeadApi(lead.id);
-          currentLeads = currentLeads.map(l => l.id === lead.id ? { ...l, isAcknowledged: 1 } : l);
-          updated = true;
-        }
-
-        if (isNewlyCreatedByMe) {
-          await addFollowupToApi(lead.id, { sequence: 1, status: "ต้องตามต่อ", detail: "กดรับทราบการสร้างลีดใหม่ (ระบบเคลียร์แจ้งเตือน)", date: today() });
-          currentLeads = currentLeads.map(l => l.id === lead.id ? { ...l, latestStatus: "ต้องตามต่อ" } : l);
-          loadData(); // Reload followups
-          updated = true;
-        }
-
-        if (updated) {
-          setLeads(currentLeads);
-          return; // Early return to prevent opening the follow-up modal
-        }
+        await acknowledgeLeadApi(lead.id);
+        currentLeads = currentLeads.map(l => l.id === lead.id ? { ...l, isAcknowledged: 1 } : l);
+        setLeads(currentLeads);
+        loadData();
+        return;
       }
 
       const fups = followups[lead.id] || [];
@@ -376,8 +422,13 @@ export default function App() {
         setFollowups(newFollowups);
       }
       setMarkDoneLead(lead);
-    } catch(e) {
+    } catch (e) {
       console.error(e);
+      if (e.response?.data?.error) {
+        setAlertModal({ show: true, type: "error", title: "ข้อผิดพลาด", message: e.response.data.error });
+      } else {
+        setAlertModal({ show: true, type: "error", title: "ข้อผิดพลาด", message: "ไม่สามารถทำรายการได้ กรุณาลองใหม่อีกครั้ง" });
+      }
     }
   };
 
@@ -385,6 +436,11 @@ export default function App() {
     const lead = leads.find(l => l.id === leadId);
     if (!lead) return;
     const updated = { ...lead, [key]: value };
+    const err = validateLeadData(updated);
+    if (err) {
+      toast.error(err);
+      return;
+    }
     try {
       const response = await updateLeadToApi(leadId, updated);
       // Backend ส่งกลับมาในรูปแบบ { lead, followup } ถ้ามีการเปลี่ยนสถานะ/วันที่
@@ -693,11 +749,11 @@ export default function App() {
   }} />;
 
   const navItems = [
-    ...(currentUser?.role_is_system || currentUser?.permissions?.leads?.menu ? [{ key: "leads", label: "จัดการลีด", icon: "👥" }] : []),
-    ...(currentUser?.role_is_system || currentUser?.permissions?.dashboard?.menu ? [{ key: "dashboard", label: "Dashboard", icon: "📊" }] : []),
-    ...(currentUser?.role_is_system || currentUser?.permissions?.reports?.menu ? [{ key: "reports", label: "รายงาน", icon: "📄" }] : []),
-    ...(currentUser?.role_is_system || currentUser?.permissions?.roles?.menu ? [{ key: "role_management", label: "จัดการ Role", icon: "🔐" }] : []),
-    ...(currentUser?.role_is_system || currentUser?.permissions?.users?.menu ? [{ key: "user_management", label: "จัดการผู้ใช้งาน", icon: "⚙️" }] : [])
+    ...(currentUser?.role_is_system || currentUser?.permissions?.leads?.menu ? [{ key: "leads", label: "จัดการลีด", icon: <UsersRound size={20} /> }] : []),
+    ...(currentUser?.role_is_system || currentUser?.permissions?.dashboard?.menu ? [{ key: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} /> }] : []),
+    ...(currentUser?.role_is_system || currentUser?.permissions?.reports?.menu ? [{ key: "reports", label: "รายงาน", icon: <FileText size={20} /> }] : []),
+    ...(currentUser?.role_is_system || currentUser?.permissions?.roles?.menu ? [{ key: "role_management", label: "จัดการ Role", icon: <Shield size={20} /> }] : []),
+    ...(currentUser?.role_is_system || currentUser?.permissions?.users?.menu ? [{ key: "user_management", label: "จัดการผู้ใช้งาน", icon: <UserRound size={20} /> }] : [])
   ];
 
   return (
@@ -705,7 +761,7 @@ export default function App() {
       <div style={{ position: "absolute", top: -20, left: -20, right: -20, bottom: -20, background: RG.background, filter: "blur(12px)", zIndex: 0 }} />
       <div style={{ display: "flex", flexDirection: "row", width: "100%", zIndex: 1 }}>
       <Toaster position="top-right" />
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; } body { margin: 0; padding: 0; height: 100vh; overflow-x: hidden; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #E8FFFD; } ::-webkit-scrollbar-thumb { background: #03B5AA; border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; } table, table * { font-family: 'Sarabun', sans-serif !important; }`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; } body { margin: 0; padding: 0; height: 100vh; overflow-x: hidden; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: var(--color-primary-ghost); } ::-webkit-scrollbar-thumb { background: var(--color-primary-light); border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; } table, table * { font-family: 'Sarabun', sans-serif !important; }`}</style>
 
       {/* Left Sidebar (Hoverable) */}
       <Sidebar 
@@ -756,8 +812,8 @@ export default function App() {
         <Route path="/dashboard" element={
           <div>
             <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #0f766e, #14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", boxShadow: "0 4px 6px rgba(15, 118, 110, 0.2)" }}>
-                📊
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: RG.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: RG.shadowGlow }}>
+                <LayoutDashboard size={24} strokeWidth={2.5} />
               </div>
               <div>
                 <h2 style={{ margin: 0, color: RG.text, fontFamily: RG.fontHeading, fontSize: 24, fontWeight: 700 }}>ภาพรวมและสถิติ (Dashboard)</h2>
@@ -771,8 +827,8 @@ export default function App() {
         <Route path="/reports" element={
           <div>
             <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #0f766e, #14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", boxShadow: "0 4px 6px rgba(15, 118, 110, 0.2)" }}>
-                📄
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: RG.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: RG.shadowGlow }}>
+                <FileText size={24} strokeWidth={2.5} />
               </div>
               <div>
                 <h2 style={{ margin: 0, color: RG.text, fontFamily: RG.fontHeading, fontSize: 24, fontWeight: 700 }}>รายงานการติดตาม (Reports)</h2>
@@ -787,8 +843,8 @@ export default function App() {
         <Route path="/role_management" element={(currentUser?.role_is_system || currentUser?.permissions?.roles?.menu) ? (
           <div>
             <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #0f766e, #14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", boxShadow: "0 4px 6px rgba(15, 118, 110, 0.2)" }}>
-                🔐
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: RG.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: RG.shadowGlow }}>
+                <Shield size={24} strokeWidth={2.5} />
               </div>
               <div>
                 <h2 style={{ margin: 0, color: RG.text, fontFamily: RG.fontHeading, fontSize: 24, fontWeight: 700 }}>จัดการ Role & สิทธิ์การใช้งาน (Role Management)</h2>
@@ -802,8 +858,8 @@ export default function App() {
         <Route path="/user_management" element={(currentUser?.role_is_system || currentUser?.permissions?.users?.menu) ? (
           <div>
             <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #0f766e, #14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", boxShadow: "0 4px 6px rgba(15, 118, 110, 0.2)" }}>
-                ⚙️
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: RG.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: RG.shadowGlow }}>
+                <UserRound size={24} strokeWidth={2.5} />
               </div>
               <div>
                 <h2 style={{ margin: 0, color: RG.text, fontFamily: RG.fontHeading, fontSize: 24, fontWeight: 700 }}>จัดการผู้ใช้งาน (User Management)</h2>

@@ -4,6 +4,7 @@
 // ==========================================
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
+import { RG } from '../constants/theme';
 
 // ─── สร้าง permissions object เริ่มต้น ──────────────────────────────────────
 const buildDefaultPermissions = (existing = {}) => {
@@ -57,12 +58,12 @@ const styles = {
     zIndex: 1000, padding: 20
   },
   modal: {
-    background: '#fff', borderRadius: 12, width: '100%', maxWidth: 1100,
+    background: RG.surface, borderRadius: 12, width: '100%', maxWidth: 1250,
     maxHeight: '90vh', display: 'flex', flexDirection: 'column',
     boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
   },
   header: {
-    padding: '16px 24px', background: '#0fa9a8', color: '#fff',
+    padding: '16px 24px', background: RG.primary, color: RG.surface,
     borderTopLeftRadius: 12, borderTopRightRadius: 12,
     display: 'flex', justifyContent: 'space-between', alignItems: 'center'
   },
@@ -73,27 +74,27 @@ const styles = {
     display: 'flex', justifyContent: 'flex-end', gap: 10
   },
   inputGroup: { marginBottom: 12 },
-  label: { display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 600, color: '#374151' },
+  label: { display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 600, color: RG.text },
   input: {
-    width: '100%', padding: '9px 12px', border: '1px solid #d1d5db',
+    width: '100%', padding: '9px 12px', border: `1px solid ${RG.border}`,
     borderRadius: 8, fontSize: 14, outline: 'none', boxSizing: 'border-box'
   },
   row2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 },
-  grid3: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 },
+  grid3: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16 },
   
   card: {
     border: '1px solid #b2ebf2', borderRadius: 8, padding: '16px 20px',
-    background: '#fff', position: 'relative'
+    background: RG.surface, position: 'relative'
   },
   cardTitle: {
-    color: '#0fa9a8', fontSize: 16, fontWeight: 700, margin: '0 0 16px 0'
+    color: RG.primary, fontSize: 16, fontWeight: 700, margin: '0 0 16px 0'
   },
   row: { display: 'flex', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 16 },
-  rowLabel: { width: 60, fontWeight: 600, color: '#1e293b', fontSize: 14 },
+  rowLabel: { width: 60, fontWeight: 600, color: RG.text, fontSize: 14 },
   radioLabel: { display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 },
   checkboxLabel: { display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 },
-  checkbox: { width: 16, height: 16, accentColor: '#0fa9a8', cursor: 'pointer' },
-  radio: { width: 16, height: 16, accentColor: '#0fa9a8', cursor: 'pointer' },
+  checkbox: { width: 16, height: 16, accentColor: RG.primary, cursor: 'pointer' },
+  radio: { width: 16, height: 16, accentColor: RG.primary, cursor: 'pointer' },
   divider: { height: 1, background: '#b2ebf2', borderStyle: 'dashed', margin: '16px 0', borderTop: '1px dashed #b2ebf2' },
   
   treeLine: { borderLeft: '2px dashed #cbd5e1', paddingLeft: 16, marginLeft: 6, marginTop: 8 },
@@ -104,16 +105,16 @@ const styles = {
   },
 
   btnPrimary: {
-    padding: '9px 20px', background: '#0fa9a8', color: '#fff',
+    padding: '9px 20px', background: RG.primary, color: RG.surface,
     border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 14
   },
   btnSecondary: {
-    padding: '9px 20px', background: '#f1f5f9', color: '#374151',
-    border: '1px solid #d1d5db', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 14
+    padding: '9px 20px', background: '#f1f5f9', color: RG.text,
+    border: `1px solid ${RG.border}`, borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 14
   },
   closeBtn: {
     background: 'none', border: 'none', fontSize: 24, cursor: 'pointer',
-    color: '#fff', lineHeight: 1
+    color: RG.surface, lineHeight: 1
   }
 };
 
@@ -212,7 +213,7 @@ const RolePermissionForm = ({ role = null, onSave, onClose, isSaving = false }) 
                   <div style={styles.treeLine}>
                     <div style={styles.treeItem}>
                       <div style={styles.treeCorner}></div>
-                      <label style={{ ...styles.checkboxLabel, color: permissions.leads.create ? '#1e293b' : '#94a3b8' }}>
+                      <label style={{ ...styles.checkboxLabel, color: permissions.leads.create ? RG.text : RG.textMuted }}>
                         <input type="checkbox" style={styles.checkbox} disabled={!permissions.leads.create} checked={permissions.leads.assign} onChange={e => setPerm('leads', 'assign', e.target.checked)} /> Assign Lead
                       </label>
                     </div>
@@ -240,7 +241,7 @@ const RolePermissionForm = ({ role = null, onSave, onClose, isSaving = false }) 
                 <div style={styles.treeLine}>
                   <div style={styles.treeItem}>
                     <div style={styles.treeCorner}></div>
-                    <label style={{ ...styles.checkboxLabel, color: permissions.leads.view_owner ? '#1e293b' : '#94a3b8' }}>
+                    <label style={{ ...styles.checkboxLabel, color: permissions.leads.view_owner ? RG.text : RG.textMuted }}>
                       <input type="checkbox" style={styles.checkbox} disabled={!permissions.leads.view_owner} checked={permissions.leads.reassign} onChange={e => setPerm('leads', 'reassign', e.target.checked)} /> Reassign (โอนย้าย)
                     </label>
                   </div>
@@ -308,7 +309,7 @@ const RolePermissionForm = ({ role = null, onSave, onClose, isSaving = false }) 
           </div>
 
           {/* Other Basic Permissions (Roles, Users) - Hidden but maintained in state */}
-          <details style={{ cursor: 'pointer', color: '#64748b', fontSize: 14 }}>
+          <details style={{ cursor: 'pointer', color: RG.textMuted, fontSize: 14 }}>
             <summary>สิทธิ์ขั้นสูง (Roles & Users Management)</summary>
             <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>

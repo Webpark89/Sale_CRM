@@ -143,5 +143,6 @@ module.exports = {
   formatFollowup,
   parseDateForDb,
   cleanAuditData,
-  getChangesDiff
+  getChangesDiff,
+  formatDateLocal
 };

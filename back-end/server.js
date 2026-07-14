@@ -10,6 +10,9 @@ const leadRoutes = require("./routes/leads");
 const app = express();
 const PORT = process.env.PORT || 3001;
 const authRoutes = require("./routes/auth");
+// ให้ระบบอ่านข้อมูลแบบ LINE Webhook แบบ raw body ได้โดยตรง ก่อนที่ express.json จะทำงาน
+app.use("/api/line", require("./routes/line"));
+
 // ให้ระบบอ่านข้อมูลแบบ JSON ได้ และให้ Frontend ทักเข้ามาได้
 app.use(express.json());
 app.use(cors());
@@ -20,6 +23,8 @@ app.use("/api/leads", require("./routes/leads"));
 app.use("/api/leads/:leadId/followups", require("./routes/followups"));
 app.use("/api/followups", require("./routes/followups"));
 
+const { initDailyFollowupCron, sendDailyFollowupSummary } = require("./cron/dailyFollowups");
+
 // เสิร์ฟไฟล์ Static เพื่อให้เข้าถึงไฟล์ PDF ได้
 const path = require("path");
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -28,7 +33,19 @@ app.get("/", (req, res) => {
   res.json({ message: "Hello CRM! Backend Started" });
 });
 
+// Route ทดสอบการส่งแจ้งเตือนสรุปประจำวันเข้า LINE
+app.get("/api/test/daily-followups", async (req, res) => {
+  try {
+    const result = await sendDailyFollowupSummary();
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // สั่งให้เซิร์ฟเวอร์เริ่มทำงาน
 app.listen(PORT, () => {
   console.log(`เซิร์ฟเวอร์เปิดแล้วที่ http://localhost:${PORT}`);
+  // เริ่มการทำงานของ Cron Job สรุปข้อมูลประจำวัน
+  initDailyFollowupCron();
 });

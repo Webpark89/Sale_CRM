@@ -4,7 +4,7 @@ import { fmtNum, parseDateTH, formatNumberWithCommas, parseNumberFromCommas, for
 import { inputStyle, selectStyle } from "./styles";
 import { STATUS_COLORS } from "../../constants/status";
 
-export default function EditableCell({ value, onSave, type = "text", options }) {
+export default function EditableCell({ value, onSave, type = "text", options, disabled = false }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(value);
 
@@ -20,9 +20,9 @@ export default function EditableCell({ value, onSave, type = "text", options }) 
   if (!editing) {
     return (
       <span 
-        onClick={() => setEditing(true)} 
+        onClick={() => { if (!disabled) setEditing(true); }} 
         style={{ 
-          cursor: "pointer", 
+          cursor: disabled ? "default" : "pointer", 
           display: "block", 
           minWidth: 40, 
           maxWidth: type === "text" ? 180 : "none",
@@ -31,11 +31,11 @@ export default function EditableCell({ value, onSave, type = "text", options }) 
           textOverflow: "ellipsis",
           padding: "2px 4px", 
           borderRadius: 4, 
-          color: STATUS_COLORS[val] ? STATUS_COLORS[val] : "#1f2937", 
+          color: STATUS_COLORS[val] ? STATUS_COLORS[val] : RG.text, 
           fontSize: 13,
           fontWeight: 500
         }} 
-        title={val ? String(val) : "คลิกเพื่อแก้ไข"}
+        title={disabled ? (val ? String(val) : "—") : (val ? String(val) : "คลิกเพื่อแก้ไข")}
       >
         {type === "number" ? fmtNum(val) : type === "date" ? parseDateTH(val) : type === "phone" ? formatPhoneNumber(val) : val || "—"}
       </span>

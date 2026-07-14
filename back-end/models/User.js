@@ -6,6 +6,7 @@ const parseUser = (user) => {
   if (typeof user.permissions === 'string') {
     try { user.permissions = JSON.parse(user.permissions); } catch (e) { user.permissions = {}; }
   }
+  user.role = user.role_name; // ดึงไปแมปกับโค้ดส่วนอื่นที่เรียกใช้ req.user.role
   return user;
 };
 
@@ -35,6 +36,14 @@ const User = {
     const [pwRows] = await db.execute('SELECT password FROM users WHERE id = ?', [user.id]);
     if (pwRows[0]) user.password = pwRows[0].password;
     return user;
+  },
+
+  findByDisplayName: async (displayName) => {
+    const [rows] = await db.execute(
+      baseUserQuery + ' WHERE u.display_name = ? AND u.is_deleted = 0 LIMIT 1',
+      [displayName]
+    );
+    return parseUser(rows[0]);
   },
 
   findById: async (id) => {
