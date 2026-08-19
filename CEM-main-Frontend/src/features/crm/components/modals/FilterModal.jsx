@@ -1,5 +1,5 @@
 import React from "react";
-import { STATUSES, STATUS_COLORS } from "../../constants/status";
+import { STAGES, STAGE_COLORS, ALL_STATUSES, STATUS_COLORS } from "../../constants/status";
 import { RG } from "../../constants/theme";
 import Modal from "../common/Modal";
 import Btn from "../common/Btn";
@@ -21,6 +21,8 @@ export default function FilterModal({
   onClose, 
   filterStatus, 
   setFilterStatus, 
+  filterLatestStatus,
+  setFilterLatestStatus,
   finFilters, 
   setFinFilters,
   dateFilters,
@@ -29,6 +31,7 @@ export default function FilterModal({
   setFilterProvince
 }) {
   const [localStatus, setLocalStatus] = React.useState([...filterStatus]);
+  const [localLatestStatus, setLocalLatestStatus] = React.useState(Array.isArray(filterLatestStatus) ? [...filterLatestStatus] : []);
   const [localFin, setLocalFin] = React.useState(finFilters);
   const [localProvince, setLocalProvince] = React.useState(Array.isArray(filterProvince) ? [...filterProvince] : []);
   const [localDate, setLocalDate] = React.useState(dateFilters || {
@@ -38,6 +41,10 @@ export default function FilterModal({
 
   const toggleStatus = (s) => {
     setLocalStatus(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+  };
+
+  const toggleLatestStatus = (s) => {
+    setLocalLatestStatus(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
   };
 
   const toggleProvince = (p) => {
@@ -115,6 +122,7 @@ export default function FilterModal({
 
   const handleApply = () => {
     setFilterStatus(localStatus);
+    if (setFilterLatestStatus) setFilterLatestStatus(localLatestStatus);
     setFinFilters(localFin);
     if (setDateFilters) setDateFilters(localDate);
     if (setFilterProvince) setFilterProvince(localProvince);
@@ -123,6 +131,7 @@ export default function FilterModal({
 
   const handleClear = () => {
     setLocalStatus([]);
+    setLocalLatestStatus([]);
     setLocalProvince([]);
     setLocalFin({
       revenue: { min: "", max: "" },
@@ -185,11 +194,11 @@ export default function FilterModal({
     <Modal title="ตัวกรองขั้นสูง (Advanced Filters)" onClose={onClose} width={500}>
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         
-        {/* Status Filter */}
+        {/* Stage Filter */}
         <div>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 12 }}>กรองตามสถานะ</label>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 12 }}>กรองตาม Stage</label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {STATUSES.map(s => {
+            {STAGES.map(s => {
               const isActive = localStatus.includes(s);
               return (
                 <button 
@@ -198,10 +207,41 @@ export default function FilterModal({
                   style={{ 
                     padding: "6px 12px", 
                     borderRadius: 20, 
-                    border: `1.5px solid ${isActive ? STATUS_COLORS[s] : RG.border}`, 
-                    background: isActive ? STATUS_COLORS[s] + "22" : RG.surface, 
-                    color: isActive ? STATUS_COLORS[s] : RG.textMuted, 
+                    border: `1.5px solid ${isActive ? STAGE_COLORS[s] : RG.border}`, 
+                    background: isActive ? STAGE_COLORS[s] + "22" : RG.surface, 
+                    color: isActive ? STAGE_COLORS[s] : RG.textMuted, 
                     fontSize: 13, 
+                    cursor: "pointer", 
+                    fontWeight: isActive ? 700 : 400, 
+                    fontFamily: "'Sarabun', sans-serif",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  {s}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Status Filter */}
+        <div>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 12 }}>กรองตามสถานะ (Status)</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {ALL_STATUSES.map(s => {
+              const isActive = localLatestStatus.includes(s);
+              const sColor = STATUS_COLORS[s] || RG.textMuted;
+              return (
+                <button 
+                  key={s} 
+                  onClick={() => toggleLatestStatus(s)} 
+                  style={{ 
+                    padding: "4px 10px", 
+                    borderRadius: 20, 
+                    border: `1.5px solid ${isActive ? sColor : RG.border}`, 
+                    background: isActive ? sColor + "22" : RG.surface, 
+                    color: isActive ? sColor : RG.textMuted, 
+                    fontSize: 12, 
                     cursor: "pointer", 
                     fontWeight: isActive ? 700 : 400, 
                     fontFamily: "'Sarabun', sans-serif",

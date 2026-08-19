@@ -1,4 +1,4 @@
-import { STATUSES } from "../constants/status";
+import { STAGE_STATUS_MAP } from "../constants/status";
 
 export function uuid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -59,10 +59,11 @@ export function createNewLead(form) {
   return {
     id: uuid(),
     ...form,
+    stage: form.stage || 'Contact',
     revenue: Number(form.revenue) || 0,
     registeredCapital: Number(form.registeredCapital) || 0,
     profit: Number(form.profit) || 0,
-    latestStatus: form.latestStatus || STATUSES[0],
+    latestStatus: form.latestStatus || STAGE_STATUS_MAP['Contact'][0],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

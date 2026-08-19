@@ -6,6 +6,7 @@ export default function LeadsPagination({
   filteredLength,
   totalLength,
   filterStatus,
+  filterLatestStatus = [],
   filterProvince,
   actualPage,
   totalPages,
@@ -15,7 +16,8 @@ export default function LeadsPagination({
     <div style={{ padding: "10px 16px", background: RG.surface, borderTop: `1px solid ${RG.border}`, fontSize: 12, color: RG.textMuted, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <span>แสดง {paginatedLeads.length} จาก {filteredLength} รายการ (ทั้งหมด {totalLength} รายการ)</span>
-        {filterStatus.length > 0 && <span style={{ background: RG.background, padding: "2px 8px", borderRadius: 10 }}>สถานะ: {filterStatus.join(", ")}</span>}
+        {filterStatus.length > 0 && <span style={{ background: RG.background, padding: "2px 8px", borderRadius: 10 }}>Stage: {filterStatus.join(", ")}</span>}
+        {filterLatestStatus.length > 0 && <span style={{ background: RG.background, padding: "2px 8px", borderRadius: 10 }}>สถานะ: {filterLatestStatus.join(", ")}</span>}
         {filterProvince.length > 0 && <span style={{ background: RG.background, padding: "2px 8px", borderRadius: 10 }}>จังหวัด: {filterProvince.join(", ")}</span>}
       </div>
       {totalPages > 1 && (

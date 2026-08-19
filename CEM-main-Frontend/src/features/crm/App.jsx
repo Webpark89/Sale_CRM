@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import { Toaster, toast } from 'react-hot-toast';
-import { STATUSES, STATUS_COLORS, STATUS_ENUM } from "./constants/status";
+import { STAGES, STAGE_STATUS_MAP, ALL_STATUSES, STAGE_PRIORITY, isValidStageStatus } from "./constants/status";
 import { RG } from "./constants/theme";
 import { createNewLead, parseDateTH, today, uuid, PROVINCES } from "./crmHelpers/helpers";
 import LoginScreen from "./components/auth/LoginScreen";
@@ -16,23 +16,22 @@ import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
 import UserManagement from "./pages/UserManagement";
 import RoleManagementPage from "./pages/RoleManagementPage";
+import RoleFormPage from "./pages/RoleFormPage";
 import LeadsPage from "./pages/LeadsPage";
-import { fetchLeads, fetchAllFollowups, addLeadToApi, updateLeadToApi, deleteLeadFromApi, restoreLeadsApi, hardDeleteLeadApi, fetchAllLeadsMaster, toggleLeadStarApi, deleteMultipleLeadsFromApi, addFollowupToApi, markFollowupDoneApi, acknowledgeLeadApi } from "./services/apiService";
+import LeadDetailPage from "./pages/LeadDetailPage";
+import { fetchLeads, fetchAllFollowups, addLeadToApi, updateLeadToApi, deleteLeadFromApi, restoreLeadsApi, hardDeleteLeadApi, fetchAllLeadsMaster, toggleLeadStarApi, deleteMultipleLeadsFromApi, addFollowupToApi, markFollowupDoneApi, acknowledgeLeadApi, fetchAllUsers, reassignLeadApi } from "./services/apiService";
 import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
-import { API_BASE_URL } from "./services/api";
+import api, { API_BASE_URL } from "./services/api";
 import { printHTMLTable } from "../../utils/exportHelpers";
 import { UsersRound, LayoutDashboard, FileText, Shield, UserRound } from "lucide-react";
 
-// กำหนดน้ำหนักความสำคัญสำหรับการจัดเรียงข้อมูล
+// น้ำหนักความสำคัญตาม Stage
 const PRIORITY_WEIGHT = {
-  [STATUS_ENUM.CLOSED]: 7,
-  "ด่วนมาก": 6,
-  [STATUS_ENUM.MEETING]: 5,
-  [STATUS_ENUM.FOLLOW_UP]: 4,
-  [STATUS_ENUM.PROFILE]: 3,
-  "ทั่วไป": 2,
-  [STATUS_ENUM.UNREACHABLE]: 1,
-  [STATUS_ENUM.NOT_INTERESTED]: 0
+  Approval: 5,
+  Proposal: 4,
+  Meeting:  3,
+  Contact:  2,
+  Closed:   1,
 };
 
 export default function App() {
@@ -58,9 +57,9 @@ export default function App() {
   // ต้องคำนวณหลังจาก currentUser พร้อมแล้ว จึงใช้ฟังก์ชันช่วย
   const getDefaultPage = (user) => {
     if (!user) return "leads";
-    if (user.role_is_system || user.permissions?.leads?.menu) return "leads";
-    if (user.permissions?.dashboard?.menu) return "dashboard";
-    if (user.permissions?.reports?.menu) return "reports";
+    if (user.role_is_system || user.permissions?.leads?.menu !== false) return "leads";
+    if (user.permissions?.dashboard?.menu !== false) return "dashboard";
+    if (user.permissions?.reports?.menu !== false) return "reports";
     if (user.permissions?.roles?.menu) return "role_management";
     if (user.permissions?.users?.menu) return "user_management";
     return "leads"; // fallback
@@ -69,6 +68,12 @@ export default function App() {
   const navigate = useNavigate();
   const page = location.pathname.substring(1) || getDefaultPage(currentUser);
   const [selectedLead, setSelectedLead] = useState(null);
+
+  const handleViewLead = useCallback((leadOrId) => {
+    if (!leadOrId) return;
+    const id = typeof leadOrId === 'object' ? leadOrId.id : leadOrId;
+    navigate('/lead/' + id);
+  }, [navigate]);
   const [showAddLead, setShowAddLead] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
   
@@ -83,6 +88,7 @@ export default function App() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState([]);
+  const [filterLatestStatus, setFilterLatestStatus] = useState([]);
   const [isModalReadOnly, setIsModalReadOnly] = useState(false);
   const [filterProvince, setFilterProvince] = useState([]);
   
@@ -133,7 +139,6 @@ export default function App() {
     const fetchMe = async () => {
       if (authenticated && currentUser?.id) {
         try {
-          const { default: api } = await import('./services/api.js');
           const res = await api.get('/auth/me');
           if (res.data) {
             let u = res.data;
@@ -170,20 +175,12 @@ export default function App() {
     const isNewlyAssigned = Number(l.isAcknowledged) === 0 && Number(l.ownerId) === Number(currentUser?.id);
     if (isNewlyAssigned) return true;
 
-    if (l.latestStatus === "ปิดการขาย") return false;
+    if (l.stage === 'Closed') return false;
     const isNewlyCreatedByMe = Number(l.isAcknowledged) === 0 && (Number(l.createdBy) === Number(currentUser?.id) || l.createdBy === null);
     
     return isNewlyCreatedByMe;
   }).length;
-  const dueTodayCount = myLeads.filter(l => (Number(l.ownerId) === Number(currentUser?.id) && l.nextFollowupDate && l.nextFollowupDate <= currentDateStr && l.latestStatus !== "ปิดการขาย")).length;
-
-  console.log("Notification Debug:", { 
-    generalCount, 
-    dueTodayCount,
-    myLeadsLength: myLeads.length,
-    newAssigned: myLeads.filter(l => Number(l.isAcknowledged) === 0 && Number(l.ownerId) === Number(currentUser?.id)),
-    currentUserId: currentUser?.id
-  });
+  const dueTodayCount = myLeads.filter(l => (Number(l.ownerId) === Number(currentUser?.id) && l.nextFollowupDate && l.nextFollowupDate <= currentDateStr && l.stage !== 'Closed')).length;
 
   // Undo/Redo Stack
   const [history, setHistory] = useState([]);
@@ -289,6 +286,14 @@ export default function App() {
     if (!lead.companyName || !lead.companyName.trim()) {
       return "กรุณากรอกชื่อบริษัท";
     }
+    // validate stage
+    if (lead.stage && !STAGES.includes(lead.stage)) {
+      return `Stage "${lead.stage}" ไม่ถูกต้อง`;
+    }
+    // validate status vs stage
+    if (lead.stage && lead.latestStatus && !isValidStageStatus(lead.stage, lead.latestStatus)) {
+      return `Status "${lead.latestStatus}" ไม่สอดคล้องกับ Stage "${lead.stage}"`;
+    }
     const phone = lead.contactPhone;
     if (phone && !/^[\d\s\-\+\(\)]+$/.test(phone)) {
       return "เบอร์โทรศัพท์ต้องเป็นตัวเลข (อนุญาตให้ใช้ -, space, +, ( ))";
@@ -305,14 +310,15 @@ export default function App() {
     const regCap = Number(lead.registeredCapital);
     const rev = Number(lead.revenue);
     const prof = Number(lead.profit);
+    const dealVal = Number(lead.dealValue);
     if (!isNaN(regCap) && regCap < 0) {
       return "ทุนจดทะเบียนไม่สามารถติดลบได้";
     }
     if (!isNaN(regCap) && regCap === 0 && lead.registeredCapital !== "" && lead.registeredCapital !== undefined && lead.registeredCapital !== null) {
       return "ทุนจดทะเบียนต้องมากกว่า 0 บาท";
     }
-    if ((!isNaN(rev) && rev < 0) || (!isNaN(prof) && prof < 0)) {
-      return "รายได้และกำไรไม่สามารถติดลบได้";
+    if ((!isNaN(rev) && rev < 0) || (!isNaN(prof) && prof < 0) || (!isNaN(dealVal) && dealVal < 0)) {
+      return "รายได้, กำไร และมูลค่าโครงการไม่สามารถติดลบได้";
     }
     if (lead.latestContactDate && lead.nextFollowupDate) {
       if (new Date(lead.latestContactDate) > new Date(lead.nextFollowupDate)) {
@@ -420,8 +426,12 @@ export default function App() {
         const updated = fups.map(f => f.id === fup.id ? { ...f, completed: true } : f);
         const newFollowups = { ...followups, [lead.id]: updated };
         setFollowups(newFollowups);
+        
+        // อัปเดต Lead ให้ nextFollowupDate กลายเป็น null 
+        currentLeads = currentLeads.map(l => l.id === lead.id ? { ...l, nextFollowupDate: null } : l);
+        setLeads(currentLeads);
       }
-      setMarkDoneLead(lead);
+      setMarkDoneLead(currentLeads.find(l => l.id === lead.id) || lead);
     } catch (e) {
       console.error(e);
       if (e.response?.data?.error) {
@@ -436,18 +446,25 @@ export default function App() {
     const lead = leads.find(l => l.id === leadId);
     if (!lead) return;
     const updated = { ...lead, [key]: value };
-    const err = validateLeadData(updated);
+    // ถ้าเปลี่ยนแค่ stage ให้ skip stage-status cross-validation (status จะเปลี่ยนแยกอีกครั้ง)
+    const validationTarget = key === "stage" ? { ...updated, latestStatus: null } : updated;
+    const err = validateLeadData(validationTarget);
     if (err) {
       toast.error(err);
       return;
     }
+    // ถ้าเปลี่ยน stage ให้ clear latestStatus ใน local state แต่ไม่ส่ง null ไป backend
+    const payload = key === "stage" ? { ...updated, latestStatus: undefined } : updated;
     try {
-      const response = await updateLeadToApi(leadId, updated);
+      const response = await updateLeadToApi(leadId, payload);
       // Backend ส่งกลับมาในรูปแบบ { lead, followup } ถ้ามีการเปลี่ยนสถานะ/วันที่
       const savedLead = response.lead || response;
       const newFollowup = response.followup || null;
 
-      const newLeads = leads.map(l => l.id === leadId ? savedLead : l);
+      // ถ้าเปลี่ยน stage ให้ reset latestStatus ใน local state รอให้ sales เลือก status ใหม่
+      const displayLead = key === "stage" ? { ...savedLead, latestStatus: null } : savedLead;
+
+      const newLeads = leads.map(l => l.id === leadId ? displayLead : l);
       setLeads(newLeads);
 
       // ถ้า Backend งอก Followup ใหม่มาให้ อัปเดต State ทันทีโดยไม่ต้อง Refresh
@@ -458,11 +475,12 @@ export default function App() {
         }));
       }
 
-      pushAction({ type: "EDIT_LEAD", payload: { id: leadId, oldData: lead, newData: savedLead } });
+      pushAction({ type: "EDIT_LEAD", payload: { id: leadId, oldData: lead, newData: displayLead } });
     } catch (e) {
       toast.error(e.response?.data?.error || "แก้ไขไม่สำเร็จ");
     }
   };
+
 
   const toggleStar = async (leadId) => {
     try {
@@ -472,6 +490,7 @@ export default function App() {
       pushAction({ type: "TOGGLE_STAR", payload: { id: leadId } });
     } catch (e) {
       console.error(e);
+      toast.error(e.response?.data?.error || "ไม่สามารถเปลี่ยนสถานะดาวได้");
     }
   };
 
@@ -505,7 +524,6 @@ export default function App() {
   const fetchAllSellers = async () => {
     if (allSellers.length > 0) return; // already fetched
     try {
-      const { fetchAllUsers } = await import('./services/apiService.js');
       const users = await fetchAllUsers();
       // Filter out only active users who can own leads
       const sellers = users.filter(u => u.is_active === 1 && u.role_name !== 'admin' && u.role_is_system !== 1);
@@ -521,7 +539,6 @@ export default function App() {
   };
 
   const handleReassign = async () => {
-    const { reassignLeadApi } = await import('./services/apiService.js');
     setIsReassigning(true);
     try {
       await reassignLeadApi(reassignConfirm.leadId, selectedNewOwner);
@@ -580,7 +597,8 @@ export default function App() {
       //ค้นหา
       if (search && !(l.companyName || "").toLowerCase().includes(search.toLowerCase()) && !(l.companyNumber || "").includes(search) && !(l.contactPhone || "").includes(search) && !(l.contactEmail || "").toLowerCase().includes(search.toLowerCase()) && !(l.description || "").toLowerCase().includes(search.toLowerCase())) return false;
       //คัดกรองสถานะ
-      if (filterStatus.length > 0 && !filterStatus.includes(l.latestStatus)) return false;
+      if (filterStatus.length > 0 && !filterStatus.includes(l.stage || 'Contact')) return false;
+      if (filterLatestStatus.length > 0 && !filterLatestStatus.includes(l.latestStatus || "")) return false;
       //คัดกรองจังหวัด
       if (filterProvince.length > 0 && (!l.province || !filterProvince.includes(l.province))) return false;
       //รายการโปรด
@@ -625,8 +643,8 @@ export default function App() {
         return 0;
       } else {
         // ค่า Default 
-        const weightA = PRIORITY_WEIGHT[a.latestStatus] || 0;
-        const weightB = PRIORITY_WEIGHT[b.latestStatus] || 0;
+        const weightA = PRIORITY_WEIGHT[a.stage] || 0;
+        const weightB = PRIORITY_WEIGHT[b.stage] || 0;
         if (weightB !== weightA) return weightB - weightA;
         const dateA = new Date(a.latestContactDate || 0).getTime();
         const dateB = new Date(b.latestContactDate || 0).getTime();
@@ -749,9 +767,9 @@ export default function App() {
   }} />;
 
   const navItems = [
-    ...(currentUser?.role_is_system || currentUser?.permissions?.leads?.menu ? [{ key: "leads", label: "จัดการลีด", icon: <UsersRound size={20} /> }] : []),
-    ...(currentUser?.role_is_system || currentUser?.permissions?.dashboard?.menu ? [{ key: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} /> }] : []),
-    ...(currentUser?.role_is_system || currentUser?.permissions?.reports?.menu ? [{ key: "reports", label: "รายงาน", icon: <FileText size={20} /> }] : []),
+    ...(currentUser?.role_is_system || currentUser?.permissions?.leads?.menu !== false ? [{ key: "leads", label: "จัดการลีด", icon: <UsersRound size={20} /> }] : []),
+    ...(currentUser?.role_is_system || currentUser?.permissions?.dashboard?.menu !== false ? [{ key: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} /> }] : []),
+    ...(currentUser?.role_is_system || currentUser?.permissions?.reports?.menu !== false ? [{ key: "reports", label: "รายงาน", icon: <FileText size={20} /> }] : []),
     ...(currentUser?.role_is_system || currentUser?.permissions?.roles?.menu ? [{ key: "role_management", label: "จัดการ Role", icon: <Shield size={20} /> }] : []),
     ...(currentUser?.role_is_system || currentUser?.permissions?.users?.menu ? [{ key: "user_management", label: "จัดการผู้ใช้งาน", icon: <UserRound size={20} /> }] : [])
   ];
@@ -790,16 +808,27 @@ export default function App() {
         <div style={{ padding: "0 18px 18px 18px", marginTop: "-32px", width: "100%", maxWidth: "100%", position: "relative", zIndex: 10 }}>
         <Routes>
         <Route path="/" element={<Navigate to={`/${getDefaultPage(currentUser)}`} replace />} />
+        
+        <Route path="/lead/:id" element={
+          <LeadDetailPage 
+            leads={leads} followups={followups} 
+            onSave={saveLead} onSaveFollowup={saveFollowup} 
+            allSellers={allSellers} fetchAllSellers={fetchAllSellers} 
+            handleReassign={handleReassign} setReassignConfirm={setReassignConfirm} 
+            currentUser={currentUser} 
+          />
+        } />
+
         <Route path="/leads" element={
           <LeadsPage 
             leads={leads} currentUser={currentUser} allSellers={allSellers} checked={checked} setChecked={setChecked}
-            search={search} setSearch={setSearch} filterStatus={filterStatus} finFilters={finFilters}
+            search={search} setSearch={setSearch} filterStatus={filterStatus} filterLatestStatus={filterLatestStatus} finFilters={finFilters}
             showFavorites={showFavorites} setShowFavorites={setShowFavorites} setShowFilterModal={setShowFilterModal}
             isSellerDropdownOpen={isSellerDropdownOpen} setIsSellerDropdownOpen={setIsSellerDropdownOpen}
             filterSellers={filterSellers} setFilterSellers={setFilterSellers}
             filterProvince={filterProvince}
             paginatedLeads={paginatedLeads} sortConfig={sortConfig} handleSort={handleSort}
-            toggleStar={toggleStar} setSelectedLead={setSelectedLead} actualPage={actualPage} itemsPerPage={itemsPerPage} inlineEdit={inlineEdit}
+            toggleStar={toggleStar} setSelectedLead={handleViewLead} actualPage={actualPage} itemsPerPage={itemsPerPage} inlineEdit={inlineEdit}
             dupNumbers={dupNumbers} followups={followups} setReassignConfirm={setReassignConfirm} fetchAllSellers={fetchAllSellers}
             filteredLength={filtered.length} totalPages={totalPages} setCurrentPage={setCurrentPage}
             canViewAll={canViewAll} canViewSelect={canViewSelect} canExport={canExport} canExportAll={canExportAll}
@@ -812,7 +841,7 @@ export default function App() {
         <Route path="/dashboard" element={
           <div>
             <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: RG.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: RG.shadowGlow }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: RG.primary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: RG.shadowSoft }}>
                 <LayoutDashboard size={24} strokeWidth={2.5} />
               </div>
               <div>
@@ -820,14 +849,14 @@ export default function App() {
                 <p style={{ margin: "4px 0 0 0", color: RG.textMuted, fontFamily: RG.fontBody, fontSize: 14 }}>สรุปผลการดำเนินงานและสถิติการขาย</p>
               </div>
             </div>
-            <Dashboard leads={leads} followups={followups} currentUser={currentUser} />
+            <Dashboard leads={leads} followups={followups} currentUser={currentUser} onSelectLead={handleViewLead} />
           </div>
         } />
 
         <Route path="/reports" element={
           <div>
             <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: RG.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: RG.shadowGlow }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: RG.primary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: RG.shadowSoft }}>
                 <FileText size={24} strokeWidth={2.5} />
               </div>
               <div>
@@ -835,15 +864,15 @@ export default function App() {
                 <p style={{ margin: "4px 0 0 0", color: RG.textMuted, fontFamily: RG.fontBody, fontSize: 14 }}>สร้างรายงานและสรุปผลข้อมูลลูกค้าสำหรับการส่งมอบ</p>
               </div>
             </div>
-            {/* ส่งฟังก์ชัน setSelectedLead เข้าไปเป็น onViewLead */}
-            <Reports leads={leads} onViewLead={setSelectedLead} isMaster={false} onExitMaster={() => {}} currentUser={currentUser} />
+            {/* ส่งฟังก์ชัน handleViewLead เข้าไปเป็น onViewLead */}
+            <Reports leads={leads} followups={followups} onViewLead={handleViewLead} isMaster={false} onExitMaster={() => {}} currentUser={currentUser} />
           </div>
         } />
 
         <Route path="/role_management" element={(currentUser?.role_is_system || currentUser?.permissions?.roles?.menu) ? (
           <div>
             <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: RG.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: RG.shadowGlow }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: RG.primary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: RG.shadowSoft }}>
                 <Shield size={24} strokeWidth={2.5} />
               </div>
               <div>
@@ -855,10 +884,40 @@ export default function App() {
           </div>
         ) : <Navigate to="/" replace />} />
 
+        <Route path="/role_management/create" element={(currentUser?.role_is_system || currentUser?.permissions?.roles?.create) ? (
+          <div>
+            <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: RG.primary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: RG.shadowSoft }}>
+                <Shield size={24} strokeWidth={2.5} />
+              </div>
+              <div>
+                <h2 style={{ margin: 0, color: RG.text, fontFamily: RG.fontHeading, fontSize: 24, fontWeight: 700 }}>สร้าง Role ใหม่ (Create Role)</h2>
+                <p style={{ margin: "4px 0 0 0", color: RG.textMuted, fontFamily: RG.fontBody, fontSize: 14 }}>สร้างและกำหนด Permission ของ Role ภายในระบบ</p>
+              </div>
+            </div>
+            <RoleFormPage currentUser={currentUser} />
+          </div>
+        ) : <Navigate to="/role_management" replace />} />
+
+        <Route path="/role_management/edit/:id" element={(currentUser?.role_is_system || currentUser?.permissions?.roles?.update) ? (
+          <div>
+            <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: RG.primary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: RG.shadowSoft }}>
+                <Shield size={24} strokeWidth={2.5} />
+              </div>
+              <div>
+                <h2 style={{ margin: 0, color: RG.text, fontFamily: RG.fontHeading, fontSize: 24, fontWeight: 700 }}>แก้ไข Role (Edit Role)</h2>
+                <p style={{ margin: "4px 0 0 0", color: RG.textMuted, fontFamily: RG.fontBody, fontSize: 14 }}>แก้ไข Permission ของ Role ภายในระบบ</p>
+              </div>
+            </div>
+            <RoleFormPage currentUser={currentUser} />
+          </div>
+        ) : <Navigate to="/role_management" replace />} />
+
         <Route path="/user_management" element={(currentUser?.role_is_system || currentUser?.permissions?.users?.menu) ? (
           <div>
             <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: RG.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: RG.shadowGlow }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: RG.primary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: RG.shadowSoft }}>
                 <UserRound size={24} strokeWidth={2.5} />
               </div>
               <div>
@@ -875,7 +934,7 @@ export default function App() {
 
       <AppModals
         showNotif={showNotif} setShowNotif={setShowNotif} notifTab={notifTab} currentUser={currentUser} myLeads={myLeads} markDone={markDone} setSelectedLead={setSelectedLead} setIsModalReadOnly={setIsModalReadOnly}
-        showFilterModal={showFilterModal} setShowFilterModal={setShowFilterModal} filterStatus={filterStatus} setFilterStatus={setFilterStatus} finFilters={finFilters} setFinFilters={setFinFilters}
+        showFilterModal={showFilterModal} setShowFilterModal={setShowFilterModal} filterStatus={filterStatus} setFilterStatus={setFilterStatus} filterLatestStatus={filterLatestStatus} setFilterLatestStatus={setFilterLatestStatus} finFilters={finFilters} setFinFilters={setFinFilters}
         dateFilters={dateFilters} setDateFilters={setDateFilters} filterProvince={filterProvince} setFilterProvince={setFilterProvince}
         markDoneLead={markDoneLead} setMarkDoneLead={setMarkDoneLead} followups={followups} saveFollowup={saveFollowup}
         showAddLead={showAddLead} setShowAddLead={setShowAddLead} leads={leads} addLead={addLead} allSellers={allSellers} fetchAllSellers={fetchAllSellers}
@@ -884,6 +943,10 @@ export default function App() {
         confirmFinalReassign={confirmFinalReassign} setConfirmFinalReassign={setConfirmFinalReassign} handleFinalReassign={handleReassign}
         alertModal={alertModal} setAlertModal={setAlertModal}
         showDeleteConfirm={showDeleteConfirm} setShowDeleteConfirm={setShowDeleteConfirm} checked={checked} deleteSelected={deleteSelected}
+        onViewLead={(lead) => {
+          handleViewLead(lead);
+          setShowNotif(false);
+        }}
       />
       </div>
     </div>

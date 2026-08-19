@@ -43,6 +43,12 @@ app.get("/api/test/daily-followups", async (req, res) => {
   }
 });
 
+// จัดการ Error ที่หลุดรอดจากระบบ ให้ตอบกลับเป็น JSON เสมอ (ป้องกัน HTML 500)
+app.use((err, req, res, next) => {
+  console.error("Unhandled Error:", err.message);
+  res.status(err.status || 500).json({ error: err.message || "เกิดข้อผิดพลาดบนเซิร์ฟเวอร์" });
+});
+
 // สั่งให้เซิร์ฟเวอร์เริ่มทำงาน
 app.listen(PORT, () => {
   console.log(`เซิร์ฟเวอร์เปิดแล้วที่ http://localhost:${PORT}`);

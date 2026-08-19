@@ -39,7 +39,7 @@ export default function LoginScreen({ onLogin }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: RG.gradientSoft || "#fdf9fb", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Sarabun', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: RG.background || "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Sarabun', sans-serif" }}>
       {/* ฝัง CSS สำหรับ Animation และ Focus State */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
@@ -90,7 +90,7 @@ export default function LoginScreen({ onLogin }) {
         
         {/* Logo & Header */}
         <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div style={{ width: 72, height: 72, background: RG.gradient || "linear-gradient(135deg, #d6406e 0%, #a42c54 100%)", borderRadius: 20, margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 16px rgba(160, 160, 160, 0.3)" }}>
+          <div style={{ width: 72, height: 72, background: RG.primary || "#2563EB", borderRadius: 12, margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: RG.shadowSoft }}>
             <span style={{ fontSize: 32, color: RG.surface, fontWeight: 700 }}>Q</span>
           </div>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: RG.text || RG.text, letterSpacing: "-0.5px" }}>Sales_CRM</h1>
@@ -161,7 +161,7 @@ export default function LoginScreen({ onLogin }) {
             width: "100%", 
             padding: "14px", 
             borderRadius: 10, 
-            background: isLoading ? RG.border : (RG.gradient || "linear-gradient(135deg, #D3D3D3 0%, #F5F5F5 100%)"), 
+            background: isLoading ? RG.border : RG.primary, 
             border: "none", 
             color: RG.surface, 
             fontWeight: 600, 

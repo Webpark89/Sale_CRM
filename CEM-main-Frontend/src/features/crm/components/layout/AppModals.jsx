@@ -11,7 +11,7 @@ import { inputStyle } from "../common/styles";
 
 export default function AppModals({
   showNotif, setShowNotif, notifTab, currentUser, myLeads, markDone, setSelectedLead, setIsModalReadOnly,
-  showFilterModal, setShowFilterModal, filterStatus, setFilterStatus, finFilters, setFinFilters,
+  showFilterModal, setShowFilterModal, filterStatus, setFilterStatus, filterLatestStatus, setFilterLatestStatus, finFilters, setFinFilters,
   dateFilters, setDateFilters, filterProvince, setFilterProvince,
   markDoneLead, setMarkDoneLead, followups, saveFollowup,
   showAddLead, setShowAddLead, leads, addLead, allSellers, fetchAllSellers,
@@ -19,7 +19,8 @@ export default function AppModals({
   reassignConfirm, selectedNewOwner, setSelectedNewOwner, isReassigning, handleReassignClick,
   confirmFinalReassign, setConfirmFinalReassign, handleFinalReassign,
   alertModal, setAlertModal,
-  showDeleteConfirm, setShowDeleteConfirm, checked, deleteSelected
+  showDeleteConfirm, setShowDeleteConfirm, checked, deleteSelected,
+  onViewLead
 }) {
   React.useEffect(() => {
     if (reassignConfirm || showAddLead || selectedLead) {
@@ -29,9 +30,9 @@ export default function AppModals({
 
   return (
     <>
-      {showNotif && <NotificationsPanel notifTab={notifTab} currentUser={currentUser} leads={myLeads} onMarkDone={markDone} onViewLead={(lead) => { setSelectedLead(lead); setIsModalReadOnly(true); }} onClose={() => setShowNotif(false)} />}
+      {showNotif && <NotificationsPanel notifTab={notifTab} currentUser={currentUser} leads={myLeads} onMarkDone={markDone} onViewLead={onViewLead} onClose={() => setShowNotif(false)} />}
       
-      {showFilterModal && <FilterModal filterStatus={filterStatus} setFilterStatus={setFilterStatus} finFilters={finFilters} setFinFilters={setFinFilters} dateFilters={dateFilters} setDateFilters={setDateFilters} filterProvince={filterProvince} setFilterProvince={setFilterProvince} onClose={() => setShowFilterModal(false)} />}
+      {showFilterModal && <FilterModal filterStatus={filterStatus} setFilterStatus={setFilterStatus} filterLatestStatus={filterLatestStatus} setFilterLatestStatus={setFilterLatestStatus} finFilters={finFilters} setFinFilters={setFinFilters} dateFilters={dateFilters} setDateFilters={setDateFilters} filterProvince={filterProvince} setFilterProvince={setFilterProvince} onClose={() => setShowFilterModal(false)} />}
 
       {markDoneLead && (
         <Modal title={`บันทึกการติดตาม — ${markDoneLead.companyName}`} onClose={() => setMarkDoneLead(null)}>
@@ -39,14 +40,12 @@ export default function AppModals({
           {(() => {
             const fups = followups[markDoneLead.id] || [];
             const nextSeq = fups.length > 0 ? Math.max(...fups.map(f => f.sequence)) + 1 : 1;
-            return <FollowupQuickForm leadId={markDoneLead.id} nextSeq={nextSeq} onSave={(lid, f) => { saveFollowup(lid, f); setMarkDoneLead(null); }} />;
+            return <FollowupQuickForm lead={markDoneLead} leadId={markDoneLead.id} nextSeq={nextSeq} onSave={(lid, f) => { saveFollowup(lid, f); setMarkDoneLead(null); }} />;
           })()}
         </Modal>
       )}
 
       {showAddLead && <AddLeadModal leads={leads} onClose={() => setShowAddLead(false)} onSave={addLead} currentUser={currentUser} allSellers={allSellers} fetchAllSellers={fetchAllSellers} />}
-
-      {selectedLead && <CompanyModal readOnly={isModalReadOnly} lead={selectedLead} leads={leads} followups={followups} onClose={() => { setSelectedLead(null); setIsModalReadOnly(false); }} onSave={saveLead} onSaveFollowup={saveFollowup} allSellers={allSellers} fetchAllSellers={fetchAllSellers} handleReassign={handleReassign} setReassignConfirm={setReassignConfirm} currentUser={currentUser} />}
 
       {reassignConfirm && (
         <Modal title={`โอนย้ายผู้ดูแล: ${reassignConfirm.companyName}`} onClose={() => { setReassignConfirm(null); setSelectedNewOwner(""); }}>

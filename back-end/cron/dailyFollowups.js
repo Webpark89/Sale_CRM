@@ -31,7 +31,7 @@ async function sendDailyFollowupSummary() {
       ) f ON f.lead_id = l.id
       WHERE l.is_deleted = 0
         AND f.completed = 0
-        AND DATE(f.next_followup_date) = CURDATE()
+        AND DATE(CONVERT_TZ(f.next_followup_date, '+00:00', '+07:00')) = CURDATE()
       ORDER BY u.username ASC, l.company_name ASC
     `;
 

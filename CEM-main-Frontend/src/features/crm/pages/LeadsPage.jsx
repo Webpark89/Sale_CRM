@@ -6,7 +6,7 @@ import LeadsPagination from "../components/leads/LeadsPagination";
 
 export default function LeadsPage({
   leads, currentUser, allSellers, checked, setChecked, 
-  search, setSearch, filterStatus, finFilters, 
+  search, setSearch, filterStatus, filterLatestStatus, finFilters, 
   showFavorites, setShowFavorites, setShowFilterModal,
   isSellerDropdownOpen, setIsSellerDropdownOpen,
   filterSellers, setFilterSellers,
@@ -65,6 +65,7 @@ export default function LeadsPage({
         filteredLength={filteredLength}
         totalLength={leads.length}
         filterStatus={filterStatus}
+        filterLatestStatus={filterLatestStatus}
         filterProvince={filterProvince}
         actualPage={actualPage}
         totalPages={totalPages}

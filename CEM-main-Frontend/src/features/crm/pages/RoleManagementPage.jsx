@@ -3,8 +3,8 @@
 // หน้าจัดการ Role ทั้งหมด — ดู/สร้าง/แก้ไข/ลบ
 // ==========================================
 import React, { useState, useEffect } from 'react';
-import RolePermissionForm from '../components/RolePermissionForm.jsx';
-import { fetchRoles, createRoleApi, updateRoleApi, deleteRoleApi } from '../services/roleService.js';
+import { useNavigate } from 'react-router-dom';
+import { fetchRoles, deleteRoleApi } from '../services/roleService.js';
 import Btn from '../components/common/Btn';
 import { RG } from '../constants/theme.js';
 
@@ -58,10 +58,8 @@ const RoleManagementPage = ({ currentUser }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Modal state
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
+  // Navigation setup
+  const navigate = useNavigate();
 
   const canCreate = currentUser?.role_is_system || currentUser?.permissions?.roles?.create;
   const canUpdate = currentUser?.role_is_system || currentUser?.permissions?.roles?.update;
@@ -82,27 +80,8 @@ const RoleManagementPage = ({ currentUser }) => {
 
   useEffect(() => { load(); }, []);
 
-  const openCreate = () => { setEditingRole(null); setFormOpen(true); };
-  const openEdit = (role) => { setEditingRole(role); setFormOpen(true); };
-  const closeForm = () => { setFormOpen(false); setEditingRole(null); };
-
-  const handleSave = async (formData) => {
-    setIsSaving(true);
-    setError('');
-    try {
-      if (editingRole) {
-        await updateRoleApi(editingRole.id, formData);
-      } else {
-        await createRoleApi(formData);
-      }
-      closeForm();
-      await load();
-    } catch (e) {
-      setError(e.response?.data?.error || 'เกิดข้อผิดพลาดในการบันทึก');
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const openCreate = () => navigate('/role_management/create');
+  const openEdit = (role) => navigate(`/role_management/edit/${role.id}`);
 
   const handleDelete = async (role) => {
     if (!window.confirm(`ต้องการลบ Role "${role.display_name}" ใช่ไหม?\n\nการลบนี้ไม่สามารถยกเลิกได้`)) return;
@@ -189,15 +168,6 @@ const RoleManagementPage = ({ currentUser }) => {
         </table>
       </div>
 
-      {/* Permission Form Modal */}
-      {formOpen && (
-        <RolePermissionForm
-          role={editingRole}
-          onSave={handleSave}
-          onClose={closeForm}
-          isSaving={isSaving}
-        />
-      )}
     </div>
   );
 };

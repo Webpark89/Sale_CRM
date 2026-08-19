@@ -18,6 +18,7 @@ const formatDateLocal = (dateStr) => {
 const formatLead = (row) => ({
   ...row,
   id:              row.id,
+  stage:           row.stage || 'Contact',
   owner:           row.owner_username,   
   ownerId:         row.owner_id,
   createdBy:       row.created_by,
@@ -28,9 +29,10 @@ const formatLead = (row) => ({
   revenue:         Number(row.revenue) || 0,
   registeredCapital: Number(row.registered_capital) || 0,
   profit:          Number(row.profit) || 0,
+  dealValue:       Number(row.deal_value) || 0,
   isStarred:       !!row.is_starred,
   everHadMeeting:  !!row.ever_had_meeting, 
-  latestStatus:    row.latest_status || "ฝากโปรไฟล์", 
+  latestStatus:    row.latest_status || null, 
   latestContactDate: row.latest_contact_date 
     ? formatDateLocal(row.latest_contact_date)
     : formatDateLocal(new Date()), 

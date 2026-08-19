@@ -4,30 +4,25 @@ const db = require("../config/db");
 const baseLeadQuery = `
   SELECT 
     l.*,
+    l.stage,
     u.username AS owner_username,
     creator.username AS creator_username,
     assigner.username AS assigner_username,
     prev_owner.username AS prev_owner_username,
     f.status AS latest_status,
     f.contact_date AS latest_contact_date,
-    f.next_followup_date AS next_followup_date,
-    (SELECT COUNT(*) FROM followups WHERE lead_id = l.id AND status = 'มีตติ้ง') > 0 AS ever_had_meeting
+    IF(f.completed = 1, NULL, f.next_followup_date) AS next_followup_date,
+    (SELECT COUNT(*) FROM followups WHERE lead_id = l.id AND status IN ('Meeting','มีตติ้ง')) > 0 AS ever_had_meeting
   FROM leads l
   JOIN users u ON l.owner_id = u.id
   LEFT JOIN users creator ON l.created_by = creator.id
   LEFT JOIN users assigner ON l.assigned_by = assigner.id
   LEFT JOIN users prev_owner ON l.previous_owner_id = prev_owner.id
-  LEFT JOIN (
-      -- ดึงข้อมูลการติดตามครั้งล่าสุดของลูกค้าแต่ละคน
-      SELECT f1.lead_id, f1.status, f1.contact_date, 
-             IF(f1.completed = 1, NULL, f1.next_followup_date) AS next_followup_date
-      FROM followups f1
-      INNER JOIN (
-          SELECT lead_id, MAX(id) as max_id
-          FROM followups
-          GROUP BY lead_id
-      ) f2 ON f1.id = f2.max_id
-  ) f ON f.lead_id = l.id
+  LEFT JOIN followups f ON f.id = (
+      SELECT id FROM followups 
+      WHERE lead_id = l.id 
+      ORDER BY contact_date DESC, sequence DESC, id DESC LIMIT 1
+  )
 `;
 
 const Lead = {
@@ -70,17 +65,18 @@ const Lead = {
     const isAcknowledged = 0;
     const [result] = await db.execute(
       `INSERT INTO leads
-        (owner_id, created_by, assigned_by, previous_owner_id, is_acknowledged, company_name, company_number, contact_name, contact_phone,
-         contact_email, province, description, revenue, registered_capital, profit)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        (owner_id, created_by, assigned_by, previous_owner_id, is_acknowledged, company_name, company_number, stage, contact_name, contact_phone,
+         contact_email, province, description, revenue, registered_capital, profit, deal_value)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         data.owner_id, 
         data.created_by || data.owner_id,
         data.assigned_by || null,
         data.previous_owner_id || null,
         isAcknowledged,
-        data.company_name || data.companyName, 
+        data.company_name || data.companyName,
         data.company_number || data.companyNumber || null,
+        data.stage || 'Contact',
         data.contact_name || data.contactName || null, 
         data.contact_phone || data.contactPhone || null,
         data.contact_email || data.contactEmail || null, 
@@ -88,7 +84,8 @@ const Lead = {
         data.description || null,
         Number(data.revenue) || 0, 
         Number(data.registered_capital || data.registeredCapital) || 0, 
-        Number(data.profit) || 0
+        Number(data.profit) || 0,
+        Number(data.deal_value || data.dealValue) || 0
       ]
     );
     return result.insertId;
@@ -101,7 +98,7 @@ const Lead = {
     const updates = [
       "company_name = ?", "company_number = ?", "contact_name = ?",
       "contact_phone = ?", "contact_email = ?", "province = ?", "description = ?",
-      "revenue = ?", "registered_capital = ?", "profit = ?",
+      "revenue = ?", "registered_capital = ?", "profit = ?", "deal_value = ?",
       "is_starred = ?"
     ];
     
@@ -116,8 +113,16 @@ const Lead = {
       parseNum(data.revenue), 
       parseNum(data.registeredCapital !== undefined ? data.registeredCapital : data.registered_capital), 
       parseNum(data.profit),
+      parseNum(data.dealValue !== undefined ? data.dealValue : data.deal_value),
       (data.isStarred !== undefined ? data.isStarred : data.is_starred) ? 1 : 0
     ];
+
+    // stage update
+    const newStage = data.stage;
+    if (newStage !== undefined) {
+      updates.push("stage = ?");
+      params.push(newStage);
+    }
 
     const newOwnerId = data.owner_id !== undefined ? data.owner_id : data.ownerId;
     if (newOwnerId !== undefined) {

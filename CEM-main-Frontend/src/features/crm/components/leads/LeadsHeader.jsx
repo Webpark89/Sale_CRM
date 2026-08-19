@@ -19,7 +19,7 @@ export default function LeadsHeader({
   return (
     <>
       <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 12, background: RG.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: RG.surface, boxShadow: RG.shadowGlow }}>
+        <div style={{ width: 48, height: 48, borderRadius: 8, background: RG.primary, display: "flex", alignItems: "center", justifyContent: "center", color: RG.surface, boxShadow: RG.shadowSoft }}>
           <UsersRound size={24} strokeWidth={2.5} />
         </div>
         <div>

@@ -14,6 +14,7 @@ const { sendLineGroupNotify } = require("../services/lineService");
 // นำเข้าเครื่องมือ (Utils & Middleware) เพื่อช่วยให้โค้ดสะอาด
 const { formatLead, formatFollowup, parseDateForDb, cleanAuditData, getChangesDiff, formatDateLocal } = require("../utils/formatters");
 const asyncHandler = require("../middleware/asyncHandler");
+const { STAGES, STAGE_STATUS_MAP, isValidStageStatus } = require("../constants/stageMap");
 
 // ==========================================
 // ส่วนของระบบ Login (Auth)
@@ -87,15 +88,29 @@ const createLead = asyncHandler(async (req, res) => {
   const contact_email = req.body.contact_email || req.body.contactEmail;
   const contact_phone = req.body.contact_phone || req.body.contactPhone;
 
+  if (!company_name || !String(company_name).trim()) {
+    return res.status(400).json({ error: "กรุณากรอกชื่อบริษัท" });
+  }
+
   if (contact_phone && !/^[\d\s\-\+\(\)]+$/.test(contact_phone)) {
-    return res.status(400).json({ error: "เบอร์โทรศัพท์ต้องเป็นตัวเลข (อนุญาตให้ใช้ -, space)" });
+    return res.status(400).json({ error: "เบอร์โทรศัพท์ต้องเป็นตัวเลข (อนุญาตให้ใช้ -, space, +, ( ))" });
   }
 
   const rev = Number(req.body.revenue);
   const prof = Number(req.body.profit);
-  const cap = Number(req.body.registered_capital || req.body.registeredCapital);
-  if (rev < 0 || prof < 0) return res.status(400).json({ error: "รายได้และกำไรไม่สามารถติดลบได้" });
-  if (cap <= 0 && cap !== undefined && !isNaN(cap)) return res.status(400).json({ error: "ทุนจดทะเบียนต้องมากกว่า 0 บาท" });
+  const rawCap = req.body.registered_capital !== undefined ? req.body.registered_capital : req.body.registeredCapital;
+  const cap = rawCap !== undefined && rawCap !== "" && rawCap !== null ? Number(rawCap) : undefined;
+  const dealVal = req.body.dealValue !== undefined ? Number(req.body.dealValue) : (req.body.deal_value !== undefined ? Number(req.body.deal_value) : 0);
+
+  if (rev < 0 || prof < 0 || dealVal < 0) {
+    return res.status(400).json({ error: "รายได้, กำไร และมูลค่าโครงการ ไม่สามารถติดลบได้" });
+  }
+  if (cap !== undefined && !isNaN(cap) && cap < 0) {
+    return res.status(400).json({ error: "ทุนจดทะเบียนไม่สามารถติดลบได้" });
+  }
+  if (cap !== undefined && !isNaN(cap) && cap === 0) {
+    return res.status(400).json({ error: "ทุนจดทะเบียนต้องมากกว่า 0 บาท" });
+  }
 
   const cDate = req.body.latestContactDate || req.body.latest_contact_date;
   const nDate = req.body.nextFollowupDate || req.body.next_followup_date;
@@ -114,12 +129,26 @@ const createLead = asyncHandler(async (req, res) => {
     }
   }
 
-  if (!company_name) return res.status(400).json({ error: "กรุณากรอกชื่อบริษัท" });
-
   if (company_number) {
     const dup = await Lead.findByCompanyNumber(company_number);
     if (dup) return res.status(409).json({ error: "เลขนิติบุคคลนี้มีอยู่ในระบบแล้ว" });
   }
+
+  // validate stage
+  const reqStage = req.body.stage;
+  if (reqStage && !STAGES.includes(reqStage)) {
+    return res.status(400).json({ error: `Stage "${reqStage}" ไม่ถูกต้อง` });
+  }
+
+  // validate status vs stage (ถ้าส่ง latestStatus มาด้วย)
+  const reqStatus = req.body.latestStatus || req.body.latest_status;
+  const effectiveStage = reqStage || 'Contact';
+  if (reqStage && reqStatus && !isValidStageStatus(effectiveStage, reqStatus)) {
+    return res.status(400).json({ error: `Status "${reqStatus}" ไม่สอดคล้องกับ Stage "${effectiveStage}"` });
+  }
+
+  // เพิ่ม stage ใน data ก่อน create
+  if (reqStage) data.stage = reqStage;
 
   const insertId = await Lead.create(data);
   await AuditLog.create(req.user.id, 'create', 'leads', insertId, cleanAuditData(data));
@@ -167,15 +196,42 @@ const updateLead = asyncHandler(async (req, res) => {
   const contact_email = req.body.contact_email || req.body.contactEmail;
   const contact_phone = req.body.contact_phone || req.body.contactPhone;
 
+  const company_name = req.body.company_name !== undefined ? req.body.company_name : req.body.companyName;
+  if (company_name !== undefined && (!company_name || !String(company_name).trim())) {
+    return res.status(400).json({ error: "กรุณากรอกชื่อบริษัท" });
+  }
+
+  // validate stage
+  const reqStage = req.body.stage;
+  if (reqStage !== undefined && !STAGES.includes(reqStage)) {
+    return res.status(400).json({ error: `Stage "${reqStage}" ไม่ถูกต้อง` });
+  }
+
+  // validate status vs stage
+  const reqStatus = req.body.latestStatus || req.body.latest_status;
+  if (reqStage && reqStatus && !isValidStageStatus(reqStage, reqStatus)) {
+    return res.status(400).json({ error: `Status "${reqStatus}" ไม่สอดคล้องกับ Stage "${reqStage}"` });
+  }
+
   if (contact_phone && !/^[\d\s\-\+\(\)]+$/.test(contact_phone)) {
-    return res.status(400).json({ error: "เบอร์โทรศัพท์ต้องเป็นตัวเลข (อนุญาตให้ใช้ -, space)" });
+    return res.status(400).json({ error: "เบอร์โทรศัพท์ต้องเป็นตัวเลข (อนุญาตให้ใช้ -, space, +, ( ))" });
   }
 
   const rev = req.body.revenue !== undefined ? Number(req.body.revenue) : undefined;
   const prof = req.body.profit !== undefined ? Number(req.body.profit) : undefined;
-  const cap = req.body.registered_capital !== undefined ? Number(req.body.registered_capital) : (req.body.registeredCapital !== undefined ? Number(req.body.registeredCapital) : undefined);
-  if ((rev !== undefined && rev < 0) || (prof !== undefined && prof < 0)) return res.status(400).json({ error: "รายได้และกำไรไม่สามารถติดลบได้" });
-  if (cap !== undefined && cap <= 0) return res.status(400).json({ error: "ทุนจดทะเบียนต้องมากกว่า 0 บาท" });
+  const rawCap = req.body.registered_capital !== undefined ? req.body.registered_capital : req.body.registeredCapital;
+  const cap = rawCap !== undefined && rawCap !== "" && rawCap !== null ? Number(rawCap) : undefined;
+  const dealVal = req.body.dealValue !== undefined ? Number(req.body.dealValue) : (req.body.deal_value !== undefined ? Number(req.body.deal_value) : undefined);
+  
+  if ((rev !== undefined && rev < 0) || (prof !== undefined && prof < 0) || (dealVal !== undefined && dealVal < 0)) {
+    return res.status(400).json({ error: "รายได้, กำไร และมูลค่าโครงการ ไม่สามารถติดลบได้" });
+  }
+  if (cap !== undefined && !isNaN(cap) && cap < 0) {
+    return res.status(400).json({ error: "ทุนจดทะเบียนไม่สามารถติดลบได้" });
+  }
+  if (cap !== undefined && !isNaN(cap) && cap === 0) {
+    return res.status(400).json({ error: "ทุนจดทะเบียนต้องมากกว่า 0 บาท" });
+  }
 
   const cDate = req.body.latestContactDate || req.body.latest_contact_date;
   const nDate = req.body.nextFollowupDate || req.body.next_followup_date;
@@ -257,10 +313,8 @@ const toggleStar = asyncHandler(async (req, res) => {
 
   const existing = await Lead.findById(id);
   if (!existing) return res.status(404).json({ error: "ไม่พบข้อมูลลีด" });
-  const perms = req.user.permissions || {};
-  const canUpdate = req.user.role_is_system || (perms.leads && perms.leads.update === true) || existing.owner_id === userId;
-  if (!canUpdate) return res.status(403).json({ error: "ไม่มีสิทธิ์แก้ไขลีดนี้" });
 
+  // อนุญาตให้ทุกคนที่มองเห็นลีดสามารถกดดาวได้ โดยไม่ต้องมีสิทธิ์แก้ไข
   const isStarredNow = await Lead.toggleStar(id, existing.is_starred);
   
   const diffChanges = { isStarred: { from: !!existing.is_starred, to: isStarredNow } };
@@ -328,9 +382,14 @@ const hardDeleteLead = asyncHandler(async (req, res) => {
 const getFollowups = asyncHandler(async (req, res) => {
   const { leadId } = req.params;
 
-  // Guard Clause: ถ้าไม่มี leadId ให้ดึงเฉพาะของตัวเองแล้วจบ
   if (!leadId) {
-    const rows = await Followup.findAllByOwnerId(req.user.id);
+    const canViewAll = req.user.role === "admin" || req.user.role_is_system || (req.user.permissions && req.user.permissions.leads && req.user.permissions.leads.view === 'all');
+    let rows;
+    if (canViewAll) {
+      rows = await Followup.findAllMaster();
+    } else {
+      rows = await Followup.findAllByOwnerId(req.user.id);
+    }
     return res.json(rows.map(formatFollowup));
   }
 
@@ -375,7 +434,10 @@ const createFollowup = asyncHandler(async (req, res) => {
     console.error("LINE Notification Follow-up Error:", err.message);
   }
 
-  res.status(201).json({ followup: formatFollowup(newFup) });
+  // ดึงข้อมูล Lead ใหม่ล่าสุดที่ JOIN สถานะล่าสุดแล้วส่งกลับไปด้วย
+  const updatedLead = await Lead.findByIdWithDetails(leadId);
+
+  res.status(201).json({ followup: formatFollowup(newFup), lead: formatLead(updatedLead) });
 });
 
 const markDone = asyncHandler(async (req, res) => {

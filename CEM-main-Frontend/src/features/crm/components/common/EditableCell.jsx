@@ -17,10 +17,16 @@ export default function EditableCell({ value, onSave, type = "text", options, di
     setEditing(false);
   };
 
+  const handleCellClick = (e) => {
+    if (!disabled || editing) {
+      e.stopPropagation();
+    }
+  };
+
   if (!editing) {
     return (
       <span 
-        onClick={() => { if (!disabled) setEditing(true); }} 
+        onClick={(e) => { handleCellClick(e); if (!disabled) setEditing(true); }} 
         style={{ 
           cursor: disabled ? "default" : "pointer", 
           display: "block", 
@@ -44,7 +50,7 @@ export default function EditableCell({ value, onSave, type = "text", options, di
 
   if (type === "select") {
     return (
-      <select value={val || ""} onChange={e => setVal(e.target.value)} onBlur={commit} autoFocus style={{ ...selectStyle, padding: "2px 6px", fontSize: 13, width: "auto" }}>
+      <select value={val || ""} onChange={e => setVal(e.target.value)} onBlur={commit} onClick={handleCellClick} autoFocus style={{ ...selectStyle, padding: "2px 6px", fontSize: 13, width: "auto" }}>
         <option value="">-- เลือก --</option>
         {options.map(o => (
           <option key={o} value={o}>
@@ -56,7 +62,7 @@ export default function EditableCell({ value, onSave, type = "text", options, di
   }
 
   if (type === "date") {
-    return <input type="date" value={val} onChange={e => setVal(e.target.value)} onBlur={commit} autoFocus style={{ ...inputStyle, padding: "2px 6px", fontSize: 13, width: "auto" }} />;
+    return <input type="date" value={val} onChange={e => setVal(e.target.value)} onBlur={commit} onClick={handleCellClick} autoFocus style={{ ...inputStyle, padding: "2px 6px", fontSize: 13, width: "auto" }} />;
   }
   if (type === "phone") {
     return (
@@ -65,6 +71,7 @@ export default function EditableCell({ value, onSave, type = "text", options, di
         value={formatPhoneNumber(val)} 
         onChange={e => setVal(formatPhoneNumber(e.target.value))} 
         onBlur={commit} 
+        onClick={handleCellClick}
         onKeyDown={e => e.key === "Enter" && commit()} 
         autoFocus 
         style={{ ...inputStyle, padding: "2px 6px", fontSize: 13, width: "auto" }} 
@@ -79,6 +86,7 @@ export default function EditableCell({ value, onSave, type = "text", options, di
         value={formatNumberWithCommas(val)} 
         onChange={e => setVal(parseNumberFromCommas(e.target.value))} 
         onBlur={commit} 
+        onClick={handleCellClick}
         onKeyDown={e => e.key === "Enter" && commit()} 
         autoFocus 
         style={{ ...inputStyle, padding: "2px 6px", fontSize: 13, width: "auto" }} 
@@ -86,5 +94,5 @@ export default function EditableCell({ value, onSave, type = "text", options, di
     );
   }
 
-  return <input type="text" value={val} onChange={e => setVal(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} autoFocus style={{ ...inputStyle, padding: "2px 6px", fontSize: 13, width: "auto" }} />;
+  return <input type="text" value={val} onChange={e => setVal(e.target.value)} onBlur={commit} onClick={handleCellClick} onKeyDown={e => e.key === "Enter" && commit()} autoFocus style={{ ...inputStyle, padding: "2px 6px", fontSize: 13, width: "auto" }} />;
 }

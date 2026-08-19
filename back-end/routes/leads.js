@@ -16,7 +16,7 @@ router.use(authenticate);
 router.get("/", getLeads);           // ขอดูข้อมูลลีดทั้งหมด
 router.post("/all", getAllLeadsMaster); // ขอดูข้อมูลลีดทั้งหมดด้วยรหัสผ่าน
 router.post("/", requirePermission('leads', 'create'), createLead);        // ขอสร้างลีดใหม่ (ส่งเป็น JSON แนบมา)
-router.post("/restore", restoreLeads); // ขอคืนค่าข้อมูลที่โดนลบ (Undo)
+router.post("/restore", requirePermission('leads', 'delete'), restoreLeads); // ขอคืนค่าข้อมูลที่โดนลบ (Undo)
 router.delete("/bulk", requirePermission('leads', 'delete'), deleteLeads); // ขอส่ง array id มาลบพร้อมกันหลายๆ ตัว
 router.put("/:id", requirePermission('leads', 'edit'), updateLead);      // ขอแก้ไขข้อมูลลีดทั้งหมดของ ID นีั
 router.patch("/:id/star", toggleStar); // ขอเปิด/ปิดดาวรายการโปรด (Patch คือการอัปเดตแค่จุดเล็กๆ)

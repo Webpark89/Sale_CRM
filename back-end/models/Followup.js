@@ -17,6 +17,13 @@ const Followup = {
     return rows;
   },
 
+  findAllMaster: async () => {
+    const [rows] = await db.execute(
+      "SELECT * FROM followups ORDER BY contact_date DESC"
+    );
+    return rows;
+  },
+
   findByIdWithLead: async (id) => {
     const [rows] = await db.execute(
       "SELECT f.*, l.owner_id FROM followups f JOIN leads l ON f.lead_id = l.id WHERE f.id = ?",

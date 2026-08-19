@@ -21,7 +21,13 @@ const handleWebhook = async (req, res) => {
     .update(rawBody)
     .digest("base64");
 
-  if (hash !== signature) {
+  const hashBuffer = Buffer.from(hash, 'utf8');
+  const signatureBuffer = Buffer.from(signature, 'utf8');
+
+  if (
+    hashBuffer.length !== signatureBuffer.length ||
+    !crypto.timingSafeEqual(hashBuffer, signatureBuffer)
+  ) {
     console.warn("LINE Webhook: Signature verification failed.");
     return res.status(401).send("Unauthorized");
   }

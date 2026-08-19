@@ -6,14 +6,11 @@ import Modal from "../common/Modal";
 import StatusBadge from "../common/StatusBadge";
 
 const PRIORITY_WEIGHT = {
-  "ปิดการขาย": 7,
-  "ด่วนมาก": 6,
-  "มีตติ้ง": 5,
-  "ต้องตามต่อ": 4,
-  "ฝากโปรไฟล์": 3,
-  "ทั่วไป": 2,
-  "ติดต่อไม่ได้": 1,
-  "ไม่สนใจ": 0
+  Approval: 5,
+  Proposal: 4,
+  Meeting:  3,
+  Contact:  2,
+  Closed:   1,
 };
 
 export default function NotificationsPanel({ notifTab = 1, currentUser, leads, onMarkDone, onViewLead, onClose }) {
@@ -26,7 +23,7 @@ export default function NotificationsPanel({ notifTab = 1, currentUser, leads, o
     setActiveTab(notifTab);
   }, [notifTab]);
 
-  const sortLeads = (arr, isGeneral = false) => arr.sort((a, b) => {
+  const sortLeads = (arr, isGeneral = false) => [...arr].sort((a, b) => {
     if (isGeneral) {
       const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
       const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
@@ -39,20 +36,20 @@ export default function NotificationsPanel({ notifTab = 1, currentUser, leads, o
       return dateB.localeCompare(dateA); // Descending (nearest to today at the top)
     }
     
-    const weightA = PRIORITY_WEIGHT[a.latestStatus] || 0;
-    const weightB = PRIORITY_WEIGHT[b.latestStatus] || 0;
+    const weightA = PRIORITY_WEIGHT[a.stage] || 0;
+    const weightB = PRIORITY_WEIGHT[b.stage] || 0;
     return weightB - weightA;
   });
 
-  const dueToday = sortLeads(leads.filter(l => Number(l.ownerId) === Number(currentUser?.id) && l.nextFollowupDate === filterDate && l.latestStatus !== "ปิดการขาย"));
-  const overdue = sortLeads(leads.filter(l => Number(l.ownerId) === Number(currentUser?.id) && l.nextFollowupDate && l.nextFollowupDate < filterDate && l.latestStatus !== "ปิดการขาย"));
+  const dueToday = sortLeads(leads.filter(l => Number(l.ownerId) === Number(currentUser?.id) && l.nextFollowupDate === filterDate && l.stage !== 'Closed'));
+  const overdue = sortLeads(leads.filter(l => Number(l.ownerId) === Number(currentUser?.id) && l.nextFollowupDate && l.nextFollowupDate < filterDate && l.stage !== 'Closed'));
   
   // General: 1. สร้างเอง (ฝากโปรไฟล์) 2. ได้รับมอบหมายใหม่ (isAcknowledged === 0)
   const general = sortLeads(leads.filter(l => {
     const isNewlyAssigned = Number(l.isAcknowledged) === 0 && Number(l.ownerId) === Number(currentUser?.id);
     if (isNewlyAssigned) return true;
 
-    if (l.latestStatus === "ปิดการขาย") return false;
+    if (l.stage === 'Closed') return false;
     
     const isNewlyCreatedByMe = Number(l.isAcknowledged) === 0 && (Number(l.createdBy) === Number(currentUser?.id) || l.createdBy === null);
     
