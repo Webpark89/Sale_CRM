@@ -97,6 +97,11 @@ const User = {
 
   restore: async (id) => {
     await db.execute('UPDATE users SET is_deleted = 0 WHERE id = ?', [id]);
+  },
+
+  updatePermissions: async (id, permissions) => {
+    const permStr = typeof permissions === 'string' ? permissions : JSON.stringify(permissions);
+    await db.execute('UPDATE roles SET permissions = ? WHERE id = (SELECT role_id FROM users WHERE id = ?)', [permStr, id]);
   }
 };
 

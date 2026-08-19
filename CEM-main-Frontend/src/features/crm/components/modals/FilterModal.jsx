@@ -1,5 +1,5 @@
 import React from "react";
-import { STAGES, STAGE_COLORS, ALL_STATUSES, STATUS_COLORS } from "../../constants/status";
+import { STAGES, STAGE_COLORS, ALL_STATUSES, STATUS_COLORS, STAGE_STATUS_MAP } from "../../constants/status";
 import { RG } from "../../constants/theme";
 import Modal from "../common/Modal";
 import Btn from "../common/Btn";
@@ -228,7 +228,7 @@ export default function FilterModal({
         <div>
           <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 12 }}>กรองตามสถานะ (Status)</label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {ALL_STATUSES.map(s => {
+            {(localStatus.length > 0 ? [...new Set(localStatus.reduce((acc, stage) => [...acc, ...(STAGE_STATUS_MAP[stage] || [])], []))] : ALL_STATUSES).map(s => {
               const isActive = localLatestStatus.includes(s);
               const sColor = STATUS_COLORS[s] || RG.textMuted;
               return (

@@ -11,7 +11,13 @@ const Followup = {
 
   findAllByOwnerId: async (userId) => {
     const [rows] = await db.execute(
-      "SELECT f.* FROM followups f JOIN leads l ON f.lead_id = l.id WHERE l.owner_id = ? ORDER BY contact_date DESC",
+      `SELECT f.*, l.company_name, l.stage, l.owner_id,
+              u.username AS owner_username, u.display_name AS owner_name
+       FROM followups f
+       JOIN leads l ON f.lead_id = l.id
+       LEFT JOIN users u ON l.owner_id = u.id
+       WHERE l.owner_id = ?
+       ORDER BY f.contact_date DESC, f.id DESC`,
       [userId]
     );
     return rows;
@@ -19,7 +25,12 @@ const Followup = {
 
   findAllMaster: async () => {
     const [rows] = await db.execute(
-      "SELECT * FROM followups ORDER BY contact_date DESC"
+      `SELECT f.*, l.company_name, l.stage, l.owner_id,
+              u.username AS owner_username, u.display_name AS owner_name
+       FROM followups f
+       JOIN leads l ON f.lead_id = l.id
+       LEFT JOIN users u ON l.owner_id = u.id
+       ORDER BY f.contact_date DESC, f.id DESC`
     );
     return rows;
   },

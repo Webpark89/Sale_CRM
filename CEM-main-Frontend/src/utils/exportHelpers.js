@@ -1,6 +1,7 @@
 import { toPng } from 'html-to-image';
+import notify from "./toast";
+
 import jsPDF from 'jspdf';
-import toast from 'react-hot-toast';
 
 // แปลงเป็น JSON
 export const exportJSON = (data, filename = "sales_crm_export.json") => {
@@ -55,7 +56,7 @@ export const exportJPG = async (domElement, filename = "sales_crm_report.jpg") =
     link.click();
   } catch (err) {
     console.error("Export JPG Error:", err);
-    toast.error("ไม่สามารถสร้างรูปภาพได้");
+    notify.error("ไม่สามารถสร้างรูปภาพได้");
   }
 };
 
@@ -86,7 +87,7 @@ export const exportPDF_fromDOM = async (domElement, filename = "sales_crm_report
     pdf.save(filename);
   } catch (err) {
     console.error("Export PDF Error:", err);
-    toast.error("ไม่สามารถสร้าง PDF ได้");
+    notify.error("ไม่สามารถสร้าง PDF ได้");
   }
 };
 
@@ -292,6 +293,6 @@ export const printHTMLTable = (leads, title = "รายงานสรุปข
     printWindow.document.write(htmlContent);
     printWindow.document.close();
   } else {
-    toast.error("Popup blocker อาจจะบล็อกการเปิดรายงาน กรุณาอนุญาตให้เปิด popup ได้");
+    notify.error("Popup blocker อาจจะบล็อกการเปิดรายงาน กรุณาอนุญาตให้เปิด popup ได้");
   }
 };

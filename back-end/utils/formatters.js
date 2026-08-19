@@ -63,6 +63,10 @@ const formatFollowup = (row) => ({
   pdfFile:         row.pdf_file,
   completed:       !!row.completed,
   createdAt:       row.created_at,
+  companyName:     row.company_name || null,
+  stage:           row.stage || null,
+  ownerId:         row.owner_id || null,
+  ownerName:       row.owner_name || row.owner_username || null,
 });
 
 /**

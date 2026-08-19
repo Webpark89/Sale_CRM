@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
-import toast from 'react-hot-toast';
 import html2canvas from "html2canvas"; // ⚠️ อย่าลืม import html2canvas
+import notify from "../../../../utils/toast";
+import Swal from "sweetalert2";
 import { RG } from "../../constants/theme";
 import { STAGES, STAGE_STATUS_MAP, ALL_STATUSES } from "../../constants/status";
 import { parseDateTH, today, fmtNum, formatNumberWithCommas, parseNumberFromCommas, PROVINCES, formatPhoneNumber } from "../../crmHelpers/helpers";
@@ -43,15 +44,36 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
 
   const handleSaveInfo = async () => {
     if (taxIdError) {
-      toast.error("ไม่สามารถบันทึกได้ เนื่องจากเลขนิติบุคคลซ้ำในระบบ");
+      notify.error("ไม่สามารถบันทึกได้ เนื่องจากเลขนิติบุคคลซ้ำในระบบ");
       return;
     }
-    try {
-      await onSave(form);
-      setEditing(false);
-    } catch (e) {
-      // Error is already alerted by saveLead toast
-    }
+    Swal.fire({
+      title: "ยืนยันการบันทึก?",
+      text: "คุณต้องการบันทึกการแก้ไขข้อมูลนี้ใช่หรือไม่?",
+      icon: "question",
+      iconColor: "#2563eb",
+      showCancelButton: true,
+      confirmButtonText: "บันทึก",
+      cancelButtonText: "ยกเลิก",
+      reverseButtons: true,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'swal-custom-popup',
+        title: 'swal-custom-title',
+        actions: 'swal-actions-container',
+        confirmButton: 'swal-custom-btn swal-confirm-btn',
+        cancelButton: 'swal-custom-btn swal-cancel-btn'
+      }
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await onSave(form);
+          setEditing(false);
+        } catch (e) {
+          // Error is already alerted by parent
+        }
+      }
+    });
   };
 
   // 2. ฟังก์ชัน Export JPG
@@ -72,7 +94,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
       document.body.removeChild(link);
     } catch (error) {
       console.error("Export failed:", error);
-      toast.error("ไม่สามารถสร้างรูปภาพได้ กรุณาลองใหม่อีกครั้ง");
+      notify.error("ไม่สามารถสร้างรูปภาพได้ กรุณาลองใหม่อีกครั้ง");
     }
   };
 
@@ -291,7 +313,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                               </select>
                             ) : (
                               <>
-                                <input 
+                                <input maxLength={field.key === "companyNumber" ? 13 : undefined} 
                                   value={form[field.key] || ""} 
                                   onChange={e => handleInputChange(field.key, e.target.value)} 
                                   style={{ ...inputStyle, width: "100%", borderColor: (field.key === "companyNumber" && taxIdError) ? "#ff4d4f" : inputStyle.border }} 
@@ -474,11 +496,11 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                     <div style={{ display: "flex", gap: 8 }}>
                       <Btn onClick={() => { 
                         if (fForm.nextFollowupDate && fForm.date && fForm.nextFollowupDate < fForm.date) {
-                          return toast.error("วันที่ติดตามครั้งถัดไป ห้ามอยู่ก่อน วันที่ติดต่อ");
+                          return notify.error("วันที่ติดตามครั้งถัดไป ห้ามอยู่ก่อน วันที่ติดต่อ");
                         }
                         const optionalStatuses = ['Won', 'Lost', 'ติดต่อไม่ได้'];
                         if (!optionalStatuses.includes(fForm.status) && !fForm.nextFollowupDate) {
-                          return toast.error("กรุณาระบุ วันที่ติดตามครั้งถัดไป สำหรับสถานะนี้");
+                          return notify.error("กรุณาระบุ วันที่ติดตามครั้งถัดไป สำหรับสถานะนี้");
                         }
                         const formData = new FormData();
                         formData.append("sequence", fForm.sequence);

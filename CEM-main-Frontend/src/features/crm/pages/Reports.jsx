@@ -23,7 +23,7 @@ const getPresetRange = (preset) => {
 export default function Reports({ leads = [], followups = {}, currentUser }) {
   const todayStr = today();
 
-  const [useMockData, setUseMockData] = useState(false);
+  
 
   // Pagination States
   const [todayPage, setTodayPage] = useState(1);
@@ -135,16 +135,16 @@ export default function Reports({ leads = [], followups = {}, currentUser }) {
 
   // Combine real and mock data
   const effectiveLeads = useMemo(() => {
-    let combined = useMockData ? [...leads, ...MOCK_LEADS] : leads;
+    let combined = leads;
     if (!canViewAll) {
       combined = combined.filter(l => l.owner === currentUser?.username);
     }
     return combined;
-  }, [leads, useMockData, MOCK_LEADS, canViewAll, currentUser]);
+  }, [leads, canViewAll, currentUser]);
 
   const effectiveFollowups = useMemo(() => {
-    return useMockData ? { ...followups, ...MOCK_FOLLOWUPS } : followups;
-  }, [followups, useMockData, MOCK_FOLLOWUPS]);
+    return followups;
+  }, [followups, ]);
 
   // Extract unique owners from effectiveLeads
   const uniqueOwners = useMemo(() => {
@@ -516,25 +516,7 @@ export default function Reports({ leads = [], followups = {}, currentUser }) {
             <Filter size={18} /> Advance Filters
           </h3>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button 
-              onClick={() => setUseMockData(prev => !prev)} 
-              style={{ 
-                padding: "6px 14px", 
-                borderRadius: 8, 
-                border: `1px solid ${useMockData ? "#10B981" : RG.border}`, 
-                background: useMockData ? "#ECFDF5" : RG.surface, 
-                color: useMockData ? "#059669" : RG.text, 
-                cursor: "pointer", 
-                fontWeight: 600, 
-                fontSize: 12, 
-                fontFamily: "'Sarabun', sans-serif",
-                display: "flex",
-                alignItems: "center",
-                gap: 6
-              }}
-            >
-              <Sparkles size={14} color={useMockData ? "#059669" : "#6B7280"} /> {useMockData ? "✓ กำลังแสดงข้อมูลม็อกอัพ" : "🎲 ม็อกอัพข้อมูลทดสอบ"}
-            </button>
+            
             <button 
               onClick={setFilterToday} 
               style={{ 
@@ -712,7 +694,7 @@ export default function Reports({ leads = [], followups = {}, currentUser }) {
                   }) : (
                     <tr>
                       <td colSpan={8} style={{...tdStyle, textAlign: "center", color: RG.textMuted, padding: 24 }}>
-                        ยังไม่มีรายการติดต่อหรือติดตามในวันนี้สำหรับตัวกรองที่เลือก (กดปุ่ม "🎲 ม็อกอัพข้อมูลทดสอบ" เพื่อทดสอบดูตัวอย่างได้ครับ)
+                        ยังไม่มีรายการติดต่อหรือติดตามในวันนี้สำหรับตัวกรองที่เลือก 
                       </td>
                     </tr>
                   )}

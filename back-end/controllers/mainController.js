@@ -168,15 +168,7 @@ const createLead = asyncHandler(async (req, res) => {
 
   const latestRow = await Lead.findByIdWithDetails(insertId);
 
-  // ส่งแจ้งเตือน LINE Group (ทำงานเบื้องหลัง)
-  try {
-    const ownerName = latestRow.owner_username || "ไม่ระบุ";
-    const compName = latestRow.company_name || "-";
-    const contName = latestRow.contact_name || "-";
-    sendLineGroupNotify(`👤 มีลีดใหม่เข้าระบบ: ${compName} (ผู้ติดต่อ: ${contName}, ผู้ดูแล: ${ownerName})`);
-  } catch (err) {
-    console.error("LINE Notification Trigger Error:", err.message);
-  }
+  // LINE Notification removed as requested
 
   res.status(201).json(formatLead(latestRow));
 });

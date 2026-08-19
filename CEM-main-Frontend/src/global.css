@@ -2,5 +2,93 @@
 body { font-family: var(--font-body); margin: 0; background-color: var(--color-background); }
 table { font-family: var(--font-body); }
 button, input, select, textarea { font-family: var(--font-body); }
-.btn-delete { background: #fff5f5; border: 1px solid var(--color-danger); border-radius: 6px; padding: 8px 16px; color: var(--color-danger); cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(220,53,69,0.1); transition: all 0.2s; font-family: var(--font-body); }
-.btn-delete:hover { background: var(--color-danger); color: white; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(220,53,69,0.2); }
+
+.btn-delete {
+  background: #fff5f5;
+  border: 1px solid var(--color-danger);
+  border-radius: 6px;
+  padding: 8px 16px;
+  color: var(--color-danger);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(220,53,69,0.1);
+  transition: all 0.2s;
+  font-family: var(--font-body);
+}
+.btn-delete:hover {
+  background: var(--color-danger);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(220,53,69,0.2);
+}
+
+/* SweetAlert2 Custom Styling */
+.swal2-popup.swal-custom-popup {
+  border-radius: 16px !important;
+  padding: 28px 24px !important;
+  font-family: var(--font-body) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+}
+
+.swal2-title.swal-custom-title {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: #1e293b !important;
+  margin-bottom: 8px !important;
+}
+
+.swal2-html-container {
+  color: #64748b !important;
+  font-size: 15px !important;
+}
+
+.swal2-actions.swal-actions-container {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+  margin-top: 24px !important;
+  padding: 0 12px !important;
+  box-sizing: border-box !important;
+}
+
+.swal-custom-btn {
+  height: 42px !important;
+  padding: 0 20px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  border: none !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+  outline: none !important;
+  min-width: 130px !important;
+}
+
+.swal-confirm-btn {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
+}
+
+.swal-confirm-btn:hover {
+  background-color: #1d4ed8 !important;
+  transform: translateY(-1px) !important;
+}
+
+.swal-cancel-btn {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.swal-cancel-btn:hover {
+  background-color: #e2e8f0 !important;
+  color: #334155 !important;
+}

@@ -77,45 +77,11 @@ export default function AppModals({
         </Modal>
       )}
 
-      {confirmFinalReassign && (
-        <Modal title="ยืนยันการโอนย้าย" onClose={() => setConfirmFinalReassign(false)}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <p style={{ margin: 0 }}>แน่ใจว่าจะเปลี่ยนใช่มั้ย?</p>
-            <div style={{ display: "flex", gap: 10, marginTop: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => setConfirmFinalReassign(false)} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${RG.border}`, background: RG.surface, cursor: "pointer" }}>ยกเลิก</button>
-              <button onClick={handleFinalReassign} disabled={isReassigning} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: RG.danger, color: RG.surface, cursor: isReassigning ? "not-allowed" : "pointer" }}>
-                {isReassigning ? "กำลังบันทึก..." : "ยืนยัน"}
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      
 
-      {alertModal && (
-        <Modal title={alertModal.type === 'success' ? "สำเร็จ" : "ข้อผิดพลาด"} onClose={() => setAlertModal(null)}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "16px 0" }}>
-            <div style={{ fontSize: 48 }}>
-              {alertModal.type === 'success' ? '✅' : '❌'}
-            </div>
-            <p style={{ color: RG.text, fontSize: 16, textAlign: "center", margin: 0 }}>
-              {alertModal.message}
-            </p>
-            <button onClick={() => setAlertModal(null)} style={{ padding: "8px 24px", borderRadius: 6, border: "none", background: RG.primary, color: RG.surface, cursor: "pointer", marginTop: 16, fontSize: 14, fontWeight: 600 }}>
-              ตกลง
-            </button>
-          </div>
-        </Modal>
-      )}
+      
 
-      {showDeleteConfirm && (
-        <Modal title="ยืนยันการลบ" onClose={() => setShowDeleteConfirm(false)}>
-          <p style={{ color: RG.text, marginBottom: 20 }}>คุณต้องการลบ <strong>{checked.length}</strong> รายการหรือไม่? การกระทำนี้ไม่สามารถยกเลิกได้</p>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Btn variant="danger" onClick={deleteSelected}>ลบ {checked.length} รายการ</Btn>
-            <Btn variant="secondary" onClick={() => setShowDeleteConfirm(false)}>ยกเลิก</Btn>
-          </div>
-        </Modal>
-      )}
+      
     </>
   );
 }

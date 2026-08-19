@@ -1,5 +1,5 @@
+import notify from "../../utils/toast";
 import React, { useCallback, useEffect, useState, useRef } from "react";
-import { Toaster, toast } from 'react-hot-toast';
 import { STAGES, STAGE_STATUS_MAP, ALL_STATUSES, STAGE_PRIORITY, isValidStageStatus } from "./constants/status";
 import { RG } from "./constants/theme";
 import { createNewLead, parseDateTH, today, uuid, PROVINCES } from "./crmHelpers/helpers";
@@ -15,6 +15,7 @@ import AppModals from "./components/layout/AppModals";
 import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
 import UserManagement from "./pages/UserManagement";
+import FollowupHistoryPage from "./pages/FollowupHistoryPage";
 import RoleManagementPage from "./pages/RoleManagementPage";
 import RoleFormPage from "./pages/RoleFormPage";
 import LeadsPage from "./pages/LeadsPage";
@@ -256,7 +257,7 @@ export default function App() {
       await loadData();
     } catch (e) {
       console.error(e);
-      toast.error("Undo failed");
+      notify.error("Undo failed");
     }
   };
 
@@ -278,13 +279,16 @@ export default function App() {
       await loadData();
     } catch (e) {
       console.error(e);
-      toast.error("Redo failed");
+      notify.error("Redo failed");
     }
   };
 
   const validateLeadData = (lead) => {
     if (!lead.companyName || !lead.companyName.trim()) {
       return "กรุณากรอกชื่อบริษัท";
+    }
+    if (lead.companyNumber && !/^\d{13}$/.test(lead.companyNumber)) {
+      return "เลขนิติบุคคลต้องเป็นตัวเลข 13 หลักเท่านั้น";
     }
     // validate stage
     if (lead.stage && !STAGES.includes(lead.stage)) {
@@ -331,7 +335,7 @@ export default function App() {
   const addLead = async form => {
     const err = validateLeadData(form);
     if (err) {
-      toast.error(err);
+      notify.error(err);
       return;
     }
     try {
@@ -339,15 +343,16 @@ export default function App() {
       setLeads([newLead, ...leads]);
       setShowAddLead(false);
       pushAction({ type: "ADD_LEAD", payload: { id: newLead.id, data: newLead } });
-    } catch (e) {
-      toast.error(e.response?.data?.error || "บันทึกไม่สำเร็จ");
+        notify.success("สร้างลีดใหม่สำเร็จ");
+      } catch (e) {
+      notify.error(e.response?.data?.error || "บันทึกไม่สำเร็จ");
     }
   };
 
   const saveLead = async updated => {
     const err = validateLeadData(updated);
     if (err) {
-      toast.error(err);
+      notify.error(err);
       throw new Error(err);
     }
     const oldLead = leads.find(l => l.id === updated.id);
@@ -371,8 +376,9 @@ export default function App() {
       }
 
       pushAction({ type: "EDIT_LEAD", payload: { id: updated.id, oldData: oldLead, newData: savedLead } });
+      notify.success("บันทึกข้อมูลสำเร็จ");
     } catch (e) {
-      toast.error(e.response?.data?.error || "บันทึกไม่สำเร็จ");
+      notify.error(e.response?.data?.error || "บันทึกไม่สำเร็จ");
       throw e;
     }
   };
@@ -403,7 +409,7 @@ export default function App() {
       setFollowups(newFollowups);
       setSelectedLead(finalLead);
     } catch(e) {
-      toast.error(e.response?.data?.error || "บันทึกไม่สำเร็จ");
+      notify.error(e.response?.data?.error || "บันทึกไม่สำเร็จ");
     }
   };
 
@@ -450,7 +456,7 @@ export default function App() {
     const validationTarget = key === "stage" ? { ...updated, latestStatus: null } : updated;
     const err = validateLeadData(validationTarget);
     if (err) {
-      toast.error(err);
+      notify.error(err);
       return;
     }
     // ถ้าเปลี่ยน stage ให้ clear latestStatus ใน local state แต่ไม่ส่ง null ไป backend
@@ -476,8 +482,9 @@ export default function App() {
       }
 
       pushAction({ type: "EDIT_LEAD", payload: { id: leadId, oldData: lead, newData: displayLead } });
+      notify.success("แก้ไขข้อมูลสำเร็จ");
     } catch (e) {
-      toast.error(e.response?.data?.error || "แก้ไขไม่สำเร็จ");
+      notify.error(e.response?.data?.error || "แก้ไขไม่สำเร็จ");
     }
   };
 
@@ -490,7 +497,7 @@ export default function App() {
       pushAction({ type: "TOGGLE_STAR", payload: { id: leadId } });
     } catch (e) {
       console.error(e);
-      toast.error(e.response?.data?.error || "ไม่สามารถเปลี่ยนสถานะดาวได้");
+      notify.error(e.response?.data?.error || "ไม่สามารถเปลี่ยนสถานะดาวได้");
     }
   };
 
@@ -507,7 +514,7 @@ export default function App() {
       setShowDeleteConfirm(false);
       pushAction({ type: "DELETE_LEADS", payload: { ids: idsToDel } });
     } catch(e) {
-      toast.error("ลบไม่สำเร็จ");
+      notify.error("ลบไม่สำเร็จ");
     }
   };
 
@@ -517,7 +524,7 @@ export default function App() {
       await deleteLeadFromApi(id);
       loadData();
     } catch (e) {
-      toast.error("ลบข้อมูลไม่สำเร็จ");
+      notify.error("ลบข้อมูลไม่สำเร็จ");
     }
   };
 
@@ -733,18 +740,18 @@ export default function App() {
     if (mode === "all") {
       if (!canExportAll) {
         if (printWindow) printWindow.close();
-        return toast.error("ไม่มีสิทธิ์ Export ข้อมูลทั้งหมด");
+        return notify.error("ไม่มีสิทธิ์ Export ข้อมูลทั้งหมด");
       }
       try {
         targetLeads = await fetchAllLeadsMaster();
         if (!targetLeads || targetLeads.length === 0) {
           if (printWindow) printWindow.close();
-          toast.error("ไม่พบข้อมูล");
+          notify.error("ไม่พบข้อมูล");
           return;
         }
       } catch (err) {
         if (printWindow) printWindow.close();
-        toast.error("API Error: " + (err.response?.data?.error || err.message));
+        notify.error("API Error: " + (err.response?.data?.error || err.message));
         return;
       }
     }
@@ -778,7 +785,7 @@ export default function App() {
     <div style={{ minHeight: "100vh", width: "100%", margin: 0, padding: 0, fontFamily: RG.fontBody, color: RG.text, display: "flex", flexDirection: "row", position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", top: -20, left: -20, right: -20, bottom: -20, background: RG.background, filter: "blur(12px)", zIndex: 0 }} />
       <div style={{ display: "flex", flexDirection: "row", width: "100%", zIndex: 1 }}>
-      <Toaster position="top-right" />
+      
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; } body { margin: 0; padding: 0; height: 100vh; overflow-x: hidden; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: var(--color-primary-ghost); } ::-webkit-scrollbar-thumb { background: var(--color-primary-light); border-radius: 3px; }.status-blue { color: #007bff !important; font-weight: 700 !important; } table, table * { font-family: 'Sarabun', sans-serif !important; }`}</style>
 
       {/* Left Sidebar (Hoverable) */}
@@ -822,7 +829,7 @@ export default function App() {
         <Route path="/leads" element={
           <LeadsPage 
             leads={leads} currentUser={currentUser} allSellers={allSellers} checked={checked} setChecked={setChecked}
-            search={search} setSearch={setSearch} filterStatus={filterStatus} filterLatestStatus={filterLatestStatus} finFilters={finFilters}
+            search={search} setSearch={setSearch} filterStatus={filterStatus} filterLatestStatus={filterLatestStatus} finFilters={finFilters} dateFilters={dateFilters} setDateFilters={setDateFilters}
             showFavorites={showFavorites} setShowFavorites={setShowFavorites} setShowFilterModal={setShowFilterModal}
             isSellerDropdownOpen={isSellerDropdownOpen} setIsSellerDropdownOpen={setIsSellerDropdownOpen}
             filterSellers={filterSellers} setFilterSellers={setFilterSellers}
@@ -869,7 +876,10 @@ export default function App() {
           </div>
         } />
 
-        <Route path="/role_management" element={(currentUser?.role_is_system || currentUser?.permissions?.roles?.menu) ? (
+        { (currentUser?.role === "admin" || currentUser?.role_is_system || currentUser?.permissions?.followupHistory?.view) ? (
+        <Route path="/followup_history" element={<FollowupHistoryPage currentUser={currentUser} allSellers={allSellers} />} />
+      ) : null }
+      <Route path="/role_management" element={(currentUser?.role_is_system || currentUser?.permissions?.roles?.menu) ? (
           <div>
             <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ width: 48, height: 48, borderRadius: 8, background: RG.primary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: RG.shadowSoft }}>

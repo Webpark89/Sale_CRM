@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import notify from "../../../utils/toast";
+
 import { useParams, useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import { RG } from '../constants/theme';
 import { fetchRoleById, createRoleApi, updateRoleApi } from '../services/roleService';
 import { ChevronLeft } from 'lucide-react';
@@ -137,7 +138,7 @@ const RoleFormPage = ({ currentUser }) => {
       }
       setPermissions(buildDefaultPermissions(parsedPerms));
     } catch (e) {
-      toast.error('ไม่สามารถโหลดข้อมูล Role ได้');
+      notify.error('ไม่สามารถโหลดข้อมูล Role ได้');
       navigate('/role_management');
     } finally {
       setLoading(false);
@@ -152,8 +153,8 @@ const RoleFormPage = ({ currentUser }) => {
   };
 
   const handleSave = async () => {
-    if (!name.trim()) return toast.error('กรุณากรอกชื่อ Role');
-    if (!displayName.trim()) return toast.error('กรุณากรอกชื่อที่แสดง');
+    if (!name.trim()) return notify.error('กรุณากรอกชื่อ Role');
+    if (!displayName.trim()) return notify.error('กรุณากรอกชื่อที่แสดง');
     
     setIsSaving(true);
     const formData = { name: name.trim(), display_name: displayName.trim(), permissions };
@@ -161,14 +162,14 @@ const RoleFormPage = ({ currentUser }) => {
     try {
       if (id) {
         await updateRoleApi(id, formData);
-        toast.success('แก้ไข Role สำเร็จ');
+        notify.success('แก้ไข Role สำเร็จ');
       } else {
         await createRoleApi(formData);
-        toast.success('สร้าง Role สำเร็จ');
+        notify.success('สร้าง Role สำเร็จ');
       }
       navigate('/role_management');
     } catch (e) {
-      toast.error(e.response?.data?.error || 'เกิดข้อผิดพลาดในการบันทึก');
+      notify.error(e.response?.data?.error || 'เกิดข้อผิดพลาดในการบันทึก');
     } finally {
       setIsSaving(false);
     }
@@ -358,7 +359,17 @@ const RoleFormPage = ({ currentUser }) => {
           </div>
         </div>
 
-        {/* Other Basic Permissions (Roles, Users) - Always visible */}
+        
+          <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8, background: RG.background, borderRadius: 8, border: `1px solid ${RG.border}` }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: RG.text }}>ประวัติการติดตาม (Follow-up History)</div>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: 14, color: RG.text }}>
+              <strong style={{ width: 140 }}>การเข้าถึง:</strong>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}><input type="checkbox" style={{ width: 16, height: 16, accentColor: RG.primary, cursor: 'pointer' }} checked={permissions.followupHistory?.view || false} onChange={e => setPerm('followupHistory', 'view', e.target.checked)} /> เข้าดูหน้านี้ได้</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}><input type="checkbox" style={{ width: 16, height: 16, accentColor: RG.primary, cursor: 'pointer' }} checked={permissions.followupHistory?.viewOtherSellers || false} onChange={e => setPerm('followupHistory', 'viewOtherSellers', e.target.checked)} /> ดูประวัติของเซลส์คนอื่นได้ (มี Dropdown)</label>
+            </div>
+          </div>
+
+          {/* Other Basic Permissions (Roles, Users) - Always visible */}
         <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8, background: RG.background, borderRadius: 8, border: `1px solid ${RG.border}` }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: RG.text }}>สิทธิ์ขั้นสูง (Roles & Users Management)</div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: 14, color: RG.text }}>

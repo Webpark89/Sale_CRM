@@ -1,12 +1,15 @@
 import React from "react";
 import { RG } from "../../constants/theme";
-import { UsersRound, Settings, Download } from "lucide-react";
+import { UsersRound, Settings, Download, CalendarClock, History } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { today } from "../../crmHelpers/helpers";
 
 export default function LeadsHeader({
+  currentUser,
   search, setSearch,
   setShowAddLead,
   showFavorites, setShowFavorites,
-  filterStatus, finFilters, setShowFilterModal,
+  filterStatus, finFilters, setShowFilterModal, dateFilters, setDateFilters,
   canViewAll, canViewSelect,
   isSellerDropdownOpen, setIsSellerDropdownOpen,
   filterSellers, setFilterSellers,
@@ -14,6 +17,8 @@ export default function LeadsHeader({
   canExport, canExportAll,
   handleExport
 }) {
+  const navigate = useNavigate();
+
   const inputStyle = { padding: "8px 12px", borderRadius: "8px", border: `1px solid ${RG.border}`, outline: "none", fontSize: "13px", fontFamily: "'Sarabun', sans-serif" };
 
   return (
@@ -46,6 +51,30 @@ export default function LeadsHeader({
             }}
           >
             {showFavorites ? "⭐ กำลังดูรายการโปรด" : "☆ รายการโปรด"}
+          </button>
+
+          
+          <button 
+            onClick={() => {
+              const isToday = dateFilters?.nextFollowupDate?.type === 'today';
+              setDateFilters({
+                ...dateFilters,
+                nextFollowupDate: isToday 
+                  ? { min: '', max: '', type: 'all' } 
+                  : { min: today(), max: today(), type: 'today' }
+              });
+            }} 
+            style={{ 
+              padding: "4px 10px", borderRadius: 20, 
+              border: `1.5px solid ${dateFilters?.nextFollowupDate?.type === 'today' ? RG.primary : RG.border}`, 
+              background: dateFilters?.nextFollowupDate?.type === 'today' ? "#F0FDF4" : RG.surface, 
+              color: dateFilters?.nextFollowupDate?.type === 'today' ? RG.primaryMid : RG.textMuted, 
+              fontSize: 12, cursor: "pointer", fontWeight: dateFilters?.nextFollowupDate?.type === 'today' ? 700 : 400, 
+              fontFamily: "'Sarabun', sans-serif",
+              display: "flex", alignItems: "center", gap: 4
+            }}
+          >
+            <CalendarClock size={14} /> ติดตามวันนี้
           </button>
 
           <button 
@@ -101,7 +130,23 @@ export default function LeadsHeader({
             </div>
           )}
 
-          {canExport && (
+          {(currentUser?.role === "admin" || currentUser?.role_is_system || currentUser?.permissions?.followupHistory?.view) && (
+          <button 
+            onClick={() => navigate('/followup_history')}
+            style={{ 
+              padding: "0 16px", borderRadius: 8, 
+              border: `1px solid ${RG.border}`, 
+              background: RG.surface, 
+              color: RG.text, 
+              cursor: "pointer", fontSize: 13, fontWeight: 600,
+              display: "flex", alignItems: "center", gap: 6,
+              height: 38, fontFamily: RG.fontHeading, boxShadow: RG.shadowSoft
+            }}>
+            <History size={16} color={RG.primary} /> ประวัติการติดตาม
+          </button>
+        )
+        }
+        { canExport && (
             <select 
               onChange={handleExport}
               style={{ 

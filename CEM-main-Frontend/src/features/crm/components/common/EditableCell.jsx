@@ -3,6 +3,7 @@ import { RG } from "../../constants/theme";
 import { fmtNum, parseDateTH, formatNumberWithCommas, parseNumberFromCommas, formatPhoneNumber } from "../../crmHelpers/helpers";
 import { inputStyle, selectStyle } from "./styles";
 import { STATUS_COLORS } from "../../constants/status";
+import Swal from "sweetalert2";
 
 export default function EditableCell({ value, onSave, type = "text", options, disabled = false }) {
   const [editing, setEditing] = useState(false);
@@ -13,8 +14,36 @@ export default function EditableCell({ value, onSave, type = "text", options, di
   }, [value]);
 
   const commit = () => {
-    onSave(val);
-    setEditing(false);
+    if (val === value) {
+      setEditing(false);
+      return;
+    }
+    Swal.fire({
+      title: "ยืนยันการแก้ไข?",
+      text: "คุณต้องการบันทึกการแก้ไขข้อมูลนี้ใช่หรือไม่?",
+      icon: "question",
+      iconColor: "#2563eb",
+      showCancelButton: true,
+      confirmButtonText: "บันทึก",
+      cancelButtonText: "ยกเลิก",
+      reverseButtons: true,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'swal-custom-popup',
+        title: 'swal-custom-title',
+        actions: 'swal-actions-container',
+        confirmButton: 'swal-custom-btn swal-confirm-btn',
+        cancelButton: 'swal-custom-btn swal-cancel-btn'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        onSave(val);
+        setEditing(false);
+      } else {
+        setVal(value);
+        setEditing(false);
+      }
+    });
   };
 
   const handleCellClick = (e) => {

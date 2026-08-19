@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import toast from 'react-hot-toast';
+import notify from "../../../../utils/toast";
+
 import { STAGES, STAGE_STATUS_MAP } from "../../constants/status";
 import { today, formatNumberWithCommas, parseNumberFromCommas, formatPhoneNumber, PROVINCES } from "../../crmHelpers/helpers";
 import Btn from "../common/Btn";
@@ -46,19 +47,19 @@ export default function AddLeadModal({ onClose, onSave, leads = [], currentUser,
 
   const handleSave = () => {
     if (taxIdError) {
-      toast.error("ไม่สามารถบันทึกได้ เนื่องจากเลขนิติบุคคลซ้ำในระบบ");
+      notify.error("ไม่สามารถบันทึกได้ เนื่องจากเลขนิติบุคคลซ้ำในระบบ");
       return;
     }
     if (!form.companyName.trim()) {
-      toast.error("กรุณากรอกชื่อบริษัทให้ครบถ้วน");
+      notify.error("กรุณากรอกชื่อบริษัทให้ครบถ้วน");
       return;
     }
     if (!form.stage) {
-      toast.error("กรุณาเลือก Stage");
+      notify.error("กรุณาเลือก Stage");
       return;
     }
     if (!form.latestStatus) {
-      toast.error("กรุณาเลือก Status");
+      notify.error("กรุณาเลือก Status");
       return;
     }
     const payload = { ...form };
@@ -75,7 +76,7 @@ export default function AddLeadModal({ onClose, onSave, leads = [], currentUser,
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
         
         <Field label="เลขนิติบุคคล">
-          <input 
+          <input maxLength={13} 
             value={form.companyNumber} 
             onChange={e => up("companyNumber", e.target.value)} 
             style={{ 

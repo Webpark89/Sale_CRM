@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import toast from 'react-hot-toast';
+import notify from "../../../utils/toast";
+
 import { fetchAllUsers, createUserApi, updateUserPasswordApi, updateUserRoleApi, toggleUserActiveApi, deleteUserApi, restoreUserApi } from "../services/apiService";
 import { fetchRoles } from "../services/roleService";
 import { RG } from "../constants/theme";
@@ -71,30 +72,30 @@ export default function UserManagement({ currentUser }) {
   }, []);
 
   const handleAddUser = async () => {
-    if (!newUser.username || !newUser.password) return toast.error("กรุณากรอก Username และ Password");
-    if (newUser.password !== newUser.confirmPassword) return toast.error("รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน");
-    if (!newUser.role_id) return toast.error("กรุณาเลือก Role (บทบาท) ให้กับผู้ใช้งาน");
+    if (!newUser.username || !newUser.password) return notify.error("กรุณากรอก Username และ Password");
+    if (newUser.password !== newUser.confirmPassword) return notify.error("รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน");
+    if (!newUser.role_id) return notify.error("กรุณาเลือก Role (บทบาท) ให้กับผู้ใช้งาน");
     try {
       await createUserApi(newUser);
       setShowAddUser(false);
       setNewUser({ username: "", password: "", confirmPassword: "", display_name: "", role_id: roles[0]?.id || "" });
       loadData();
     } catch (e) {
-      toast.error(e.response?.data?.error || "เกิดข้อผิดพลาด");
+      notify.error(e.response?.data?.error || "เกิดข้อผิดพลาด");
     }
   };
 
   const handleChangePassword = async () => {
-    if (!newPassword || newPassword !== confirmPassword) return toast.error("รหัสผ่านและการยืนยันรหัสผ่านไม่ถูกต้อง");
+    if (!newPassword || newPassword !== confirmPassword) return notify.error("รหัสผ่านและการยืนยันรหัสผ่านไม่ถูกต้อง");
     try {
       await updateUserPasswordApi(showChangePwd.id, showChangePwd.username, newPassword, showChangePwd.display_name);
       setShowChangePwd(null);
       setNewPassword("");
       setConfirmPassword("");
-      toast.success("อัปเดตรหัสผ่านสำเร็จ");
+      notify.success("อัปเดตรหัสผ่านสำเร็จ");
       loadData();
     } catch (e) {
-      toast.error(e.response?.data?.error || "เกิดข้อผิดพลาด");
+      notify.error(e.response?.data?.error || "เกิดข้อผิดพลาด");
     }
   };
 
@@ -110,28 +111,28 @@ export default function UserManagement({ currentUser }) {
       setEditUsername("");
       setEditDisplayName("");
       setEditRoleId("");
-      toast.success("อัปเดตข้อมูลสำเร็จ");
+      notify.success("อัปเดตข้อมูลสำเร็จ");
       loadData();
     } catch (e) {
-      toast.error(e.response?.data?.error || "เกิดข้อผิดพลาด");
+      notify.error(e.response?.data?.error || "เกิดข้อผิดพลาด");
     }
   };
 
   const handleToggleActive = async (user) => {
-    if (!adminPassword) return toast.error("กรุณากรอกรหัสผ่าน Admin");
+    if (!adminPassword) return notify.error("กรุณากรอกรหัสผ่าน Admin");
     try {
       await toggleUserActiveApi(user.id, !user.is_active, adminPassword);
       setShowStatusModal(null);
       setAdminPassword("");
       loadData();
-      toast.success(user.is_active ? "ระงับบัญชีสำเร็จ" : "เปิดใช้งานบัญชีสำเร็จ");
+      notify.success(user.is_active ? "ระงับบัญชีสำเร็จ" : "เปิดใช้งานบัญชีสำเร็จ");
     } catch (e) {
-      toast.error(e.response?.data?.error || "เกิดข้อผิดพลาด");
+      notify.error(e.response?.data?.error || "เกิดข้อผิดพลาด");
     }
   };
 
   const handleDeleteUser = async (user) => {
-    if (!adminPassword) return toast.error("กรุณากรอกรหัสผ่าน Admin");
+    if (!adminPassword) return notify.error("กรุณากรอกรหัสผ่าน Admin");
     try {
       await deleteUserApi(user.id, adminPassword);
       setShowStatusModal(null);
@@ -146,7 +147,7 @@ export default function UserManagement({ currentUser }) {
       
       setAdminPassword("");
     } catch (e) {
-      toast.error(e.response?.data?.error || "เกิดข้อผิดพลาด");
+      notify.error(e.response?.data?.error || "เกิดข้อผิดพลาด");
     }
   };
 
@@ -157,9 +158,9 @@ export default function UserManagement({ currentUser }) {
       setDeletedUserToast(null);
       if (toastTimeoutId) clearTimeout(toastTimeoutId);
       loadData();
-      toast.success(`กู้คืนบัญชีผู้ใช้ ${deletedUserToast.username} สำเร็จ`);
+      notify.success(`กู้คืนบัญชีผู้ใช้ ${deletedUserToast.username} สำเร็จ`);
     } catch (e) {
-      toast.error(e.response?.data?.error || "เกิดข้อผิดพลาดในการกู้คืน");
+      notify.error(e.response?.data?.error || "เกิดข้อผิดพลาดในการกู้คืน");
     }
   };
 
@@ -168,7 +169,7 @@ export default function UserManagement({ currentUser }) {
       await updateUserRoleApi(id, newRole);
       loadData();
     } catch (e) {
-      toast.error("เกิดข้อผิดพลาด");
+      notify.error("เกิดข้อผิดพลาด");
     }
   };
 

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useMemo } from "react";
-import toast from 'react-hot-toast';
+import notify from "../../../utils/toast";
+
 import { PieChart, Pie, Cell, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, FunnelChart, Funnel, LabelList } from "recharts";
 import { STAGES, STAGE_COLORS, STAGE_STATUS_MAP } from "../constants/status";
 import { RG } from "../constants/theme";
@@ -8,7 +9,7 @@ import { toJpeg, toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import { inputStyle } from "../components/common/styles";
 import Modal from "../components/common/Modal";
-import { MapPin, UsersRound } from "lucide-react";
+import { MapPin, UsersRound, Bell, CircleDollarSign, AlertTriangle, CheckCircle, FileText, Calendar, Phone } from "lucide-react";
 
 const getPresetRange = (preset) => {
   const d = new Date();
@@ -81,7 +82,7 @@ export default function Dashboard({ leads, followups, currentUser, onSelectLead 
   }
 
   const chkYear = (a,b)=>{
-    if(a&&b){ const diff=Math.ceil(Math.abs(new Date(b)-new Date(a))/(864e5)); if(diff>365){toast.error('ระยะเวลาเกิน 1 ปี');return false;} } return true;
+    if(a&&b){ const diff=Math.ceil(Math.abs(new Date(b)-new Date(a))/(864e5)); if(diff>365){notify.error('ระยะเวลาเกิน 1 ปี');return false;} } return true;
   };
 
   const data = useMemo(()=>{
@@ -143,14 +144,14 @@ export default function Dashboard({ leads, followups, currentUser, onSelectLead 
   }, [displayLeads]);
 
   const kpis=[
-    {label:'ลีดทั้งหมด',value:total,icon:'👥',c:RG.primary},
-    {label:'ต้องติดตามวันนี้',value:need,icon:'🔔',c:'#C62828'},
-    {label:'ยอดเงิน Pipeline',value:activeRev>=1000000?(activeRev/1000000).toFixed(1)+'M':activeRev>=1000?(activeRev/1000).toFixed(1)+'k':activeRev,icon:'💰',c:'#F59E0B'},
-    {label:'Stale (>14วัน)',value:stale,icon:'⚠️',c:'#ef4444'},
-    {label:'Approval',value:sc['Approval']||0,icon:'✅',c:STAGE_COLORS['Approval']},
-    {label:'Proposal',value:sc['Proposal']||0,icon:'📋',c:STAGE_COLORS['Proposal']},
-    {label:'Meeting',value:sc['Meeting']||0,icon:'📅',c:STAGE_COLORS['Meeting']},
-    {label:'Contact',value:sc['Contact']||0,icon:'📞',c:STAGE_COLORS['Contact']},
+    {label:'ลีดทั้งหมด',value:total,icon:UsersRound,c:RG.primary},
+    {label:'ต้องติดตามวันนี้',value:need,icon:Bell,c:'#C62828'},
+    {label:'ยอดเงิน Pipeline',value:activeRev>=1000000?(activeRev/1000000).toFixed(1)+'M':activeRev>=1000?(activeRev/1000).toFixed(1)+'k':activeRev,icon:CircleDollarSign,c:'#F59E0B'},
+    {label:'Stale (>14วัน)',value:stale,icon:AlertTriangle,c:'#ef4444'},
+    {label:'Approval',value:sc['Approval']||0,icon:CheckCircle,c:STAGE_COLORS['Approval']},
+    {label:'Proposal',value:sc['Proposal']||0,icon:FileText,c:STAGE_COLORS['Proposal']},
+    {label:'Meeting',value:sc['Meeting']||0,icon:Calendar,c:STAGE_COLORS['Meeting']},
+    {label:'Contact',value:sc['Contact']||0,icon:Phone,c:STAGE_COLORS['Contact']},
   ];
 
 
@@ -172,7 +173,7 @@ export default function Dashboard({ leads, followups, currentUser, onSelectLead 
         let fw=pw,fh=fw/ratio; if(fh>ph){fh=ph;fw=fh*ratio;}
         pdf.addImage(u,'PNG',(pw-fw)/2,(ph-fh)/2,fw,fh); pdf.save(fn+'.pdf');
       }
-    } catch(err){toast.error('ไม่สามารถส่งออกได้');}
+    } catch(err){notify.error('ไม่สามารถส่งออกได้');}
     finally{setIsExporting(false);if(mode==='all'&&currentUser?.permissions?.dashboard?.export==='all')setFilterSellers(prev);}
   };
 
@@ -241,22 +242,42 @@ export default function Dashboard({ leads, followups, currentUser, onSelectLead 
         React.createElement('div',{style:{textAlign:'right'}},React.createElement('div',{style:{fontSize:20,fontWeight:700,color:RG.primaryMid}},'Sales_CRM'),React.createElement('div',{style:{fontSize:12,color:RG.textMuted,marginTop:8}},'ข้อมูล ณ '+new Date().toLocaleDateString('th-TH',{day:'2-digit',month:'short',year:'numeric'})+' เวลา '+new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})))
       ),
 
-      React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(120px, 1fr))',gap:12,marginBottom:24}},
-        kpis.map(k=>React.createElement('div',{key:k.label,
-          style:{background:RG.surface,borderRadius:8,padding:'16px',boxShadow:RG.shadowSoft,position:'relative',overflow:'hidden',transition:'transform 0.2s,box-shadow 0.2s',cursor:'pointer',border:'1px solid '+RG.border, borderTop:`4px solid ${k.c}`},
-          onMouseOver:(e)=>{if(!isExporting){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow=RG.shadowGlow;}},
-          onMouseOut:(e)=>{if(!isExporting){e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow=RG.shadowSoft;}},
-        },
-          React.createElement('div',{style:{position:'absolute',top:-20,right:-20,width:70,height:70,borderRadius:'50%',background:`${k.c}15`}}),
-          React.createElement('div',{style:{position:'absolute',bottom:-15,right:5,width:40,height:40,borderRadius:'50%',background:`${k.c}10`}}),
-          React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',position:'relative'}},
-            React.createElement('div',null,
-              React.createElement('div',{style:{fontSize:11,fontFamily:RG.fontHeading,fontWeight:600,color:RG.textMuted,marginBottom:4}},k.label),
-              React.createElement('div',{style:{fontSize:24,fontWeight:800,fontFamily:RG.fontHeading,color:k.c,lineHeight:1}},k.value)
-            ),
-            React.createElement('div',{style:{fontSize:18,opacity:0.9,lineHeight:1}},k.icon)
-          )
-        ))
+      
+      React.createElement('div', { style: { display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' } },
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, flex: 1, minWidth: 400 } },
+          kpis.slice(0, 4).map(k => React.createElement('div', { key: k.label,
+            style: { background: RG.surface, borderRadius: 8, padding: '16px', boxShadow: RG.shadowSoft, position: 'relative', overflow: 'hidden', transition: 'transform 0.2s,box-shadow 0.2s', cursor: 'pointer', border: '1px solid ' + RG.border, borderTop: `4px solid ${k.c}` },
+            onMouseOver: (e) => { if (!isExporting) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = RG.shadowGlow; } },
+            onMouseOut: (e) => { if (!isExporting) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = RG.shadowSoft; } },
+          },
+            React.createElement('div', { style: { position: 'absolute', top: -20, right: -20, width: 70, height: 70, borderRadius: '50%', background: `${k.c}15` } }),
+            React.createElement('div', { style: { position: 'absolute', bottom: -15, right: 5, width: 40, height: 40, borderRadius: '50%', background: `${k.c}10` } }),
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative' } },
+              React.createElement('div', null,
+                React.createElement('div', { style: { fontSize: 11, fontFamily: RG.fontHeading, fontWeight: 600, color: RG.textMuted, marginBottom: 4 } }, k.label),
+                React.createElement('div', { style: { fontSize: 24, fontWeight: 800, fontFamily: RG.fontHeading, color: k.c, lineHeight: 1 } }, k.value)
+              ),
+              React.createElement('div', { style: { opacity: 0.9, color: k.c, display: 'flex', alignItems: 'center' } }, React.createElement(k.icon, { size: 24, strokeWidth: 1.5 }))
+            )
+          ))
+        ),
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 12, flex: 1, minWidth: 400, background: '#f8fafc', padding: '18px 12px 12px 12px', borderRadius: 12, border: `1px solid ${RG.border}`, position: 'relative' } },
+          React.createElement('div', { style: { position: 'absolute', top: -10, left: 16, background: RG.surface, padding: '0 8px', fontSize: 11, fontWeight: 700, color: RG.textMuted, border: `1px solid ${RG.border}`, borderRadius: 12 } }, 'Pipeline Stages'),
+          kpis.slice(4).map(k => React.createElement('div', { key: k.label,
+            style: { background: RG.surface, borderRadius: 8, padding: '12px', boxShadow: RG.shadowSoft, position: 'relative', overflow: 'hidden', transition: 'transform 0.2s,box-shadow 0.2s', cursor: 'pointer', border: '1px solid ' + RG.border, borderTop: `4px solid ${k.c}` },
+            onMouseOver: (e) => { if (!isExporting) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = RG.shadowGlow; } },
+            onMouseOut: (e) => { if (!isExporting) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = RG.shadowSoft; } },
+          },
+            React.createElement('div', { style: { position: 'absolute', top: -20, right: -20, width: 70, height: 70, borderRadius: '50%', background: `${k.c}15` } }),
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative' } },
+              React.createElement('div', null,
+                React.createElement('div', { style: { fontSize: 11, fontFamily: RG.fontHeading, fontWeight: 600, color: RG.textMuted, marginBottom: 2 } }, k.label),
+                React.createElement('div', { style: { fontSize: 22, fontWeight: 800, fontFamily: RG.fontHeading, color: k.c, lineHeight: 1 } }, k.value)
+              ),
+              React.createElement('div', { style: { opacity: 0.9, color: k.c, display: 'flex', alignItems: 'center' } }, React.createElement(k.icon, { size: 20, strokeWidth: 1.5 }))
+            )
+          ))
+        )
       ),
 
 
