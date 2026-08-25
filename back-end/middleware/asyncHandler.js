@@ -11,7 +11,21 @@ const asyncHandler = (fn) => (req, res, next) => {
     
     // ตรงนี้เราอาจจะเพิ่ม Logic ในอนาคตได้ เช่น ถ้า Error รหัสนี้ ให้ตอบกลับแบบนี้
     if (err.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({ error: "ข้อมูลนี้มีอยู่ในระบบแล้ว (ข้อมูลซ้ำ)" });
+      let detailMsg = "ข้อมูลนี้มีอยู่ในระบบแล้ว (ข้อมูลซ้ำ)";
+      const dupMatch = err.sqlMessage?.match(/Duplicate entry '(.*?)' for key '(.*?)'/i);
+      if (dupMatch) {
+        const value = dupMatch[1];
+        const key = dupMatch[2];
+        let fieldName = key;
+        if (key.toLowerCase().includes('companynumber')) fieldName = 'เลขนิติบุคคล';
+        else if (key.toLowerCase().includes('contactphone') || key.toLowerCase().includes('phone')) fieldName = 'เบอร์โทรศัพท์';
+        else if (key.toLowerCase().includes('contactemail') || key.toLowerCase().includes('email')) fieldName = 'อีเมล';
+        else if (key.toLowerCase().includes('companyname')) fieldName = 'ชื่อบริษัท';
+        else if (key.toLowerCase().includes('username')) fieldName = 'ชื่อผู้ใช้งาน (Username)';
+        
+        detailMsg = `ข้อมูลซ้ำ: ${fieldName} "${value}" มีอยู่ในระบบแล้ว`;
+      }
+      return res.status(409).json({ error: detailMsg });
     }
     
     if (err.code === "ER_DATA_TOO_LONG") {

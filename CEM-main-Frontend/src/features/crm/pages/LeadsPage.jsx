@@ -16,7 +16,7 @@ export default function LeadsPage({
   dupNumbers, followups, setReassignConfirm, fetchAllSellers,
   filteredLength, totalPages, setCurrentPage,
   canViewAll, canViewSelect, canExport, canExportAll,
-  handleExport, setShowAddLead, deleteSelected,
+  handleExport, setShowAddLead, setShowDeleteConfirm,
   topScrollRef, handleTopScroll, handleBottomScroll, bottomScrollRef, syncTableWidth,
   filtered
 }) {
@@ -39,7 +39,7 @@ export default function LeadsPage({
       <div style={{ background: RG.surface, borderRadius: 12, border: `1px solid ${RG.border}`, overflow: "hidden", boxShadow: RG.shadowSoft, backdropFilter: RG.glassFilter, padding: 24 }}>
         {checked.length > 0 && (
           <div style={{ marginBottom: 16, display: "flex", alignItems: "center" }}>
-            <button onClick={() => deleteSelected()} className="btn-delete" title="ลบข้อมูลที่เลือก">
+            <button onClick={() => setShowDeleteConfirm(true)} className="btn-delete" title="ลบข้อมูลที่เลือก">
               🗑 <span style={{ fontSize: 14, fontWeight: 700 }}>ลบข้อมูลที่เลือก ({checked.length})</span>
             </button>
           </div>

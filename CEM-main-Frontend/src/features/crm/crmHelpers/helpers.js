@@ -41,17 +41,15 @@ export function parseDateTimeTH(d) {
 export function formatNumberWithCommas(value) {
   if (value === undefined || value === null) return "";
   const str = value.toString();
-  const isNegative = str.startsWith("-");
   const clean = str.replace(/[^\d]/g, "");
-  if (!clean) return isNegative ? "-" : "";
-  const formatted = Number(clean).toLocaleString("en-US");
-  return isNegative ? `-${formatted}` : formatted;
+  if (!clean) return "";
+  return Number(clean).toLocaleString("en-US");
 }
 
 export function parseNumberFromCommas(value) {
   if (value === "" || value === undefined || value === null) return "";
-  const clean = value.toString().replace(/[^\d-]/g, "");
-  if (clean === "" || clean === "-") return clean;
+  const clean = value.toString().replace(/[^\d]/g, "");
+  if (clean === "") return "";
   return Number(clean);
 }
 

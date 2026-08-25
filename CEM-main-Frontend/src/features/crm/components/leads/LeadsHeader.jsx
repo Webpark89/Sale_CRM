@@ -33,7 +33,7 @@ export default function LeadsHeader({
         </div>
       </div>
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <button onClick={() => setShowAddLead(true)} style={{ background: RG.primary, color: RG.surface, border: "none", padding: "8px 16px", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontFamily: "'Sarabun', sans-serif" }}>
+        <button onClick={() => navigate("/leads/create")} style={{ background: RG.primary, color: RG.surface, border: "none", padding: "8px 16px", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontFamily: "'Sarabun', sans-serif" }}>
           + เพิ่มลีดใหม่
         </button>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 ค้นหาบริษัท, เลขนิติบุคคล, เบอร์..." style={{ ...inputStyle, width: 280 }} />
@@ -165,17 +165,9 @@ export default function LeadsHeader({
               }}
             >
               <option value="">Export</option>
-              <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)">
-                <option value="current_csv">Excel / CSV</option>
-                <option value="current_json">JSON</option>
-                <option value="current_pdf">PDF (Print)</option>
-              </optgroup>
+              <optgroup label="เฉพาะหน้าปัจจุบัน (Current View)"><option value="current_csv">Excel / CSV</option></optgroup>
               {canExportAll && (
-                <optgroup label="ทั้งหมด (All Report)">
-                  <option value="all_csv">Excel / CSV</option>
-                  <option value="all_json">JSON</option>
-                  <option value="all_pdf">PDF (Print All)</option>
-                </optgroup>
+                <optgroup label="ทั้งหมด (All Report)"><option value="all_csv">Excel / CSV</option></optgroup>
               )}
             </select>
           )}

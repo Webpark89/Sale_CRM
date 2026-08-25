@@ -19,6 +19,8 @@ import FollowupHistoryPage from "./pages/FollowupHistoryPage";
 import RoleManagementPage from "./pages/RoleManagementPage";
 import RoleFormPage from "./pages/RoleFormPage";
 import LeadsPage from "./pages/LeadsPage";
+import AddLeadPage from "./pages/AddLeadPage";
+
 import LeadDetailPage from "./pages/LeadDetailPage";
 import { fetchLeads, fetchAllFollowups, addLeadToApi, updateLeadToApi, deleteLeadFromApi, restoreLeadsApi, hardDeleteLeadApi, fetchAllLeadsMaster, toggleLeadStarApi, deleteMultipleLeadsFromApi, addFollowupToApi, markFollowupDoneApi, acknowledgeLeadApi, fetchAllUsers, reassignLeadApi } from "./services/apiService";
 import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
@@ -336,16 +338,18 @@ export default function App() {
     const err = validateLeadData(form);
     if (err) {
       notify.error(err);
-      return;
+      return false;
     }
     try {
       const newLead = await addLeadToApi(form);
       setLeads([newLead, ...leads]);
       setShowAddLead(false);
       pushAction({ type: "ADD_LEAD", payload: { id: newLead.id, data: newLead } });
-        notify.success("สร้างลีดใหม่สำเร็จ");
-      } catch (e) {
+      notify.success("สร้างลีดใหม่สำเร็จ");
+      return true;
+    } catch (e) {
       notify.error(e.response?.data?.error || "บันทึกไม่สำเร็จ");
+      return false;
     }
   };
 
@@ -410,6 +414,7 @@ export default function App() {
       setSelectedLead(finalLead);
     } catch(e) {
       notify.error(e.response?.data?.error || "บันทึกไม่สำเร็จ");
+      return false;
     }
   };
 
@@ -457,7 +462,7 @@ export default function App() {
     const err = validateLeadData(validationTarget);
     if (err) {
       notify.error(err);
-      return;
+      return false;
     }
     // ถ้าเปลี่ยน stage ให้ clear latestStatus ใน local state แต่ไม่ส่ง null ไป backend
     const payload = key === "stage" ? { ...updated, latestStatus: undefined } : updated;
@@ -485,6 +490,7 @@ export default function App() {
       notify.success("แก้ไขข้อมูลสำเร็จ");
     } catch (e) {
       notify.error(e.response?.data?.error || "แก้ไขไม่สำเร็จ");
+      return false;
     }
   };
 
@@ -498,6 +504,7 @@ export default function App() {
     } catch (e) {
       console.error(e);
       notify.error(e.response?.data?.error || "ไม่สามารถเปลี่ยนสถานะดาวได้");
+      return false;
     }
   };
 
@@ -631,10 +638,14 @@ export default function App() {
         let aVal = a[sortConfig.key];
         let bVal = b[sortConfig.key];
         
-        if (sortConfig.key === "latestStatus") {
+        if (sortConfig.key === "stage") {
+          const STAGE_ORDER = { "Contact": 1, "Meeting": 2, "Proposal": 3, "Approval": 4, "Closed": 5 };
+          aVal = STAGE_ORDER[aVal] ?? 99;
+          bVal = STAGE_ORDER[bVal] ?? 99;
+        } else if (sortConfig.key === "latestStatus") {
           aVal = PRIORITY_WEIGHT[aVal] ?? -1;
           bVal = PRIORITY_WEIGHT[bVal] ?? -1;
-        } else if (["revenue", "registeredCapital", "profit"].includes(sortConfig.key)) {
+        } else if (["revenue", "registeredCapital", "profit", "dealValue"].includes(sortConfig.key)) {
           aVal = Number(aVal || 0);
           bVal = Number(bVal || 0);
         } else if (["latestContactDate", "nextFollowupDate"].includes(sortConfig.key)) {
@@ -649,13 +660,11 @@ export default function App() {
         if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
         return 0;
       } else {
-        // ค่า Default 
-        const weightA = PRIORITY_WEIGHT[a.stage] || 0;
-        const weightB = PRIORITY_WEIGHT[b.stage] || 0;
-        if (weightB !== weightA) return weightB - weightA;
-        const dateA = new Date(a.latestContactDate || 0).getTime();
-        const dateB = new Date(b.latestContactDate || 0).getTime();
-        return dateB - dateA;
+        // ตั้งค่า Default ใหม่: เรียงตามเวลาที่สร้าง (ใหม่สุดขึ้นก่อน)
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        if (dateA !== dateB) return dateB - dateA;
+        return (b.id || 0) - (a.id || 0);
       }
     });
 
@@ -826,6 +835,15 @@ export default function App() {
           />
         } />
 
+                <Route path="/leads/create" element={
+          <AddLeadPage 
+            leads={leads} 
+            addLead={addLead} 
+            allSellers={allSellers} 
+            fetchAllSellers={fetchAllSellers} 
+            currentUser={currentUser} 
+          />
+        } />
         <Route path="/leads" element={
           <LeadsPage 
             leads={leads} currentUser={currentUser} allSellers={allSellers} checked={checked} setChecked={setChecked}

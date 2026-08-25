@@ -20,7 +20,7 @@ const notify = {
           <CheckCircle2 size={20} strokeWidth={2.5} />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700, fontSize: 14.5, color: "#14532d", marginBottom: description ? 2 : 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 14.5, color: "#14532d", marginBottom: description ? 2 : 0, whiteSpace: "nowrap" }}>
             {title}
           </div>
           {description && (
@@ -49,7 +49,7 @@ const notify = {
           <XCircle size={20} strokeWidth={2.5} />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700, fontSize: 14.5, color: "#7f1d1d", marginBottom: description ? 2 : 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 14.5, color: "#7f1d1d", marginBottom: description ? 2 : 0, whiteSpace: "nowrap" }}>
             {title}
           </div>
           {description && (
@@ -78,7 +78,7 @@ const notify = {
           <Info size={20} strokeWidth={2.5} />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700, fontSize: 14.5, color: "#0c4a6e", marginBottom: description ? 2 : 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 14.5, color: "#0c4a6e", marginBottom: description ? 2 : 0, whiteSpace: "nowrap" }}>
             {title}
           </div>
           {description && (

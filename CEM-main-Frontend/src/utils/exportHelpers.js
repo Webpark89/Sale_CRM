@@ -127,13 +127,13 @@ export const printHTMLTable = (leads, title = "รายงานสรุปข
     }
   };
 
-  const summaryHtml = Object.entries(statusCounts)
+  const summaryHtml = Object.entries(stageCounts)
     .sort((a, b) => b[1] - a[1])
-    .map(([status, count]) => {
-      const colors = getStatusColor(status);
+    .map(([stage, count]) => {
+      const colors = getStageColor(stage);
       return `
       <div style="flex: 0 0 calc(33.333% - 10px); box-sizing: border-box; background: ${colors.bg} !important; border: 1px solid ${colors.border} !important; color: ${colors.text} !important; padding: 12px; border-radius: 8px; text-align: center; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-        <div style="font-size: 13px; opacity: 0.9; margin-bottom: 4px;">${status}</div>
+        <div style="font-size: 13px; opacity: 0.9; margin-bottom: 4px;">${stage}</div>
         <div style="font-size: 26px; font-weight: bold;">${count} <span style="font-size: 14px; font-weight: normal;">ลีด</span></div>
       </div>
     `}).join('');
@@ -235,7 +235,7 @@ export const printHTMLTable = (leads, title = "รายงานสรุปข
         <!-- หน้าแรก: ดันเนื้อหาลงมาไม่ให้ทับกับ Fixed Title -->
         <div style="padding-top: 4cm;">
           <!-- สรุปยอดสถานะ พิมพ์เฉพาะหน้าแรกเท่านั้น -->
-          <div style="text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 10px;">📊 สรุปยอดตามสถานะ:</div>
+          <div style="text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 10px;">📊 สรุปยอดตาม Stage:</div>
           <div class="summary-grid">
             ${summaryHtml}
           </div>
@@ -244,15 +244,14 @@ export const printHTMLTable = (leads, title = "รายงานสรุปข
         <table style="margin-top: -3.5cm; position: relative; z-index: 1;">
           <thead>
             <!-- Spacer: ดันตารางให้ต่ำกว่า Fixed Title ในทุกๆ หน้าที่พิมพ์ -->
-            <tr><th colspan="11" style="height: 4.2cm; border: none; padding: 0;"></th></tr>
+            <tr><th colspan="10" style="height: 4.2cm; border: none; padding: 0;"></th></tr>
             <tr>
               <th class="col-header text-center nowrap">ลำดับ</th>
               <th class="col-header" style="max-width: 140px; white-space: normal;">บริษัท</th>
               <th class="col-header nowrap">ผู้ติดต่อ</th>
               <th class="col-header nowrap">เบอร์โทร</th>
-              <th class="col-header text-right nowrap">รายได้</th>
-              <th class="col-header text-right nowrap">ทุนจดทะเบียน</th>
-              <th class="col-header text-right nowrap">กำไร</th>
+              <th class="col-header text-right nowrap">มูลค่าโครงการ</th>
+              <th class="col-header nowrap">Stage</th>
               <th class="col-header nowrap">สถานะล่าสุด</th>
               <th class="col-header text-center nowrap">ติดต่อล่าสุด</th>
               <th class="col-header text-center nowrap">นัดถัดไป</th>
@@ -266,9 +265,8 @@ export const printHTMLTable = (leads, title = "รายงานสรุปข
                 <td style="line-height: 1.4; max-width: 140px; white-space: normal; word-wrap: break-word;">${l.companyName || '-'}</td>
                 <td class="nowrap">${l.contactName || '-'}</td>
                 <td class="nowrap">${l.contactPhone || '-'}</td>
-                <td class="text-right nowrap">${Number(l.revenue || 0).toLocaleString()}</td>
-                <td class="text-right nowrap">${l.registeredCapital ? Number(l.registeredCapital).toLocaleString() : '-'}</td>
-                <td class="text-right nowrap">${Number(l.profit || 0).toLocaleString()}</td>
+                <td class="text-right nowrap">${l.dealValue ? Number(l.dealValue).toLocaleString() : '-'}</td>
+                <td class="nowrap">${l.stage || '-'}</td>
                 <td class="nowrap"><b>${l.latestStatus || '-'}</b></td>
                 <td class="text-center nowrap">${formatDateShort(l.latestContactDate || l.updatedAt)}</td>
                 <td class="text-center nowrap">${formatDateShort(l.nextFollowupDate)}</td>
@@ -278,7 +276,7 @@ export const printHTMLTable = (leads, title = "รายงานสรุปข
           </tbody>
           <tfoot>
             <!-- ขอบกระดาษด้านล่าง 2cm สำหรับทุกหน้า -->
-            <tr><td colspan="11" style="height: 2cm; border: none; padding: 0;"></td></tr>
+            <tr><td colspan="10" style="height: 2cm; border: none; padding: 0;"></td></tr>
           </tfoot>
         </table>
         

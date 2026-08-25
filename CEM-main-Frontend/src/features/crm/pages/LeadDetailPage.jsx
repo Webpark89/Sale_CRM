@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas";
 import Swal from "sweetalert2";
 import { RG } from "../constants/theme";
-import { STAGES, STAGE_STATUS_MAP, ALL_STATUSES } from "../constants/status";
+import { STAGES, STAGE_STATUS_MAP, ALL_STATUSES, STAGE_COLORS } from "../constants/status";
 import { parseDateTH, today, fmtNum, formatNumberWithCommas, parseNumberFromCommas, PROVINCES, formatPhoneNumber } from "../crmHelpers/helpers";
 import { API_BASE_URL } from "../services/api";
 import Btn from "../components/common/Btn";
@@ -258,7 +258,7 @@ export default function LeadDetailPage({ leads = [], followups, onSave, onSaveFo
       {/* Main UI */}
       <div style={{ background: RG.surface, padding: "10px", borderRadius: "8px" }}>
         
-        {/* ส่วน Header ของ Modal (ปุ่ม Tabs และปุ่ม Export) */}
+        {/* ส่วน Header ของ Modal (ปุ่ม Tabs) */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div style={{ display: "flex", gap: 8 }}>
             {["info", "followup"].map(t => (
@@ -267,16 +267,6 @@ export default function LeadDetailPage({ leads = [], followups, onSave, onSaveFo
               </button>
             ))}
           </div>
-          
-          {/* ปุ่ม Export JPG จะแสดงเฉพาะตอนที่ไม่ได้กดแก้ไขข้อมูลอยู่ */}
-          {!editing && (
-            <button 
-              onClick={handleExportJPG} 
-              style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", border: `1px solid ${RG.border}`, backgroundColor: "#f9f9f9", color: RG.text, cursor: "pointer", fontWeight: 600, fontSize: 13 }}
-            >
-              📸 Export (JPG)
-            </button>
-          )}
         </div>
 
         <div style={{ minHeight: 550 }}>
@@ -444,35 +434,79 @@ export default function LeadDetailPage({ leads = [], followups, onSave, onSaveFo
 
         {tab === "followup" && (
           <div>
+            <div style={{ marginBottom: 20 }}>
+              <h3 style={{ margin: 0, fontSize: 18, color: RG.text, fontFamily: "'Sarabun', sans-serif" }}>
+                ประวัติการติดตามของ {lead.companyName}
+              </h3>
+              <p style={{ margin: "4px 0 0 0", color: RG.textMuted, fontSize: 14 }}>
+                ข้อมูลการพูดคุย อัปเดตสถานะ และการนัดหมายทั้งหมดสำหรับลีดนี้
+              </p>
+            </div>
             {fups.length > 0 && (
-              <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20 }}>
-                <thead>
-                  <tr style={{ background: RG.text }}>
-                    {["ครั้งที่", "วันที่", "รายละเอียด", "Stage", "สถานะ", "ติดตามครั้งถัดไป", "ไฟล์แนบ"].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: RG.surface, fontSize: 13, fontWeight: 600 }}>{h}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...fups].sort((a, b) => b.sequence - a.sequence).map((f, i) => (
-                    <tr key={f.id} style={{ background: i % 2 === 0 ? RG.rowOdd : RG.rowEven }}>
-                      <td style={{ padding: "10px 12px", fontSize: 13, color: RG.text }}>{f.sequence}</td>
-                      <td style={{ padding: "10px 12px", fontSize: 13, color: RG.text }}>{parseDateTH(f.date)}</td>
-                      <td style={{ padding: "10px 12px", fontSize: 13, color: RG.text, maxWidth: 250 }} title={f.detail}>
-                        <div style={{ display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", whiteSpace: "pre-wrap" }}>
-                          {f.detail}
-                        </div>
-                      </td>
-                      <td style={{ padding: "10px 12px", fontSize: 13, color: RG.text, fontWeight: 600 }}>{Object.entries(STAGE_STATUS_MAP).find(([_, statuses]) => statuses.includes(f.status))?.[0] || "-"}</td>
-                      <td style={{ padding: "10px 12px" }}><StatusBadge status={f.status} /></td>
-                      <td style={{ padding: "10px 12px", fontSize: 13, color: RG.text }}>{parseDateTH(f.nextFollowupDate)}</td>
-                      <td style={{ padding: "10px 12px", fontSize: 13 }}>
-                        {f.pdfFile && (
-                          <a href={`${API_BASE_URL}/uploads/pdfs/${f.pdfFile}`} target="_blank" rel="noopener noreferrer" style={{ color: RG.primary, textDecoration: "underline" }}>ดูไฟล์ PDF</a>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div style={{ background: "#fff", borderRadius: 12, border: `1px solid ${RG.border}`, overflow: "hidden", marginBottom: 20 }}>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 700 }}>
+                    <thead>
+                      <tr style={{ borderBottom: `1px solid ${RG.border}` }}>
+                        {["ครั้งที่", "วันที่", "รายละเอียด", "Stage", "สถานะ", "ติดตามครั้งถัดไป", "ไฟล์แนบ"].map(h => (
+                          <th key={h} style={{ padding: "14px 18px", textAlign: "left", color: RG.textMuted, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...fups].sort((a, b) => b.sequence - a.sequence).map((f) => {
+                        const stageName = Object.entries(STAGE_STATUS_MAP).find(([_, statuses]) => statuses.includes(f.status))?.[0];
+                        const stageColor = STAGE_COLORS[stageName] || RG.primary;
+
+                        return (
+                          <tr key={f.id} style={{ borderBottom: `1px solid ${RG.border}`, transition: "background 0.15s ease" }}
+                            onMouseOver={e => e.currentTarget.style.background = "#f8fafc"}
+                            onMouseOut={e => e.currentTarget.style.background = "transparent"}>
+                            <td style={{ padding: "16px 18px", fontSize: 14, color: RG.text, fontWeight: 500 }}>{f.sequence}</td>
+                            <td style={{ padding: "16px 18px", fontSize: 14, color: RG.text }}>{parseDateTH(f.date)}</td>
+                            <td style={{ padding: "16px 18px", maxWidth: 280 }} title={f.detail}>
+                              <div style={{ fontSize: 13, color: RG.text, lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {f.detail || "-"}
+                              </div>
+                            </td>
+                            <td style={{ padding: "16px 18px", textAlign: "left" }}>
+                              {stageName ? (
+                                <div style={{ display: "inline-flex", justifyContent: "center", alignItems: "center", width: 90, background: `${stageColor}15`, color: stageColor, border: `1px solid ${stageColor}44`, padding: "4px 10px", borderRadius: 12, fontSize: 12, fontWeight: 700 }}>
+                                  
+                                  {stageName}
+                                </div>
+                              ) : <span style={{ color: RG.textMuted }}>-</span>}
+                            </td>
+                            <td style={{ padding: "16px 18px", textAlign: "left", whiteSpace: "nowrap" }}>
+                              {f.status ? (
+                                <div style={{ display: "inline-flex", justifyContent: "center", alignItems: "center", width: 110, background: RG.surface, color: RG.text, border: `1px solid ${RG.border}`, padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
+                                  {f.status}
+                                </div>
+                              ) : <span style={{ color: RG.textMuted }}>-</span>}
+                            </td>
+                            <td style={{ padding: "16px 18px", fontSize: 13, color: RG.text, fontWeight: 500, whiteSpace: "nowrap" }}>
+                              {f.nextFollowupDate ? parseDateTH(f.nextFollowupDate) : "-"}
+                            </td>
+                            <td style={{ padding: "16px 18px" }}>
+                              {f.pdfFile ? (
+                                <a
+                                  href={`${API_BASE_URL}/uploads/pdfs/${f.pdfFile}`}
+                                  target="_blank" rel="noopener noreferrer"
+                                  style={{ display: "inline-flex", alignItems: "center", gap: 5, color: RG.primary, fontSize: 12, fontWeight: 500, textDecoration: "none", background: "#f1f5f9", padding: "6px 12px", borderRadius: 6, transition: "background 0.15s" }}
+                                  onMouseOver={e => e.currentTarget.style.background = "#e2e8f0"}
+                                  onMouseOut={e => e.currentTarget.style.background = "#f1f5f9"}
+                                >
+                                  ดูไฟล์ PDF
+                                </a>
+                              ) : <span style={{ color: RG.textMuted }}>-</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             )}
             
             {/* ซ่อนปุ่ม/ฟอร์มเพิ่มการติดตามตอน Export หรือเมื่อเป็น readOnly */}

@@ -11,7 +11,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
       <App />
-      <Toaster position="bottom-right" richColors closeButton />
+      <Toaster position="bottom-right" richColors closeButton toastOptions={{ style: { width: "auto", minWidth: 300 } }} />
     </BrowserRouter>
   </React.StrictMode>,
 );

@@ -94,21 +94,18 @@ export default function Dashboard({ leads, followups, currentUser, onSelectLead 
     });
     const td=today();
     const s=fl.reduce((a,l)=>{
-      if(l.stage==='Closed') {
-        a.closed++;
-        if(l.latestStatus==='Won'){a.won++; a.wonRev+=(Number(l.dealValue)||0);}
-        else if(l.latestStatus==='Lost'){a.lost++;}
-      } else {
-        if(l.dealValue) a.activeRev+=(Number(l.dealValue)||0);
-        if(l.latestContactDate){
-          const diff=(new Date()-new Date(l.latestContactDate))/864e5;
-          if(diff>14) a.stale++;
+        if(l.stage==='Closed') {
+          a.closed++;
+          if(l.latestStatus==='Won'){a.won++; a.wonRev+=(Number(l.dealValue)||0);}
+          else if(l.latestStatus==='Lost' || l.latestStatus==='Lost (Contact)' || l.latestStatus==='Lost (Closed)'){a.lost++;}
+        } else {
+          if(l.dealValue) a.activeRev+=(Number(l.dealValue)||0);
+          if(l.nextFollowupDate && l.nextFollowupDate < td) a.stale++;
         }
-      }
-      if(l.nextFollowupDate&&l.nextFollowupDate<=td&&l.stage!=='Closed') a.need++;
-      if(l.stage) a.sc[l.stage]=(a.sc[l.stage]||0)+1;
-      return a;
-    },{closed:0,won:0,lost:0,wonRev:0,activeRev:0,stale:0,need:0,sc:{}});
+        if(l.nextFollowupDate && l.nextFollowupDate === td && l.stage !== 'Closed') a.need++;
+        if(l.stage) a.sc[l.stage]=(a.sc[l.stage]||0)+1;
+        return a;
+      },{closed:0,won:0,lost:0,wonRev:0,activeRev:0,stale:0,need:0,sc:{}});
 
     const pie=STAGES.map(n=>({name:n,value:s.sc[n]||0})).filter(x=>x.value>0);
     const funnel=STAGES.filter(n=>n!=='Closed').map(n=>({name:n,value:s.sc[n]||0,fill:STAGE_COLORS[n]}));
@@ -146,8 +143,8 @@ export default function Dashboard({ leads, followups, currentUser, onSelectLead 
   const kpis=[
     {label:'ลีดทั้งหมด',value:total,icon:UsersRound,c:RG.primary},
     {label:'ต้องติดตามวันนี้',value:need,icon:Bell,c:'#C62828'},
-    {label:'ยอดเงิน Pipeline',value:activeRev>=1000000?(activeRev/1000000).toFixed(1)+'M':activeRev>=1000?(activeRev/1000).toFixed(1)+'k':activeRev,icon:CircleDollarSign,c:'#F59E0B'},
-    {label:'Stale (>14วัน)',value:stale,icon:AlertTriangle,c:'#ef4444'},
+    {label:'ยอดเงิน Pipeline',value:new Intl.NumberFormat('en-US').format(activeRev),icon:CircleDollarSign,c:'#F59E0B'},
+    {label:'เลยกำหนดติดตาม',value:stale,icon:AlertTriangle,c:'#ef4444'},
     {label:'Approval',value:sc['Approval']||0,icon:CheckCircle,c:STAGE_COLORS['Approval']},
     {label:'Proposal',value:sc['Proposal']||0,icon:FileText,c:STAGE_COLORS['Proposal']},
     {label:'Meeting',value:sc['Meeting']||0,icon:Calendar,c:STAGE_COLORS['Meeting']},
@@ -253,9 +250,8 @@ export default function Dashboard({ leads, followups, currentUser, onSelectLead 
             React.createElement('div', { style: { position: 'absolute', top: -20, right: -20, width: 70, height: 70, borderRadius: '50%', background: `${k.c}15` } }),
             React.createElement('div', { style: { position: 'absolute', bottom: -15, right: 5, width: 40, height: 40, borderRadius: '50%', background: `${k.c}10` } }),
             React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative' } },
-              React.createElement('div', null,
-                React.createElement('div', { style: { fontSize: 11, fontFamily: RG.fontHeading, fontWeight: 600, color: RG.textMuted, marginBottom: 4 } }, k.label),
-                React.createElement('div', { style: { fontSize: 24, fontWeight: 800, fontFamily: RG.fontHeading, color: k.c, lineHeight: 1 } }, k.value)
+              React.createElement('div', { style: { overflow: 'hidden', minWidth: 0, paddingRight: 8 } }, React.createElement('div', { style: { fontSize: 11, fontFamily: RG.fontHeading, fontWeight: 600, color: RG.textMuted, marginBottom: 4, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' } }, k.label),
+                React.createElement('div', { style: { fontSize: String(k.value).length > 12 ? 16 : String(k.value).length > 9 ? 18 : String(k.value).length > 7 ? 20 : 24, fontWeight: 800, fontFamily: RG.fontHeading, color: k.c, lineHeight: 1, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '100%' } }, k.value)
               ),
               React.createElement('div', { style: { opacity: 0.9, color: k.c, display: 'flex', alignItems: 'center' } }, React.createElement(k.icon, { size: 24, strokeWidth: 1.5 }))
             )
@@ -270,9 +266,8 @@ export default function Dashboard({ leads, followups, currentUser, onSelectLead 
           },
             React.createElement('div', { style: { position: 'absolute', top: -20, right: -20, width: 70, height: 70, borderRadius: '50%', background: `${k.c}15` } }),
             React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative' } },
-              React.createElement('div', null,
-                React.createElement('div', { style: { fontSize: 11, fontFamily: RG.fontHeading, fontWeight: 600, color: RG.textMuted, marginBottom: 2 } }, k.label),
-                React.createElement('div', { style: { fontSize: 22, fontWeight: 800, fontFamily: RG.fontHeading, color: k.c, lineHeight: 1 } }, k.value)
+              React.createElement('div', { style: { overflow: 'hidden', minWidth: 0, paddingRight: 8 } }, React.createElement('div', { style: { fontSize: 11, fontFamily: RG.fontHeading, fontWeight: 600, color: RG.textMuted, marginBottom: 2, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' } }, k.label),
+                React.createElement('div', { style: { fontSize: String(k.value).length > 12 ? 14 : String(k.value).length > 9 ? 16 : String(k.value).length > 7 ? 18 : 22, fontWeight: 800, fontFamily: RG.fontHeading, color: k.c, lineHeight: 1, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '100%' } }, k.value)
               ),
               React.createElement('div', { style: { opacity: 0.9, color: k.c, display: 'flex', alignItems: 'center' } }, React.createElement(k.icon, { size: 20, strokeWidth: 1.5 }))
             )

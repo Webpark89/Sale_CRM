@@ -1,0 +1,47 @@
+const fs = require('fs');
+
+let file = 'd:/Sale_CRM/CEM-main-Frontend/src/features/crm/components/modals/AddLeadModal.jsx';
+let content = fs.readFileSync(file, 'utf8');
+
+const regex = /const handleSave = \(\) => \{\n\s*if \(taxIdError\)/;
+const newStr = `const handleSave = () => {
+    if (!form.contactPhone || !form.contactPhone.trim()) {
+      notify.error("กรุณากรอกเบอร์โทรศัพท์");
+      return;
+    }
+    if (form.contactName && /[^a-zA-Zก-๙0-9\\s]/.test(form.contactName)) {
+      notify.error("ชื่อผู้ติดต่อห้ามมีตัวอักษรพิเศษ");
+      return;
+    }
+    if (taxIdError)`;
+
+if(regex.test(content)) {
+  content = content.replace(regex, newStr);
+  fs.writeFileSync(file, content);
+  console.log('AddLeadModal patched');
+} else {
+  console.log('Regex not matched AddLeadModal');
+}
+
+let file2 = 'd:/Sale_CRM/CEM-main-Frontend/src/features/crm/components/modals/CompanyModal.jsx';
+let content2 = fs.readFileSync(file2, 'utf8');
+
+const regex2 = /const handleSave = async \(\) => \{\n\s*if \(taxIdError\)/;
+const newStr2 = `const handleSave = async () => {
+    if (!form.contactPhone || !form.contactPhone.trim()) {
+      notify.error("กรุณากรอกเบอร์โทรศัพท์");
+      return;
+    }
+    if (form.contactName && /[^a-zA-Zก-๙0-9\\s]/.test(form.contactName)) {
+      notify.error("ชื่อผู้ติดต่อห้ามมีตัวอักษรพิเศษ");
+      return;
+    }
+    if (taxIdError)`;
+
+if(regex2.test(content2)) {
+  content2 = content2.replace(regex2, newStr2);
+  fs.writeFileSync(file2, content2);
+  console.log('CompanyModal patched');
+} else {
+  console.log('Regex not matched CompanyModal');
+}

@@ -77,11 +77,29 @@ export default function AppModals({
         </Modal>
       )}
 
-      
-
-      
-
-      
+      {showDeleteConfirm && (
+        <Modal title="ยืนยันการลบข้อมูลที่เลือก" onClose={() => setShowDeleteConfirm(false)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <p style={{ color: RG.text, fontSize: 14 }}>
+              คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลลีดที่เลือกทั้งหมดจำนวน {checked.length} รายการ? การกระทำนี้ไม่สามารถย้อนกลับได้
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+              <button 
+                onClick={() => setShowDeleteConfirm(false)} 
+                style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${RG.border}`, background: RG.surface, cursor: "pointer" }}
+              >
+                ยกเลิก
+              </button>
+              <button 
+                onClick={deleteSelected} 
+                style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: "#ef4444", color: "#fff", cursor: "pointer" }}
+              >
+                ยืนยันการลบ
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </>
   );
 }

@@ -43,6 +43,18 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
   };
 
   const handleSaveInfo = async () => {
+    if (!form.province || !form.province.trim()) {
+      notify.error("กรุณาเลือกจังหวัด");
+      return;
+    }
+    if (!form.contactPhone || !form.contactPhone.trim()) {
+      notify.error("กรุณากรอกเบอร์โทรศัพท์");
+      return;
+    }
+    if (form.contactName && /[^a-zA-Zก-๙0-9\s]/.test(form.contactName)) {
+      notify.error("ชื่อผู้ติดต่อห้ามมีตัวอักษรพิเศษ");
+      return;
+    }
     if (taxIdError) {
       notify.error("ไม่สามารถบันทึกได้ เนื่องจากเลขนิติบุคคลซ้ำในระบบ");
       return;
@@ -498,7 +510,7 @@ export default function CompanyModal({ lead, leads = [], followups, onClose, onS
                         if (fForm.nextFollowupDate && fForm.date && fForm.nextFollowupDate < fForm.date) {
                           return notify.error("วันที่ติดตามครั้งถัดไป ห้ามอยู่ก่อน วันที่ติดต่อ");
                         }
-                        const optionalStatuses = ['Won', 'Lost', 'ติดต่อไม่ได้'];
+                        const optionalStatuses = ['Won', 'Lost', 'Lost (Contact)', 'Lost (Closed)', 'ติดต่อไม่ได้'];
                         if (!optionalStatuses.includes(fForm.status) && !fForm.nextFollowupDate) {
                           return notify.error("กรุณาระบุ วันที่ติดตามครั้งถัดไป สำหรับสถานะนี้");
                         }

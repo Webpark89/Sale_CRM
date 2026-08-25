@@ -7,11 +7,11 @@ export const STAGES = ['Contact', 'Meeting', 'Proposal', 'Approval', 'Closed'];
 
 // Status ที่รองรับในแต่ละ Stage
 export const STAGE_STATUS_MAP = {
-  Contact:  ['ติดต่อไม่ได้', 'Follow', 'นัด Meeting', 'Lost'],
+  Contact:  ['ติดต่อไม่ได้', 'Follow', 'นัด Meeting', 'Lost (Contact)'],
   Meeting:  ['เก็บ Requirement', 'รอข้อมูล', 'นัดเพิ่ม', 'ทำ Proposal'],
   Proposal: ['ส่ง Proposal', 'แก้ไข', 'ต่อรอง', 'รออนุมัติ'],
   Approval: ['รองบ', 'เปิด PR', 'รอ PO', 'Hold'],
-  Closed:   ['Won', 'Lost'],
+  Closed:   ['Won', 'Lost (Closed)'],
 };
 
 // ทุก status ในระบบ (flatten)
@@ -35,7 +35,7 @@ export const STATUS_COLORS = {
   'ติดต่อไม่ได้': '#6B7280',
   'Follow':       '#3B82F6',
   'นัด Meeting':  '#F59E0B',
-  'Lost':         '#EF4444',
+  'Lost (Contact)': '#EF4444',
   // Meeting
   'เก็บ Requirement': '#D97706',
   'รอข้อมูล':          '#B45F06',
@@ -53,7 +53,8 @@ export const STATUS_COLORS = {
   'Hold':    '#6B7280',
   // Closed
   'Won':  '#10B981',
-  'Lost': '#EF4444',
+  'Lost (Closed)': '#EF4444',
+  'Lost': '#EF4444', // Backward compat
 };
 
 // หา stage จาก status
@@ -74,7 +75,7 @@ export const isValidStageStatus = (stage, status) => {
 export const STATUS_ENUM = {
   WON:    'Won',
   CLOSED: 'Won',          // backward compat
-  LOST:   'Lost',
+  LOST:   'Lost (Closed)',
   MEETING: 'Meeting',     // stage name
 };
 

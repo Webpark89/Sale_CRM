@@ -46,6 +46,18 @@ export default function AddLeadModal({ onClose, onSave, leads = [], currentUser,
   };
 
   const handleSave = () => {
+    if (!form.province || !form.province.trim()) {
+      notify.error("กรุณาเลือกจังหวัด");
+      return;
+    }
+    if (!form.contactPhone || !form.contactPhone.trim()) {
+      notify.error("กรุณากรอกเบอร์โทรศัพท์");
+      return;
+    }
+    if (form.contactName && /[^a-zA-Zก-๙0-9\s]/.test(form.contactName)) {
+      notify.error("ชื่อผู้ติดต่อห้ามมีตัวอักษรพิเศษ");
+      return;
+    }
     if (taxIdError) {
       notify.error("ไม่สามารถบันทึกได้ เนื่องจากเลขนิติบุคคลซ้ำในระบบ");
       return;

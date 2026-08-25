@@ -40,7 +40,16 @@ export default function FilterModal({
   });
 
   const toggleStatus = (s) => {
-    setLocalStatus(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+    setLocalStatus(prev => {
+      const nextStages = prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s];
+      setLocalLatestStatus(prevStatuses => {
+        const allowedStatuses = nextStages.length > 0 
+          ? nextStages.reduce((acc, stage) => [...acc, ...(STAGE_STATUS_MAP[stage] || [])], [])
+          : ALL_STATUSES;
+        return prevStatuses.filter(st => allowedStatuses.includes(st));
+      });
+      return nextStages;
+    });
   };
 
   const toggleLatestStatus = (s) => {
@@ -136,7 +145,8 @@ export default function FilterModal({
     setLocalFin({
       revenue: { min: "", max: "" },
       registeredCapital: { min: "", max: "" },
-      profit: { min: "", max: "" }
+      profit: { min: "", max: "" },
+      dealValue: { min: "", max: "" }
     });
     setLocalDate({
       latestContactDate: { min: "", max: "", type: "all" },
@@ -191,196 +201,240 @@ export default function FilterModal({
   };
 
   return (
-    <Modal title="ตัวกรองขั้นสูง (Advanced Filters)" onClose={onClose} width={500}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <Modal title="ตัวกรองขั้นสูง (Advanced Filters)" onClose={onClose} width={920}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         
-        {/* Stage Filter */}
-        <div>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 12 }}>กรองตาม Stage</label>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {STAGES.map(s => {
-              const isActive = localStatus.includes(s);
-              return (
-                <button 
-                  key={s} 
-                  onClick={() => toggleStatus(s)} 
-                  style={{ 
-                    padding: "6px 12px", 
-                    borderRadius: 20, 
-                    border: `1.5px solid ${isActive ? STAGE_COLORS[s] : RG.border}`, 
-                    background: isActive ? STAGE_COLORS[s] + "22" : RG.surface, 
-                    color: isActive ? STAGE_COLORS[s] : RG.textMuted, 
-                    fontSize: 13, 
-                    cursor: "pointer", 
-                    fontWeight: isActive ? 700 : 400, 
-                    fontFamily: "'Sarabun', sans-serif",
-                    transition: "all 0.2s"
-                  }}
-                >
-                  {s}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Status Filter */}
-        <div>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 12 }}>กรองตามสถานะ (Status)</label>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {(localStatus.length > 0 ? [...new Set(localStatus.reduce((acc, stage) => [...acc, ...(STAGE_STATUS_MAP[stage] || [])], []))] : ALL_STATUSES).map(s => {
-              const isActive = localLatestStatus.includes(s);
-              const sColor = STATUS_COLORS[s] || RG.textMuted;
-              return (
-                <button 
-                  key={s} 
-                  onClick={() => toggleLatestStatus(s)} 
-                  style={{ 
-                    padding: "4px 10px", 
-                    borderRadius: 20, 
-                    border: `1.5px solid ${isActive ? sColor : RG.border}`, 
-                    background: isActive ? sColor + "22" : RG.surface, 
-                    color: isActive ? sColor : RG.textMuted, 
-                    fontSize: 12, 
-                    cursor: "pointer", 
-                    fontWeight: isActive ? 700 : 400, 
-                    fontFamily: "'Sarabun', sans-serif",
-                    transition: "all 0.2s"
-                  }}
-                >
-                  {s}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Province Filter */}
-        <div>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 12 }}>กรองตามจังหวัด</label>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <select
-              value=""
-              onChange={(e) => {
-                if (e.target.value && !localProvince.includes(e.target.value)) {
-                  setLocalProvince([...localProvince, e.target.value]);
-                }
-              }}
-              style={{ ...inputStyle, width: "100%" }}
-            >
-              <option value="">-- เลือกจังหวัด --</option>
-              {PROVINCES.filter(p => !localProvince.includes(p)).map(p => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-            
-            {localProvince.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
-                {localProvince.map(p => (
-                  <div 
-                    key={p} 
-                    style={{ 
-                      background: RG.primary + "15", 
-                      color: RG.primary, 
-                      padding: "4px 10px", 
-                      borderRadius: 12, 
-                      fontSize: 12, 
-                      display: "flex", 
-                      alignItems: "center", 
-                      gap: 6,
-                      fontWeight: 600
-                    }}
-                  >
-                    {p}
-                    <span 
-                      onClick={() => toggleProvince(p)}
-                      style={{ cursor: "pointer", opacity: 0.6 }}
+        {/* Top Section: 2 Columns with Divider */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1px 1fr", gap: 24, alignItems: "start" }}>
+          
+          {/* Left Column: Stage, Status, Province */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Stage Filter */}
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 8 }}>กรองตาม Stage</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", borderLeft: `2px solid ${RG.border}`, borderRight: `2px solid ${RG.border}`, padding: "0 8px" }}>
+                {STAGES.map(s => {
+                  const isActive = localStatus.includes(s);
+                  return (
+                    <button 
+                      key={s} 
+                      onClick={() => toggleStatus(s)} 
+                      style={{ 
+                        padding: "5px 12px", 
+                        borderRadius: 20, 
+                        border: `1.5px solid ${isActive ? STAGE_COLORS[s] : RG.border}`, 
+                        background: isActive ? STAGE_COLORS[s] + "22" : RG.surface, 
+                        color: isActive ? STAGE_COLORS[s] : RG.textMuted, 
+                        fontSize: 12, 
+                        cursor: "pointer", 
+                        fontWeight: isActive ? 700 : 400, 
+                        fontFamily: "'Sarabun', sans-serif",
+                        transition: "all 0.15s"
+                      }}
                     >
-                      ✕
-                    </span>
-                  </div>
-                ))}
+                      {s}
+                    </button>
+                  );
+                })}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
 
-        {/* Financial Filters */}
-        <div>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 12 }}>กรองข้อมูลการเงิน</label>
+            <hr style={{ border: "none", borderTop: `1px solid ${RG.border}`, margin: 0 }} />
+
+            {/* Status Filter */}
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 8 }}>กรองตามสถานะ (Status)</label>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {(localStatus.length > 0 ? localStatus : STAGES).map(stage => (
+                    <div key={stage}>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", borderLeft: `2px solid ${RG.border}`, borderRight: `2px solid ${RG.border}`, padding: "0 8px" }}>
+                        {(STAGE_STATUS_MAP[stage] || []).map(s => {
+                          const isActive = localLatestStatus.includes(s);
+                          return (
+                            <button 
+                              key={s} 
+                              onClick={() => toggleLatestStatus(s)} 
+                              style={{ 
+                                padding: "4px 9px", 
+                                borderRadius: 20, 
+                                border: `1.5px solid ${isActive ? RG.border : RG.border}`, 
+                                background: isActive ? "#F1F5F9" : RG.surface, 
+                                color: isActive ? RG.text : RG.textMuted, 
+                                fontSize: 11, 
+                                cursor: "pointer", 
+                                fontWeight: isActive ? 700 : 400, 
+                                fontFamily: "'Sarabun', sans-serif",
+                                transition: "all 0.15s"
+                              }}
+                            >
+                              {s}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            <hr style={{ border: "none", borderTop: `1px solid ${RG.border}`, margin: 0 }} />
+
+            {/* Province Filter */}
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 8 }}>กรองตามจังหวัด</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <select
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value && !localProvince.includes(e.target.value)) {
+                      setLocalProvince([...localProvince, e.target.value]);
+                    }
+                  }}
+                  style={{ ...inputStyle, width: "100%", padding: "7px 12px", fontSize: 13 }}
+                >
+                  <option value="">-- เลือกจังหวัด --</option>
+                  {PROVINCES.filter(p => !localProvince.includes(p)).map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+                
+                {localProvince.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 68, overflowY: "auto" }}>
+                    {localProvince.map(p => (
+                      <div 
+                        key={p} 
+                        style={{ 
+                          background: RG.primary + "15", 
+                          color: RG.primary, 
+                          padding: "3px 8px", 
+                          borderRadius: 12, 
+                          fontSize: 11, 
+                          display: "flex", 
+                          alignItems: "center", 
+                          gap: 5,
+                          fontWeight: 600
+                        }}
+                      >
+                        {p}
+                        <span 
+                          onClick={() => toggleProvince(p)}
+                          style={{ cursor: "pointer", opacity: 0.7 }}
+                        >
+                          ✕
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Vertical Divider */}
+          <div style={{ width: 1, backgroundColor: RG.border, alignSelf: "stretch" }}></div>
+
+          {/* Right Column: Financial & Date Filters */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 120, fontSize: 13, color: RG.textMuted }}>รายได้รวม:</div>
-              <input 
-                type="text" 
-                placeholder="ขั้นต่ำ" 
-                value={formatNumberWithCommas(localFin.revenue.min)} 
-                onChange={e => handleFinChange("revenue", "min", parseNumberFromCommas(e.target.value))} 
-                style={{ ...inputStyle, flex: 1 }} 
-              />
-              <span style={{ color: RG.textMuted }}>-</span>
-              <input 
-                type="text" 
-                placeholder="สูงสุด" 
-                value={formatNumberWithCommas(localFin.revenue.max)} 
-                onChange={e => handleFinChange("revenue", "max", parseNumberFromCommas(e.target.value))} 
-                style={{ ...inputStyle, flex: 1 }} 
-              />
+            {/* Financial Filters */}
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 8 }}>กรองข้อมูลการเงิน</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 95, fontSize: 12, color: RG.textMuted, flexShrink: 0 }}>มูลค่าโครงการ:</div>
+                  <input 
+                    type="text" 
+                    placeholder="ขั้นต่ำ" 
+                    value={formatNumberWithCommas(localFin.dealValue?.min || "")} 
+                    onChange={e => handleFinChange("dealValue", "min", parseNumberFromCommas(e.target.value))} 
+                    style={{ ...inputStyle, flex: 1, padding: "6px 10px", fontSize: 12 }} 
+                  />
+                  <span style={{ color: RG.textMuted }}>-</span>
+                  <input 
+                    type="text" 
+                    placeholder="สูงสุด" 
+                    value={formatNumberWithCommas(localFin.dealValue?.max || "")} 
+                    onChange={e => handleFinChange("dealValue", "max", parseNumberFromCommas(e.target.value))} 
+                    style={{ ...inputStyle, flex: 1, padding: "6px 10px", fontSize: 12 }} 
+                  />
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 95, fontSize: 12, color: RG.textMuted, flexShrink: 0 }}>รายได้รวม:</div>
+                  <input 
+                    type="text" 
+                    placeholder="ขั้นต่ำ" 
+                    value={formatNumberWithCommas(localFin.revenue.min)} 
+                    onChange={e => handleFinChange("revenue", "min", parseNumberFromCommas(e.target.value))} 
+                    style={{ ...inputStyle, flex: 1, padding: "6px 10px", fontSize: 12 }} 
+                  />
+                  <span style={{ color: RG.textMuted }}>-</span>
+                  <input 
+                    type="text" 
+                    placeholder="สูงสุด" 
+                    value={formatNumberWithCommas(localFin.revenue.max)} 
+                    onChange={e => handleFinChange("revenue", "max", parseNumberFromCommas(e.target.value))} 
+                    style={{ ...inputStyle, flex: 1, padding: "6px 10px", fontSize: 12 }} 
+                  />
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 95, fontSize: 12, color: RG.textMuted, flexShrink: 0 }}>ทุนจดทะเบียน:</div>
+                  <input 
+                    type="text" 
+                    placeholder="ขั้นต่ำ" 
+                    value={formatNumberWithCommas(localFin.registeredCapital.min)} 
+                    onChange={e => handleFinChange("registeredCapital", "min", parseNumberFromCommas(e.target.value))} 
+                    style={{ ...inputStyle, flex: 1, padding: "6px 10px", fontSize: 12 }} 
+                  />
+                  <span style={{ color: RG.textMuted }}>-</span>
+                  <input 
+                    type="text" 
+                    placeholder="สูงสุด" 
+                    value={formatNumberWithCommas(localFin.registeredCapital.max)} 
+                    onChange={e => handleFinChange("registeredCapital", "max", parseNumberFromCommas(e.target.value))} 
+                    style={{ ...inputStyle, flex: 1, padding: "6px 10px", fontSize: 12 }} 
+                  />
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 95, fontSize: 12, color: RG.textMuted, flexShrink: 0 }}>กำไร:</div>
+                  <input 
+                    type="text" 
+                    placeholder="ขั้นต่ำ" 
+                    value={formatNumberWithCommas(localFin.profit.min)} 
+                    onChange={e => handleFinChange("profit", "min", parseNumberFromCommas(e.target.value))} 
+                    style={{ ...inputStyle, flex: 1, padding: "6px 10px", fontSize: 12 }} 
+                  />
+                  <span style={{ color: RG.textMuted }}>-</span>
+                  <input 
+                    type="text" 
+                    placeholder="สูงสุด" 
+                    value={formatNumberWithCommas(localFin.profit.max)} 
+                    onChange={e => handleFinChange("profit", "max", parseNumberFromCommas(e.target.value))} 
+                    style={{ ...inputStyle, flex: 1, padding: "6px 10px", fontSize: 12 }} 
+                  />
+                </div>
+
+              </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 120, fontSize: 13, color: RG.textMuted }}>ทุนจดทะเบียน:</div>
-              <input 
-                type="text" 
-                placeholder="ขั้นต่ำ" 
-                value={formatNumberWithCommas(localFin.registeredCapital.min)} 
-                onChange={e => handleFinChange("registeredCapital", "min", parseNumberFromCommas(e.target.value))} 
-                style={{ ...inputStyle, flex: 1 }} 
-              />
-              <span style={{ color: RG.textMuted }}>-</span>
-              <input 
-                type="text" 
-                placeholder="สูงสุด" 
-                value={formatNumberWithCommas(localFin.registeredCapital.max)} 
-                onChange={e => handleFinChange("registeredCapital", "max", parseNumberFromCommas(e.target.value))} 
-                style={{ ...inputStyle, flex: 1 }} 
-              />
-            </div>
+            <hr style={{ border: "none", borderTop: `1px solid ${RG.border}`, margin: 0 }} />
 
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 120, fontSize: 13, color: RG.textMuted }}>กำไร:</div>
-              <input 
-                type="text" 
-                placeholder="ขั้นต่ำ" 
-                value={formatNumberWithCommas(localFin.profit.min)} 
-                onChange={e => handleFinChange("profit", "min", parseNumberFromCommas(e.target.value))} 
-                style={{ ...inputStyle, flex: 1 }} 
-              />
-              <span style={{ color: RG.textMuted }}>-</span>
-              <input 
-                type="text" 
-                placeholder="สูงสุด" 
-                value={formatNumberWithCommas(localFin.profit.max)} 
-                onChange={e => handleFinChange("profit", "max", parseNumberFromCommas(e.target.value))} 
-                style={{ ...inputStyle, flex: 1 }} 
-              />
+            {/* Date Filters */}
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 8 }}>กรองข้อมูลวันที่</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {renderDateField("ติดต่อล่าสุด", "latestContactDate")}
+                {renderDateField("นัดถัดไป", "nextFollowupDate")}
+              </div>
             </div>
-
           </div>
-        </div>
 
-        {/* Date Filters */}
-        <div>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: RG.text, marginBottom: 12 }}>กรองข้อมูลวันที่</label>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {renderDateField("ติดต่อล่าสุด", "latestContactDate")}
-            {renderDateField("นัดถัดไป", "nextFollowupDate")}
-          </div>
         </div>
 
         {/* Actions */}
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, borderTop: `1px solid ${RG.border}`, paddingTop: 14 }}>
           <Btn variant="Secondary" onClick={handleClear}>ล้างตัวกรอง</Btn>
           <div style={{ display: "flex", gap: 8 }}>
             <Btn variant="Secondary" onClick={onClose}>ยกเลิก</Btn>
